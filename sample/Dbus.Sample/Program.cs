@@ -9,6 +9,19 @@ namespace Dbus.Sample
     {
         public static void Main(string[] args)
         {
+            Task.Run(work).Wait();
+        }
+
+        private static async Task work()
+        {
+            Console.WriteLine("Running");
+            using (var connection = await Connection.CreateAsync())
+            {
+                Console.WriteLine("Connected");
+                var path = await connection.HelloAsync();
+                Console.WriteLine($"Done: {path}");
+                Console.ReadLine();
+            }
         }
     }
 }
