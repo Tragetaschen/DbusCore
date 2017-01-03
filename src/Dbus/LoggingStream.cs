@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dbus
 {
@@ -24,17 +26,13 @@ namespace Dbus
 
         public override void Flush()
         {
+            // Called e.g. from StreamWriter's Dispose
             baseStream.Flush();
-            Console.WriteLine("Flush");
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            Console.Write($"r[{offset} {count}] ");
-            var result = baseStream.Read(buffer, offset, count);
-            if (result >= 0)
-                dump(buffer, offset, result);
-            return result;
+            throw new InvalidOperationException("Don't do synchronous reads");
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -49,9 +47,12 @@ namespace Dbus
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            Console.Write($"w[{offset} {count}] ");
-            dump(buffer, offset, count);
-            baseStream.Write(buffer, offset, count);
+            throw new InvalidOperationException("Don't do synchronous writes");
+        }
+
+        public override void WriteByte(byte value)
+        {
+            throw new InvalidOperationException("Don't synchronously write bytes");
         }
 
         private void dump(byte[] buffer, int offset, int length)
@@ -62,6 +63,28 @@ namespace Dbus
                 else
                     Console.Write($"x{buffer[i]:X} ");
             Console.WriteLine();
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            Console.Write($"ra[{offset} {count}] ");
+            var result = await baseStream.ReadAsync(buffer, offset, count, cancellationToken);
+            if (result >= 0)
+                dump(buffer, offset, result);
+            return result;
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            Console.Write($"wa[{offset} {count}] ");
+            dump(buffer, offset, count);
+            return baseStream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"fa");
+            return baseStream.FlushAsync(cancellationToken);
         }
 
         protected override void Dispose(bool disposing)

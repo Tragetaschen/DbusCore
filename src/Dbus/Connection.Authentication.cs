@@ -10,13 +10,12 @@ namespace Dbus
     {
         private static async Task authenticate(Stream stream)
         {
-            stream.WriteByte(0);
             using (var writer = new StreamWriter(stream, Encoding.ASCII, 32, true))
             using (var reader = new StreamReader(stream, Encoding.ASCII, false, 32, true))
             {
                 writer.NewLine = "\r\n";
 
-                await writer.WriteAsync("AUTH EXTERNAL ").ConfigureAwait(false);
+                await writer.WriteAsync("\0AUTH EXTERNAL ").ConfigureAwait(false);
 
                 var uid = getuid();
                 var stringUid = $"{uid}";
