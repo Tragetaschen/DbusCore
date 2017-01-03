@@ -40,18 +40,9 @@ namespace Dbus
             return result;
         }
 
-        private int calculateRequiredAlignment(int position, int alignment)
-        {
-            var bytesIntoAlignment = position & alignment - 1;
-            if (bytesIntoAlignment == 0)
-                return 0;
-            else
-                return alignment - bytesIntoAlignment;
-        }
-
         private int ensureAlignment(List<byte> message, int alignment)
         {
-            var result = calculateRequiredAlignment(message.Count, alignment);
+            var result = Alignment.Calculate(message.Count, alignment);
             for (var i = 0; i < result; ++i)
                 message.Add(0);
             return result;
@@ -137,75 +128,44 @@ namespace Dbus
 
                 if (fixedLengthHeader[0] != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
-                if (fixedLengthHeader[1] != 2)
-                    throw new InvalidDataException("Not a method return");
                 if (fixedLengthHeader[3] != 1)
                     throw new InvalidDataException("Wrong protocol version");
                 var bodyLength = BitConverter.ToInt32(fixedLengthHeader, 4);
                 //var receivedSerial = BitConverter.ToInt32(fixedLengthHeader, 8);
                 var receivedArrayLength = BitConverter.ToInt32(fixedLengthHeader, 12);
-
-                var arrayData = new byte[receivedArrayLength + calculateRequiredAlignment(receivedArrayLength, 8)];
-                await stream.ReadAsync(arrayData, 0, arrayData.Length, token).ConfigureAwait(false);
+                var headerBytes = new byte[receivedArrayLength + Alignment.Calculate(receivedArrayLength, 8)];
+                await stream.ReadAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
+                var header = new MessageHeader(headerBytes);
 
                 var body = new byte[bodyLength];
                 await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
 
-                var serial = 0;
-                var bodySignature = string.Empty;
-                var index = 0;
-                while (index < receivedArrayLength)
+                switch (fixedLengthHeader[1])
                 {
-                    var headerFieldTypeCode = arrayData[index];
-                    index += 4;
-                    switch (headerFieldTypeCode)
-                    {
-                        case 1: /* PATH: OBJECT_PATH */
-                        case 2: /* INTERFACE: STRING */
-                        case 3: /* MEMBER: STRING */
-                        case 4: /* ERROR_NAME: STRING */
-                        case 6: /* DESTINATION: STRING */
-                        case 7: /* SENDER: STRING */
-                            var stringLength = BitConverter.ToInt32(arrayData, index);
-                            index += 4 /* length */ + stringLength + 1 /* null byte*/;
-                            break;
-                        case 8: /* SIGNATURE: SIGNATURE */
-                            var signatureLength = arrayData[index];
-                            bodySignature = encoding.GetString(arrayData, index + 1, signatureLength);
-                            index += signatureLength + 1 /* null byte */;
-                            break;
-                        case 5: /* REPLY_SERIAL: UINT32 */
-                            serial = BitConverter.ToInt32(arrayData, index);
-                            index += 4;
-                            break;
-                        case 9: /* UNIX_FDS: UINT32 */
-                            index += 4;
-                            break;
-                    }
-                    index += calculateRequiredAlignment(index, 8);
+                    case 2:
+                        handleMethodReturn(header, body);
+                        break;
                 }
-
-                TaskCompletionSource<ReceivedMethodReturn> tcs;
-                if (!expectedMessages.TryRemove(serial, out tcs))
-                    throw new InvalidOperationException("Couldn't find the method call for the method return");
-                var receivedMessage = new ReceivedMethodReturn
-                {
-                    Body = body,
-                    Signature = bodySignature,
-                };
-                Console.WriteLine("set result");
-                try
-                {
-                    tcs.SetResult(receivedMessage);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-                Console.WriteLine("next round");
             }
+        }
+
+        private void handleMethodReturn(
+            MessageHeader header,
+            byte[] body
+        )
+        {
+            TaskCompletionSource<ReceivedMethodReturn> tcs;
+            if (!expectedMessages.TryRemove(header.ReplySerial, out tcs))
+                throw new InvalidOperationException("Couldn't find the method call for the method return");
+            var receivedMessage = new ReceivedMethodReturn
+            {
+                Body = body,
+                Signature = header.BodySignature,
+            };
+
+            tcs.SetResult(receivedMessage);
         }
 
         public void Dispose()
