@@ -71,6 +71,29 @@ namespace Dbus
 
         public async Task<string> HelloAsync()
         {
+            var receivedMessage = await sendMethodCall(
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "Hello",
+                "org.freedesktop.DBus"
+            );
+            if (receivedMessage.Signature != "s")
+                throw new InvalidOperationException("Unexpected body signature");
+
+            var body = receivedMessage.Body;
+            var stringLength = BitConverter.ToInt32(body, 0);
+            var path = encoding.GetString(body, 4, stringLength);
+
+            return path;
+        }
+
+        private async Task<ReceivedMessage> sendMethodCall(
+            string path,
+            string interfaceName,
+            string methodName,
+            string destination
+        )
+        {
             var serial = Interlocked.Increment(ref serialCounter);
 
             var header = new List<byte>();
@@ -86,19 +109,19 @@ namespace Dbus
             arrayLength += ensureAlignment(header, 8);
             header.Add(1); // path
             ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'o', "/org/freedesktop/DBus");
+            arrayLength += addStringVariant(header, (byte)'o', path);
             arrayLength += ensureAlignment(header, 8);
             header.Add(2); // interface
             ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', "org.freedesktop.DBus");
+            arrayLength += addStringVariant(header, (byte)'s', interfaceName);
             arrayLength += ensureAlignment(header, 8);
             header.Add(3); // member
             ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', "Hello");
+            arrayLength += addStringVariant(header, (byte)'s', methodName);
             arrayLength += ensureAlignment(header, 8);
             header.Add(6); // destination
             ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', "org.freedesktop.DBus");
+            arrayLength += addStringVariant(header, (byte)'s', destination);
             ensureAlignment(header, 8); // final padding
 
             var realLength = BitConverter.GetBytes(arrayLength);
@@ -113,13 +136,7 @@ namespace Dbus
             var buffer = header.ToArray();
             await stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 
-            var receivedMessage = await tcs.Task;
-
-            var body = receivedMessage.Body;
-            var stringLength = BitConverter.ToInt32(body, 0);
-            var path = encoding.GetString(body, 4, stringLength);
-
-            return path;
+            return await tcs.Task;
         }
 
         private async Task receive()
