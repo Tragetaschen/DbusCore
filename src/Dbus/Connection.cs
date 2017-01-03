@@ -12,12 +12,12 @@ namespace Dbus
 {
     public partial class Connection : IDisposable
     {
-        private Socket socket;
-        private Stream stream;
         private readonly CancellationTokenSource receiveCts;
+        private readonly Socket socket;
+        private readonly Stream stream;
         private int serialCounter;
         private static readonly Encoding encoding = Encoding.UTF8;
-        private ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
+        private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
 
         private Connection()
         {
@@ -26,13 +26,17 @@ namespace Dbus
             socket.Connect(new systemBusEndPoint());
             stream = new LoggingStream(new NetworkStream(socket));
             receiveCts = new CancellationTokenSource();
-            Task.Run(receive);
         }
 
         public async static Task<Connection> CreateAsync()
         {
             var result = new Connection();
             await authenticate(result.stream).ConfigureAwait(false);
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            // Ideally, there would be a DisposeAsync to properly await the receive task.
+            // It's stopped properly, though
+            Task.Run(result.receive);
+#pragma warning restore CS4014
             return result;
         }
 
