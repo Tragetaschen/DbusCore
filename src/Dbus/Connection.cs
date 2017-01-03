@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -12,13 +14,18 @@ namespace Dbus
     {
         private Socket socket;
         private Stream stream;
+        private int serialCounter;
         private static readonly Encoding encoding = Encoding.UTF8;
+        private ConcurrentDictionary<int, TaskCompletionSource<ReceivedMessage>> expectedMessages;
 
         private Connection()
         {
+            expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMessage>>();
             socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             socket.Connect(new systemBusEndPoint());
             stream = new LoggingStream(new NetworkStream(socket));
+
+            Task.Run(receive);
         }
 
         public async static Task<Connection> CreateAsync()
@@ -64,7 +71,7 @@ namespace Dbus
 
         public async Task<string> HelloAsync()
         {
-            var serial = 42;
+            var serial = Interlocked.Increment(ref serialCounter);
 
             var header = new List<byte>();
             header.Add((byte)'l'); // little endian
@@ -100,32 +107,88 @@ namespace Dbus
             header[14] = realLength[2];
             header[15] = realLength[3];
 
+            var tcs = new TaskCompletionSource<ReceivedMessage>();
+            expectedMessages[serial] = tcs;
+
             var buffer = header.ToArray();
             await stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 
+            var receivedMessage = await tcs.Task;
 
-            var fixedLengthHeader = new byte[16]; // header up until the array length
-            await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length).ConfigureAwait(false);
-
-            if (fixedLengthHeader[0] != (byte)'l')
-                throw new InvalidDataException("Wrong endianess");
-            if (fixedLengthHeader[1] != 2)
-                throw new InvalidDataException("Not a method return");
-            if (fixedLengthHeader[3] != 1)
-                throw new InvalidDataException("Wrong protocol version");
-            var bodyLength = BitConverter.ToInt32(fixedLengthHeader, 4);
-            //var receivedSerial = BitConverter.ToInt32(fixedLengthHeader, 8);
-            var receivedArrayLength = BitConverter.ToInt32(fixedLengthHeader, 12);
-
-            var arrayData = new byte[receivedArrayLength + calculateRequiredAlignment(receivedArrayLength, 8)];
-            await stream.ReadAsync(arrayData, 0, arrayData.Length).ConfigureAwait(false);
-
-            var body = new byte[bodyLength];
-            await stream.ReadAsync(body, 0, body.Length).ConfigureAwait(false);
+            var body = receivedMessage.Body;
             var stringLength = BitConverter.ToInt32(body, 0);
             var path = encoding.GetString(body, 4, stringLength);
 
             return path;
+        }
+
+        private async Task receive()
+        {
+            var fixedLengthHeader = new byte[16]; // header up until the array length
+            while (true)
+            {
+                await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length).ConfigureAwait(false);
+
+                if (fixedLengthHeader[0] != (byte)'l')
+                    throw new InvalidDataException("Wrong endianess");
+                if (fixedLengthHeader[1] != 2)
+                    throw new InvalidDataException("Not a method return");
+                if (fixedLengthHeader[3] != 1)
+                    throw new InvalidDataException("Wrong protocol version");
+                var bodyLength = BitConverter.ToInt32(fixedLengthHeader, 4);
+                //var receivedSerial = BitConverter.ToInt32(fixedLengthHeader, 8);
+                var receivedArrayLength = BitConverter.ToInt32(fixedLengthHeader, 12);
+
+                var arrayData = new byte[receivedArrayLength + calculateRequiredAlignment(receivedArrayLength, 8)];
+                await stream.ReadAsync(arrayData, 0, arrayData.Length).ConfigureAwait(false);
+
+                var body = new byte[bodyLength];
+                await stream.ReadAsync(body, 0, body.Length).ConfigureAwait(false);
+
+                var serial = 0;
+                var bodySignature = string.Empty;
+                var index = 0;
+                while (index < receivedArrayLength)
+                {
+                    var headerFieldTypeCode = arrayData[index];
+                    index += 4;
+                    switch (headerFieldTypeCode)
+                    {
+                        case 1: /* PATH: OBJECT_PATH */
+                        case 2: /* INTERFACE: STRING */
+                        case 3: /* MEMBER: STRING */
+                        case 4: /* ERROR_NAME: STRING */
+                        case 6: /* DESTINATION: STRING */
+                        case 7: /* SENDER: STRING */
+                            var stringLength = BitConverter.ToInt32(arrayData, index);
+                            index += 4 /* length */ + stringLength + 1 /* null byte*/;
+                            break;
+                        case 8: /* SIGNATURE: SIGNATURE */
+                            var signatureLength = arrayData[index];
+                            bodySignature = encoding.GetString(arrayData, index + 1, signatureLength);
+                            index += signatureLength + 1 /* null byte */;
+                            break;
+                        case 5: /* REPLY_SERIAL: UINT32 */
+                            serial = BitConverter.ToInt32(arrayData, index);
+                            index += 4;
+                            break;
+                        case 9: /* UNIX_FDS: UINT32 */
+                            index += 4;
+                            break;
+                    }
+                    index += calculateRequiredAlignment(index, 8);
+                }
+
+                TaskCompletionSource<ReceivedMessage> tcs;
+                if (!expectedMessages.TryRemove(serial, out tcs))
+                    throw new InvalidOperationException("Couldn't find the method call for the method return");
+                var receivedMessage = new ReceivedMessage
+                {
+                    Body = body,
+                    Signature = bodySignature,
+                };
+                tcs.SetResult(receivedMessage);
+            }
         }
 
         public void Dispose()
@@ -144,6 +207,12 @@ namespace Dbus
                     result[i + 2] = socketFile[i];
                 return result;
             }
+        }
+
+        private struct ReceivedMessage
+        {
+            public string Signature;
+            public byte[] Body;
         }
     }
 }
