@@ -14,6 +14,7 @@ namespace Dbus
     {
         private Socket socket;
         private Stream stream;
+        private readonly CancellationTokenSource receiveCts;
         private int serialCounter;
         private static readonly Encoding encoding = Encoding.UTF8;
         private ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
@@ -24,7 +25,7 @@ namespace Dbus
             socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             socket.Connect(new systemBusEndPoint());
             stream = new LoggingStream(new NetworkStream(socket));
-
+            receiveCts = new CancellationTokenSource();
             Task.Run(receive);
         }
 
@@ -124,11 +125,11 @@ namespace Dbus
         private async Task receive()
         {
             var fixedLengthHeader = new byte[16]; // header up until the array length
-            while (true)
+            var token = receiveCts.Token;
+            while (!token.IsCancellationRequested)
             {
-                Console.WriteLine("start reading");
-                await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length).ConfigureAwait(false);
-                Console.WriteLine("end reading");
+                await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
 
                 if (fixedLengthHeader[0] != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
@@ -141,10 +142,12 @@ namespace Dbus
                 var receivedArrayLength = BitConverter.ToInt32(fixedLengthHeader, 12);
 
                 var arrayData = new byte[receivedArrayLength + calculateRequiredAlignment(receivedArrayLength, 8)];
-                await stream.ReadAsync(arrayData, 0, arrayData.Length).ConfigureAwait(false);
+                await stream.ReadAsync(arrayData, 0, arrayData.Length, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
 
                 var body = new byte[bodyLength];
-                await stream.ReadAsync(body, 0, body.Length).ConfigureAwait(false);
+                await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
 
                 var serial = 0;
                 var bodySignature = string.Empty;
@@ -203,6 +206,7 @@ namespace Dbus
 
         public void Dispose()
         {
+            receiveCts.Cancel();
             stream.Dispose();
             socket.Dispose();
         }
