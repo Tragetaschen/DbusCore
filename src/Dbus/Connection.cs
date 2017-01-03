@@ -16,11 +16,11 @@ namespace Dbus
         private Stream stream;
         private int serialCounter;
         private static readonly Encoding encoding = Encoding.UTF8;
-        private ConcurrentDictionary<int, TaskCompletionSource<ReceivedMessage>> expectedMessages;
+        private ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
 
         private Connection()
         {
-            expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMessage>>();
+            expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>>();
             socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             socket.Connect(new systemBusEndPoint());
             stream = new LoggingStream(new NetworkStream(socket));
@@ -69,25 +69,7 @@ namespace Dbus
             return result;
         }
 
-        public async Task<string> HelloAsync()
-        {
-            var receivedMessage = await sendMethodCall(
-                "/org/freedesktop/DBus",
-                "org.freedesktop.DBus",
-                "Hello",
-                "org.freedesktop.DBus"
-            );
-            if (receivedMessage.Signature != "s")
-                throw new InvalidOperationException("Unexpected body signature");
-
-            var body = receivedMessage.Body;
-            var stringLength = BitConverter.ToInt32(body, 0);
-            var path = encoding.GetString(body, 4, stringLength);
-
-            return path;
-        }
-
-        private async Task<ReceivedMessage> sendMethodCall(
+        public async Task<ReceivedMethodReturn> SendMethodCall(
             string path,
             string interfaceName,
             string methodName,
@@ -130,13 +112,13 @@ namespace Dbus
             header[14] = realLength[2];
             header[15] = realLength[3];
 
-            var tcs = new TaskCompletionSource<ReceivedMessage>();
+            var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
             expectedMessages[serial] = tcs;
 
             var buffer = header.ToArray();
             await stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 
-            return await tcs.Task;
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         private async Task receive()
@@ -144,7 +126,9 @@ namespace Dbus
             var fixedLengthHeader = new byte[16]; // header up until the array length
             while (true)
             {
+                Console.WriteLine("start reading");
                 await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length).ConfigureAwait(false);
+                Console.WriteLine("end reading");
 
                 if (fixedLengthHeader[0] != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
@@ -196,15 +180,24 @@ namespace Dbus
                     index += calculateRequiredAlignment(index, 8);
                 }
 
-                TaskCompletionSource<ReceivedMessage> tcs;
+                TaskCompletionSource<ReceivedMethodReturn> tcs;
                 if (!expectedMessages.TryRemove(serial, out tcs))
                     throw new InvalidOperationException("Couldn't find the method call for the method return");
-                var receivedMessage = new ReceivedMessage
+                var receivedMessage = new ReceivedMethodReturn
                 {
                     Body = body,
                     Signature = bodySignature,
                 };
-                tcs.SetResult(receivedMessage);
+                Console.WriteLine("set result");
+                try
+                {
+                    tcs.SetResult(receivedMessage);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                Console.WriteLine("next round");
             }
         }
 
@@ -224,12 +217,6 @@ namespace Dbus
                     result[i + 2] = socketFile[i];
                 return result;
             }
-        }
-
-        private struct ReceivedMessage
-        {
-            public string Signature;
-            public byte[] Body;
         }
     }
 }
