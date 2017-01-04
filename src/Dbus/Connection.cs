@@ -149,11 +149,15 @@ namespace Dbus
                 await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
 
-                if (fixedLengthHeader[0] != (byte)'l')
+                var index = 0;
+                var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
+                if (endianess != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
-                if (fixedLengthHeader[3] != 1)
+                Decoder.GetByte(fixedLengthHeader, ref index);
+                Decoder.GetByte(fixedLengthHeader, ref index);
+                var protocolVersion = Decoder.GetByte(fixedLengthHeader, ref index);
+                if (protocolVersion != 1)
                     throw new InvalidDataException("Wrong protocol version");
-                var index = 4;
                 var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index);
                 var receivedSerial = Decoder.GetInt32(fixedLengthHeader, ref index);
                 var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index);

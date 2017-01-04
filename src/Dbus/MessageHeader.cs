@@ -15,8 +15,7 @@ namespace Dbus
                 switch (headerFieldTypeCode)
                 {
                     case 8: /* SIGNATURE: SIGNATURE */
-                        var signatureLength = headerBytes[index];
-                        index += 1;
+                        var signatureLength = Decoder.GetByte(headerBytes, ref index);
                         BodySignature = Encoding.UTF8.GetString(headerBytes, index, signatureLength);
                         index += signatureLength + 1 /* null byte */;
                         break;

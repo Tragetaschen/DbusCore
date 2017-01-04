@@ -20,6 +20,19 @@ namespace Dbus
         }
 
         /// <summary>
+        /// Decodes a Byte from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the Int32 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded Byte</returns>
+        public static byte GetByte(byte[] buffer, ref int index)
+        {
+            var result = buffer[index];
+            index += 1;
+            return result;
+        }
+
+        /// <summary>
         /// Decodes an Int32 from the buffer and advances the index
         /// </summary>
         /// <param name="buffer">Buffer to decode the Int32 from</param>
