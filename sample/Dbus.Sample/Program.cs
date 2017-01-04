@@ -21,9 +21,13 @@ namespace Dbus.Sample
         {
             Console.WriteLine("Running");
             using (var connection = await Connection.CreateAsync())
+            using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
             {
+                orgFreedesktopDbus.NameAcquired += x =>
+                {
+                    Console.WriteLine($"Name acquired {x}");
+                };
                 Console.WriteLine("Connected");
-                var orgFreedesktopDbus = new OrgFreedesktopDbus(connection);
                 var path = await orgFreedesktopDbus.HelloAsync();
                 Console.WriteLine($"Done: {path}");
                 await shouldContinue;

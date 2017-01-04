@@ -18,10 +18,12 @@ namespace Dbus
         private int serialCounter;
         private static readonly Encoding encoding = Encoding.UTF8;
         private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
+        private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
 
         private Connection()
         {
             expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>>();
+            signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
             socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             socket.Connect(new systemBusEndPoint());
             stream = new LoggingStream(new NetworkStream(socket));
@@ -38,6 +40,27 @@ namespace Dbus
             Task.Run(result.receive);
 #pragma warning restore CS4014
             return result;
+        }
+
+        public IDisposable RegisterSignalHandler(
+            string path,
+            string interfaceName,
+            string member,
+            Action<MessageHeader, byte[]> handler
+        )
+        {
+            var dictionaryEntry = path + "\0" + interfaceName + "\0" + member;
+            if (!signalHandlers.TryAdd(dictionaryEntry, handler))
+                throw new InvalidOperationException("Attempted to register a signal handler twice");
+
+            return new signalDeregistration
+            {
+                Deregister = () =>
+                {
+                    Action<MessageHeader, byte[]> _;
+                    signalHandlers.TryRemove(dictionaryEntry, out _);
+                }
+            };
         }
 
         private int ensureAlignment(List<byte> message, int alignment)
@@ -147,6 +170,9 @@ namespace Dbus
                     case 2:
                         handleMethodReturn(header, body);
                         break;
+                    case 4:
+                        handleSignal(header, body);
+                        break;
                 }
             }
         }
@@ -168,6 +194,17 @@ namespace Dbus
             tcs.SetResult(receivedMessage);
         }
 
+        private void handleSignal(
+            MessageHeader header,
+            byte[] body
+        )
+        {
+            var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
+            Action<MessageHeader, byte[]> handler;
+            if (signalHandlers.TryGetValue(dictionaryEntry, out handler))
+                Task.Factory.StartNew(() => handler(header, body));
+        }
+
         public void Dispose()
         {
             receiveCts.Cancel();
@@ -184,6 +221,15 @@ namespace Dbus
                 for (var i = 0; i < socketFile.Length; ++i)
                     result[i + 2] = socketFile[i];
                 return result;
+            }
+        }
+        private class signalDeregistration : IDisposable
+        {
+            public Action Deregister;
+
+            public void Dispose()
+            {
+                Deregister();
             }
         }
     }
