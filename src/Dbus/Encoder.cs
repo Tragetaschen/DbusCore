@@ -46,6 +46,11 @@ namespace Dbus
             index += 1;
         }
 
+        public static void Add(List<byte> buffer, ref int index, bool value)
+        {
+            Add(buffer, ref index, value ? 1 : 0);
+        }
+
         public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer)
         {
             var lengthPosition = index;

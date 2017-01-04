@@ -11,6 +11,7 @@ namespace Dbus
             { "s", GetString },
             { "g", GetSignature },
             { "y", box(GetByte) },
+            { "b", box(GetBoolean) },
             { "u", box(GetInt32) },
         };
 
@@ -58,6 +59,17 @@ namespace Dbus
             var result = buffer[index];
             index += 1;
             return result;
+        }
+
+        /// <summary>
+        /// Decodes a Boolean from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the Boolean from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded Boolean</returns>
+        public static bool GetBoolean(byte[] buffer, ref int index)
+        {
+            return GetInt32(buffer, ref index) != 0;
         }
 
         /// <summary>
