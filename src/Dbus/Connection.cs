@@ -63,31 +63,6 @@ namespace Dbus
             };
         }
 
-        private int ensureAlignment(List<byte> message, int alignment)
-        {
-            var result = Alignment.Calculate(message.Count, alignment);
-            for (var i = 0; i < result; ++i)
-                message.Add(0);
-            return result;
-        }
-
-        private int addStringVariant(List<byte> message, byte signature, string s)
-        {
-            message.Add(1); // signature length
-            message.Add(signature);
-            message.Add(0);
-            var result = 3;
-            result += ensureAlignment(message, 4);
-            var bytes = encoding.GetBytes(s);
-            message.AddRange(BitConverter.GetBytes(bytes.Length));
-            result += 4;
-            message.AddRange(bytes);
-            result += bytes.Length;
-            message.Add(0);
-            ++result;
-            return result;
-        }
-
         public async Task<ReceivedMethodReturn> SendMethodCall(
             string path,
             string interfaceName,
@@ -98,44 +73,39 @@ namespace Dbus
             var serial = Interlocked.Increment(ref serialCounter);
 
             var header = new List<byte>();
-            header.Add((byte)'l'); // little endian
-            header.Add(1); // method call
-            header.Add(0); // flags
-            header.Add(1); // protocol version
-            header.AddRange(BitConverter.GetBytes(0)); // body length
-            header.AddRange(BitConverter.GetBytes(serial)); // serial
+            var index = 0;
+            Encoder.Add(header, ref index, (byte)'l'); // little endian
+            Encoder.Add(header, ref index, (byte)1); // method call
+            Encoder.Add(header, ref index, (byte)0); // flags
+            Encoder.Add(header, ref index, (byte)1); // protocol version
+            Encoder.Add(header, ref index, 0); // body length
+            Encoder.Add(header, ref index, serial); // serial
 
-            var arrayLength = 0;
-            header.AddRange(BitConverter.GetBytes(0)); // array length
-            arrayLength += ensureAlignment(header, 8);
-            header.Add(1); // path
-            ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'o', path);
-            arrayLength += ensureAlignment(header, 8);
-            header.Add(2); // interface
-            ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', interfaceName);
-            arrayLength += ensureAlignment(header, 8);
-            header.Add(3); // member
-            ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', methodName);
-            arrayLength += ensureAlignment(header, 8);
-            header.Add(6); // destination
-            ++arrayLength;
-            arrayLength += addStringVariant(header, (byte)'s', destination);
-            ensureAlignment(header, 8); // final padding
+            Encoder.AddArray(header, ref index, (List<byte> buffer, ref int localIndex) =>
+            {
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)1);
+                Encoder.AddVariant(buffer, ref localIndex, path, isObjectPath: true);
 
-            var realLength = BitConverter.GetBytes(arrayLength);
-            header[12] = realLength[0];
-            header[13] = realLength[1];
-            header[14] = realLength[2];
-            header[15] = realLength[3];
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)2);
+                Encoder.AddVariant(buffer, ref localIndex, interfaceName);
+
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)3);
+                Encoder.AddVariant(buffer, ref localIndex, methodName);
+
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)6);
+                Encoder.AddVariant(buffer, ref localIndex, destination);
+            });
+            Encoder.EnsureAlignment(header, ref index, 8);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
             expectedMessages[serial] = tcs;
 
-            var buffer = header.ToArray();
-            await stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            var headerArray = header.ToArray();
+            await stream.WriteAsync(headerArray, 0, headerArray.Length).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }
