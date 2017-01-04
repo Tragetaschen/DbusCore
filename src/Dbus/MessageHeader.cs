@@ -21,11 +21,10 @@ namespace Dbus
                         index += signatureLength + 1 /* null byte */;
                         break;
                     case 5: /* REPLY_SERIAL: UINT32 */
-                        ReplySerial = BitConverter.ToInt32(headerBytes, index);
-                        index += 4;
+                        ReplySerial = Decoder.GetInt32(headerBytes, ref index);
                         break;
                     case 9: /* UNIX_FDS: UINT32 */
-                        index += 4;
+                        Decoder.GetInt32(headerBytes, ref index);
                         break;
                     default:
                         var value = Decoder.GetString(headerBytes, ref index);

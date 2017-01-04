@@ -153,9 +153,10 @@ namespace Dbus
                     throw new InvalidDataException("Wrong endianess");
                 if (fixedLengthHeader[3] != 1)
                     throw new InvalidDataException("Wrong protocol version");
-                var bodyLength = BitConverter.ToInt32(fixedLengthHeader, 4);
-                //var receivedSerial = BitConverter.ToInt32(fixedLengthHeader, 8);
-                var receivedArrayLength = BitConverter.ToInt32(fixedLengthHeader, 12);
+                var index = 4;
+                var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index);
+                var receivedSerial = Decoder.GetInt32(fixedLengthHeader, ref index);
+                var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index);
                 var headerBytes = new byte[receivedArrayLength + Alignment.Calculate(receivedArrayLength, 8)];
                 await stream.ReadAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
