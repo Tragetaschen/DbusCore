@@ -20,6 +20,20 @@ namespace Dbus
         }
 
         /// <summary>
+        /// Decodes a signature from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the signature from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded signature</returns>
+        public static string GetSignature(byte[] buffer, ref int index)
+        {
+            var signatureLength = GetByte(buffer, ref index);
+            var result = Encoding.UTF8.GetString(buffer, index, signatureLength);
+            index += signatureLength + 1 /* null byte */;
+            return result;
+        }
+
+        /// <summary>
         /// Decodes a Byte from the buffer and advances the index
         /// </summary>
         /// <param name="buffer">Buffer to decode the Int32 from</param>

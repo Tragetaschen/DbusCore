@@ -15,9 +15,7 @@ namespace Dbus
                 switch (headerFieldTypeCode)
                 {
                     case 8: /* SIGNATURE: SIGNATURE */
-                        var signatureLength = Decoder.GetByte(headerBytes, ref index);
-                        BodySignature = Encoding.UTF8.GetString(headerBytes, index, signatureLength);
-                        index += signatureLength + 1 /* null byte */;
+                        BodySignature = Decoder.GetSignature(headerBytes, ref index);
                         break;
                     case 5: /* REPLY_SERIAL: UINT32 */
                         ReplySerial = Decoder.GetInt32(headerBytes, ref index);
