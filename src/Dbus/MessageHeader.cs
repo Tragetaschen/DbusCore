@@ -28,10 +28,7 @@ namespace Dbus
                         index += 4;
                         break;
                     default:
-                        var stringLength = BitConverter.ToInt32(headerBytes, index);
-                        index += 4/* length */;
-                        var value = Encoding.UTF8.GetString(headerBytes, index, stringLength);
-                        index += stringLength + 1 /* null byte*/;
+                        var value = Decoder.GetString(headerBytes, ref index);
                         switch (headerFieldTypeCode)
                         {
                             case 1: /* PATH: OBJECT_PATH */

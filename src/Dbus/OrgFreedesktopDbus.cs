@@ -34,9 +34,8 @@ namespace Dbus
             assertSignature(receivedMessage.Signature, "s");
 
             var body = receivedMessage.Body;
-            var stringLength = BitConverter.ToInt32(body, 0);
-            var path = Encoding.UTF8.GetString(body, 4, stringLength);
-
+            var index = 0;
+            var path = Decoder.GetString(body, ref index);
             return path;
         }
 
@@ -56,13 +55,8 @@ namespace Dbus
             var names = new List<string>();
             while (index < arrayLength)
             {
-                index += Alignment.Calculate(index, 4);
-                var stringLength = BitConverter.ToInt32(body, index);
-                index += 4;
-                var name = Encoding.UTF8.GetString(body, index, stringLength);
-                Console.WriteLine($"{stringLength} {name} {index}");
+                var name = Decoder.GetString(body, ref index);
                 names.Add(name);
-                index += stringLength + 1;
             }
             return names;
         }
@@ -72,8 +66,8 @@ namespace Dbus
         {
             assertSignature(header.BodySignature, "s");
 
-            var stringLength = BitConverter.ToInt32(body, 0);
-            var name = Encoding.UTF8.GetString(body, 4, stringLength);
+            var index = 0;
+            var name = Decoder.GetString(body, ref index);
 
             NameAcquired?.Invoke(name);
         }
