@@ -10,5 +10,10 @@
             else
                 return alignment - bytesIntoAlignment;
         }
+
+        public static void Advance(ref int position, int alignment)
+        {
+            position += Calculate(position, alignment);
+        }
     }
 }

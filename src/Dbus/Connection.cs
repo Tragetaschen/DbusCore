@@ -157,7 +157,8 @@ namespace Dbus
                 var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index);
                 var receivedSerial = Decoder.GetInt32(fixedLengthHeader, ref index);
                 var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index);
-                var headerBytes = new byte[receivedArrayLength + Alignment.Calculate(receivedArrayLength, 8)];
+                Alignment.Advance(ref receivedArrayLength, 8);
+                var headerBytes = new byte[receivedArrayLength];
                 await stream.ReadAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 var header = new MessageHeader(headerBytes);

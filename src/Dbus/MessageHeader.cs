@@ -51,7 +51,7 @@ namespace Dbus
                         }
                         break;
                 }
-                index += Alignment.Calculate(index, 8);
+                Alignment.Advance(ref index, 8);
             }
         }
 

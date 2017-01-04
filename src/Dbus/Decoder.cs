@@ -27,7 +27,7 @@ namespace Dbus
         /// <returns>The decoded Int32</returns>
         public static int GetInt32(byte[] buffer, ref int index)
         {
-            index += Alignment.Calculate(index, 4);
+            Alignment.Advance(ref index, 4);
             var result = BitConverter.ToInt32(buffer, index);
             index += 4;
             return result;
