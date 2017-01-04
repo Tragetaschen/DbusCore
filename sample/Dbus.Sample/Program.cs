@@ -30,6 +30,16 @@ namespace Dbus.Sample
                 Console.WriteLine("Connected");
                 var path = await orgFreedesktopDbus.HelloAsync();
                 Console.WriteLine($"Done: {path}");
+
+                var names = await orgFreedesktopDbus.ListNamesAsync();
+                Console.Write("Names:");
+                foreach (var name in names)
+                {
+                    Console.Write(" ");
+                    Console.Write(name);
+                }
+                Console.WriteLine();
+
                 await shouldContinue;
             }
         }

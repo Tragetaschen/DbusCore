@@ -31,8 +31,7 @@ namespace Dbus
                 "Hello",
                 "org.freedesktop.DBus"
             );
-            if (receivedMessage.Signature != "s")
-                throw new InvalidOperationException("Unexpected body signature");
+            assertSignature(receivedMessage.Signature, "s");
 
             var body = receivedMessage.Body;
             var stringLength = BitConverter.ToInt32(body, 0);
@@ -41,16 +40,48 @@ namespace Dbus
             return path;
         }
 
+        public async Task<IEnumerable<string>> ListNamesAsync()
+        {
+            var receivedMessage = await connection.SendMethodCall(
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "ListNames",
+                "org.freedesktop.DBus"
+            );
+            assertSignature(receivedMessage.Signature, "as");
+            var body = receivedMessage.Body;
+            var index = 0;
+            var arrayLength = BitConverter.ToInt32(body, index);
+            index += 4;
+            var names = new List<string>();
+            while (index < arrayLength)
+            {
+                index += Alignment.Calculate(index, 4);
+                var stringLength = BitConverter.ToInt32(body, index);
+                index += 4;
+                var name = Encoding.UTF8.GetString(body, index, stringLength);
+                Console.WriteLine($"{stringLength} {name} {index}");
+                names.Add(name);
+                index += stringLength + 1;
+            }
+            return names;
+        }
+
         public event Action<string> NameAcquired;
         private void handleNameAcquired(MessageHeader header, byte[] body)
         {
-            if (header.BodySignature != "s")
-                throw new InvalidOperationException("Unexpected body signature");
+            assertSignature(header.BodySignature, "s");
 
             var stringLength = BitConverter.ToInt32(body, 0);
             var name = Encoding.UTF8.GetString(body, 4, stringLength);
 
             NameAcquired?.Invoke(name);
+        }
+
+        private static void assertSignature(string actual, string expected)
+        {
+            if (actual != expected)
+                throw new InvalidOperationException($"Unexpected signature. Got ${actual}, but expected ${expected}");
         }
 
         public void Dispose()
