@@ -153,7 +153,7 @@ namespace Dbus
                 var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
                 if (endianess != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
-                Decoder.GetByte(fixedLengthHeader, ref index);
+                var messageType = Decoder.GetByte(fixedLengthHeader, ref index);
                 Decoder.GetByte(fixedLengthHeader, ref index);
                 var protocolVersion = Decoder.GetByte(fixedLengthHeader, ref index);
                 if (protocolVersion != 1)
@@ -171,7 +171,7 @@ namespace Dbus
                 await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
 
-                switch (fixedLengthHeader[1])
+                switch (messageType)
                 {
                     case 2:
                         handleMethodReturn(header, body);
