@@ -6,6 +6,19 @@ namespace Dbus
 {
     public static class Decoder
     {
+        private static readonly Dictionary<string, ElementDecoder<object>> typeDecoders = new Dictionary<string, ElementDecoder<object>> {
+            { "o", GetString },
+            { "s", GetString },
+            { "g", GetSignature },
+            { "y", box(GetByte) },
+            { "u", box(GetInt32) },
+        };
+
+        private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
+        {
+            return (byte[] buffer, ref int index) => orig(buffer, ref index);
+        }
+
         /// <summary>
         /// Decodes a string from the buffer and advances the index
         /// </summary>
@@ -88,6 +101,15 @@ namespace Dbus
                 result.Add(element);
             }
             return result;
+        }
+
+        public static object GetVariant(byte[] buffer, ref int index)
+        {
+            var signature = GetSignature(buffer, ref index);
+            ElementDecoder<object> elementDecoder;
+            if (typeDecoders.TryGetValue(signature, out elementDecoder))
+                return elementDecoder(buffer, ref index);
+            throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }
     }
 }

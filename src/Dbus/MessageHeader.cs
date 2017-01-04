@@ -1,7 +1,4 @@
-﻿using System;
-using System.Text;
-
-namespace Dbus
+﻿namespace Dbus
 {
     public class MessageHeader
     {
@@ -10,42 +7,35 @@ namespace Dbus
             var index = 0;
             while (index < headerBytes.Length)
             {
-                var headerFieldTypeCode = headerBytes[index];
-                index += 4;
-                switch (headerFieldTypeCode)
+                var typeCode = Decoder.GetByte(headerBytes, ref index);
+                var value = Decoder.GetVariant(headerBytes, ref index);
+                switch (typeCode)
                 {
-                    case 8: /* SIGNATURE: SIGNATURE */
-                        BodySignature = Decoder.GetSignature(headerBytes, ref index);
+                    case 1:
+                        Path = (string)value;
                         break;
-                    case 5: /* REPLY_SERIAL: UINT32 */
-                        ReplySerial = Decoder.GetInt32(headerBytes, ref index);
+                    case 2:
+                        InterfaceName = (string)value;
+                        break;
+                    case 3:
+                        Member = (string)value;
+                        break;
+                    case 4:
+                        ErrorName = (string)value;
+                        break;
+                    case 5:
+                        ReplySerial = (int)value;
+                        break;
+                    case 6:
+                        Destination = (string)value;
+                        break;
+                    case 7:
+                        Sender = (string)value;
+                        break;
+                    case 8:
+                        BodySignature = (string)value;
                         break;
                     case 9: /* UNIX_FDS: UINT32 */
-                        Decoder.GetInt32(headerBytes, ref index);
-                        break;
-                    default:
-                        var value = Decoder.GetString(headerBytes, ref index);
-                        switch (headerFieldTypeCode)
-                        {
-                            case 1: /* PATH: OBJECT_PATH */
-                                Path = value;
-                                break;
-                            case 2: /* INTERFACE: STRING */
-                                InterfaceName = value;
-                                break;
-                            case 3: /* MEMBER: STRING */
-                                Member = value;
-                                break;
-                            case 4: /* ERROR_NAME: STRING */
-                                ErrorName = value;
-                                break;
-                            case 6: /* DESTINATION: STRING */
-                                Destination = value;
-                                break;
-                            case 7: /* SENDER: STRING */
-                                Sender = value;
-                                break;
-                        }
                         break;
                 }
                 Alignment.Advance(ref index, 8);
