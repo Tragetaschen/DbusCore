@@ -27,6 +27,7 @@ namespace Dbus.Sample
             Console.WriteLine("Running");
             using (var connection = await Connection.CreateAsync())
             using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
+            using (var orgFreedesktopUpower = new OrgFreedesktopUpower(connection))
             {
                 orgFreedesktopDbus.NameAcquired += x =>
                 {
@@ -44,6 +45,10 @@ namespace Dbus.Sample
                     Console.Write(name);
                 }
                 Console.WriteLine();
+
+                var properties = await orgFreedesktopUpower.GetAllAsync();
+                foreach (var pair in properties)
+                    Console.WriteLine($"Key: {pair.Key} Value: {pair.Value}");
 
                 await shouldContinue;
             }
