@@ -50,13 +50,7 @@ namespace Dbus
             assertSignature(receivedMessage.Signature, "as");
             var body = receivedMessage.Body;
             var index = 0;
-            var arrayLength = Decoder.GetInt32(body, ref index);
-            var names = new List<string>();
-            while (index < arrayLength)
-            {
-                var name = Decoder.GetString(body, ref index);
-                names.Add(name);
-            }
+            var names = Decoder.GetArray(body, ref index, Decoder.GetString);
             return names;
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Dbus
@@ -57,6 +58,35 @@ namespace Dbus
             Alignment.Advance(ref index, 4);
             var result = BitConverter.ToInt32(buffer, index);
             index += 4;
+            return result;
+        }
+
+        /// <summary>
+        /// Decoder for element types
+        /// </summary>
+        /// <typeparam name="T">Result type of the decoder</typeparam>
+        /// <param name="buffer">Buffer to decode from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded type</returns>
+        public delegate T ElementDecoder<T>(byte[] buffer, ref int index);
+
+        /// <summary>
+        /// Decodes an array from the buffer and advances the index
+        /// </summary>
+        /// <typeparam name="T">Type of the array elements</typeparam>
+        /// <param name="buffer">Buffer to decode the array from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <param name="decoder">The decoder for the elements</param>
+        /// <returns>The decoded array</returns>
+        public static List<T> GetArray<T>(byte[] buffer, ref int index, ElementDecoder<T> decoder)
+        {
+            var result = new List<T>();
+            var arrayLength = GetInt32(buffer, ref index);
+            while (index < arrayLength)
+            {
+                var element = decoder(buffer, ref index);
+                result.Add(element);
+            }
             return result;
         }
     }
