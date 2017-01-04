@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus.Sample
@@ -14,7 +11,15 @@ namespace Dbus.Sample
             var task = Task.Run(() => work(tcs.Task));
             Console.ReadLine();
             tcs.SetResult(0);
-            task.Wait();
+            try
+            {
+                task.Wait();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Ended in error");
+                Console.WriteLine(e);
+            }
         }
 
         private static async Task work(Task shouldContinue)

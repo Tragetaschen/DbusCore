@@ -160,6 +160,9 @@ namespace Dbus
                     case 2:
                         handleMethodReturn(header, body);
                         break;
+                    case 3:
+                        handleError(header, body);
+                        break;
                     case 4:
                         handleSignal(header, body);
                         break;
@@ -182,6 +185,23 @@ namespace Dbus
             };
 
             tcs.SetResult(receivedMessage);
+        }
+
+        private void handleError(MessageHeader header, byte[] body)
+        {
+            if (header.ReplySerial == 0)
+                throw new InvalidOperationException("Only errors for method calls are supported");
+            if (!header.BodySignature.StartsWith("s"))
+                throw new InvalidOperationException("Errors are expected to start their body with a string");
+
+            TaskCompletionSource<ReceivedMethodReturn> tcs;
+            if (!expectedMessages.TryRemove(header.ReplySerial, out tcs))
+                throw new InvalidOperationException("Couldn't find the method call for the error");
+
+            var index = 0;
+            var message = Decoder.GetString(body, ref index);
+            var exception = new DbusException(header.ErrorName, message);
+            tcs.SetException(exception);
         }
 
         private void handleSignal(
