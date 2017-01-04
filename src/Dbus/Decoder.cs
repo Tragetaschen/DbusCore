@@ -115,6 +115,37 @@ namespace Dbus
             return result;
         }
 
+        /// <summary>
+        /// Decodes a dictionary from the buffer and advances the index
+        /// </summary>
+        /// <typeparam name="TKey">Type of the dictionary keys</typeparam>
+        /// <typeparam name="TValue">Type of the dictionary values</typeparam>
+        /// <param name="buffer">Buffer to decode the dictionary from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <param name="keyDecoder">The decoder for the keys</param>
+        /// <param name="valueDecoder">The decoder for the values</param>
+        /// <returns>The decoded dictionary</returns>
+        public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(
+            byte[] buffer,
+            ref int index,
+            ElementDecoder<TKey> keyDecoder,
+            ElementDecoder<TValue> valueDecoder
+        )
+        {
+            var result = new Dictionary<TKey, TValue>();
+            var arrayLength = GetInt32(buffer, ref index);
+            while (index < arrayLength)
+            {
+                Alignment.Advance(ref index, 8);
+
+                var key = keyDecoder(buffer, ref index);
+                var value = valueDecoder(buffer, ref index);
+
+                result.Add(key, value);
+            }
+            return result;
+        }
+
         public static object GetVariant(byte[] buffer, ref int index)
         {
             var signature = GetSignature(buffer, ref index);
