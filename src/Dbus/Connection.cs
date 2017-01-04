@@ -66,21 +66,23 @@ namespace Dbus
             string path,
             string interfaceName,
             string methodName,
-            string destination
+            string destination,
+            List<byte> body,
+            string signature
         )
         {
             var serial = Interlocked.Increment(ref serialCounter);
 
-            var header = new List<byte>();
+            var message = Encoder.StartNew();
             var index = 0;
-            Encoder.Add(header, ref index, (byte)'l'); // little endian
-            Encoder.Add(header, ref index, (byte)1); // method call
-            Encoder.Add(header, ref index, (byte)0); // flags
-            Encoder.Add(header, ref index, (byte)1); // protocol version
-            Encoder.Add(header, ref index, 0); // body length
-            Encoder.Add(header, ref index, serial); // serial
+            Encoder.Add(message, ref index, (byte)'l'); // little endian
+            Encoder.Add(message, ref index, (byte)1); // method call
+            Encoder.Add(message, ref index, (byte)0); // flags
+            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, body.Count);
+            Encoder.Add(message, ref index, serial);
 
-            Encoder.AddArray(header, ref index, (List<byte> buffer, ref int localIndex) =>
+            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
                 Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                 Encoder.Add(buffer, ref localIndex, (byte)1);
@@ -97,14 +99,27 @@ namespace Dbus
                 Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                 Encoder.Add(buffer, ref localIndex, (byte)6);
                 Encoder.AddVariant(buffer, ref localIndex, destination);
+
+                if (body.Count > 0)
+                {
+                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                    Encoder.Add(buffer, ref localIndex, (byte)8);
+                    Encoder.AddVariantSignature(buffer, ref localIndex, signature);
+                }
             });
-            Encoder.EnsureAlignment(header, ref index, 8);
+            Encoder.EnsureAlignment(message, ref index, 8);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
             expectedMessages[serial] = tcs;
 
-            var headerArray = header.ToArray();
-            await stream.WriteAsync(headerArray, 0, headerArray.Length).ConfigureAwait(false);
+            var messageArray = message.ToArray();
+            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+
+            if (body.Count > 0)
+            {
+                var bodyArray = body.ToArray();
+                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
+            }
 
             return await tcs.Task.ConfigureAwait(false);
         }

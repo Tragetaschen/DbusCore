@@ -25,11 +25,15 @@ namespace Dbus
 
         public async Task<string> HelloAsync()
         {
+            var sendBody = Encoder.StartNew();
+
             var receivedMessage = await connection.SendMethodCall(
                 "/org/freedesktop/DBus",
                 "org.freedesktop.DBus",
                 "Hello",
-                "org.freedesktop.DBus"
+                "org.freedesktop.DBus",
+                sendBody,
+                string.Empty
             );
             assertSignature(receivedMessage.Signature, "s");
 
@@ -41,11 +45,15 @@ namespace Dbus
 
         public async Task<IEnumerable<string>> ListNamesAsync()
         {
+            var sendBody = Encoder.StartNew();
+
             var receivedMessage = await connection.SendMethodCall(
                 "/org/freedesktop/DBus",
                 "org.freedesktop.DBus",
                 "ListNames",
-                "org.freedesktop.DBus"
+                "org.freedesktop.DBus",
+                sendBody,
+                string.Empty
             );
             assertSignature(receivedMessage.Signature, "as");
             var body = receivedMessage.Body;

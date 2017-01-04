@@ -8,6 +8,11 @@ namespace Dbus
     {
         public delegate void ElementWriter(List<byte> buffer, ref int index);
 
+        public static List<byte> StartNew()
+        {
+            return new List<byte>();
+        }
+
         public static void Add(List<byte> buffer, ref int index, string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
@@ -56,6 +61,12 @@ namespace Dbus
         {
             AddSignature(buffer, ref index, isObjectPath ? "o" : "s");
             Add(buffer, ref index, value);
+        }
+
+        public static void AddVariantSignature(List<byte> buffer, ref int index, string signature)
+        {
+            AddSignature(buffer, ref index, "g");
+            AddSignature(buffer, ref index, signature);
         }
 
         public static void EnsureAlignment(List<byte> buffer, ref int index, int alignment)
