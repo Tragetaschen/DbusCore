@@ -19,7 +19,7 @@ namespace Dbus
 
                 var uid = getuid();
                 var stringUid = $"{uid}";
-                var uidBytes = encoding.GetBytes(stringUid);
+                var uidBytes = Encoding.ASCII.GetBytes(stringUid);
                 foreach (var b in uidBytes)
                     await writer.WriteAsync($"{b:X}").ConfigureAwait(false);
 

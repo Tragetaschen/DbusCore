@@ -16,7 +16,6 @@ namespace Dbus
         private readonly Socket socket;
         private readonly Stream stream;
         private int serialCounter;
-        private static readonly Encoding encoding = Encoding.UTF8;
         private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
 
@@ -192,7 +191,7 @@ namespace Dbus
         {
             public override SocketAddress Serialize()
             {
-                var socketFile = encoding.GetBytes("/var/run/dbus/system_bus_socket");
+                var socketFile = Encoding.ASCII.GetBytes("/var/run/dbus/system_bus_socket");
                 var result = new SocketAddress(AddressFamily.Unix, socketFile.Length + 2);
                 for (var i = 0; i < socketFile.Length; ++i)
                     result[i + 2] = socketFile[i];
