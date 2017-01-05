@@ -12,6 +12,8 @@ namespace Dbus
 {
     public partial class Connection : IDisposable
     {
+        public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
+
         private readonly CancellationTokenSource receiveCts;
         private readonly Socket socket;
         private readonly Stream stream;
@@ -19,19 +21,20 @@ namespace Dbus
         private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
 
-        private Connection()
+        private Connection(EndPoint endPoint)
         {
             expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
             socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
-            socket.Connect(new systemBusEndPoint());
+            socket.Connect(endPoint);
             stream = new LoggingStream(new NetworkStream(socket));
             receiveCts = new CancellationTokenSource();
         }
 
-        public async static Task<Connection> CreateAsync()
+        public async static Task<Connection> CreateAsync(string address)
         {
-            var result = new Connection();
+            var endPoint = EndPointFactory.Create(address);
+            var result = new Connection(endPoint);
             await authenticate(result.stream).ConfigureAwait(false);
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             // Ideally, there would be a DisposeAsync to properly await the receive task.
@@ -222,17 +225,6 @@ namespace Dbus
             socket.Dispose();
         }
 
-        private class systemBusEndPoint : EndPoint
-        {
-            public override SocketAddress Serialize()
-            {
-                var socketFile = Encoding.ASCII.GetBytes("/var/run/dbus/system_bus_socket");
-                var result = new SocketAddress(AddressFamily.Unix, socketFile.Length + 2);
-                for (var i = 0; i < socketFile.Length; ++i)
-                    result[i + 2] = socketFile[i];
-                return result;
-            }
-        }
         private class signalDeregistration : IDisposable
         {
             public Action Deregister;
