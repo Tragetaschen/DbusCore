@@ -13,12 +13,8 @@ namespace Dbus
             this.objectPath = objectPath;
         }
 
-        public static implicit operator ObjectPath(string objectPath)
-        {
-            return new ObjectPath(objectPath);
-        }
-
-        public static readonly ObjectPath Empty = "";
+        public static implicit operator ObjectPath(string objectPath) =>
+            new ObjectPath(objectPath);
 
         public override bool Equals(object obj)
         {
@@ -29,24 +25,11 @@ namespace Dbus
             return objectPath == other.objectPath;
         }
 
-        public override int GetHashCode()
-        {
-            return objectPath.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return objectPath;
-        }
-
-        public static bool operator ==(ObjectPath lhs, ObjectPath rhs)
-        {
-            return lhs.objectPath == rhs.objectPath;
-        }
-
-        public static bool operator !=(ObjectPath lhs, ObjectPath rhs)
-        {
-            return lhs.objectPath != rhs.objectPath;
-        }
+        public override int GetHashCode() => objectPath.GetHashCode();
+        public override string ToString() => objectPath;
+        public static bool operator ==(ObjectPath lhs, ObjectPath rhs) =>
+            lhs.objectPath == rhs.objectPath;
+        public static bool operator !=(ObjectPath lhs, ObjectPath rhs) =>
+            lhs.objectPath != rhs.objectPath;
     }
 }

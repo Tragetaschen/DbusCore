@@ -13,12 +13,8 @@ namespace Dbus
             this.signature = signature;
         }
 
-        public static implicit operator Signature(string signature)
-        {
-            return new Signature(signature);
-        }
-
-        public static readonly Signature Empty = "";
+        public static implicit operator Signature(string signature) =>
+            new Signature(signature);
 
         public override bool Equals(object obj)
         {
@@ -29,24 +25,11 @@ namespace Dbus
             return signature == other.signature;
         }
 
-        public override int GetHashCode()
-        {
-            return signature.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return signature;
-        }
-
-        public static bool operator ==(Signature lhs, Signature rhs)
-        {
-            return lhs.signature == rhs.signature;
-        }
-
-        public static bool operator !=(Signature lhs, Signature rhs)
-        {
-            return lhs.signature != rhs.signature;
-        }
+        public override int GetHashCode() => signature.GetHashCode();
+        public override string ToString() => signature;
+        public static bool operator ==(Signature lhs, Signature rhs) =>
+            lhs.signature == rhs.signature;
+        public static bool operator !=(Signature lhs, Signature rhs) =>
+            lhs.signature != rhs.signature;
     }
 }
