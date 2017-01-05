@@ -8,12 +8,18 @@ namespace Dbus.Sample
         public static void Main(string[] args)
         {
             var tcs = new TaskCompletionSource<int>();
-            var task = Task.Run(() => work(tcs.Task));
-            Console.ReadLine();
-            tcs.SetResult(0);
+            var workTask = Task.Run(() => work(tcs.Task));
+            var readlineTask = Task.Factory.StartNew(() =>
+            {
+                Console.ReadLine();
+                tcs.SetResult(0);
+            }, TaskCreationOptions.LongRunning);
+
             try
             {
-                task.Wait();
+                var tasks = new[] { workTask, readlineTask };
+                var completedTask = Task.WaitAny(tasks);
+                tasks[completedTask].Wait();
             }
             catch (Exception e)
             {
@@ -22,7 +28,7 @@ namespace Dbus.Sample
             }
         }
 
-        private static async Task work(Task shouldContinue)
+        private static async Task work(Task stopConnection)
         {
             Console.WriteLine("Running");
             var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
@@ -54,7 +60,7 @@ namespace Dbus.Sample
                 foreach (var pair in properties)
                     Console.WriteLine($"Key: {pair.Key} Value: {pair.Value}");
 
-                await shouldContinue;
+                await stopConnection;
             }
         }
     }
