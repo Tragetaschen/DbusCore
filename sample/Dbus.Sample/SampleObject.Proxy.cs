@@ -32,14 +32,16 @@ namespace Dbus.Sample
                 case "MyComplexMethod":
                     return callMyComplexMethodAsync(replySerial, header, body);
                 default:
-                    throw new DbusException("com.dbuscore.Error.UnknownMethod", "Method not supported");
+                    throw new DbusException(
+                        DbusException.CreateErrorName("UnknownMethod"),
+                        "Method not supported"
+                    );
             }
         }
 
         private async Task callMyVoidAsync(uint replySerial, MessageHeader header, byte[] receivedBod)
         {
-            if (!string.IsNullOrEmpty(header.BodySignature))
-                throw new DbusException("com.dbuscore.Error.InvalidSignature", "Invalid signature");
+            assertSignature(header.BodySignature, null);
 
             await target.MyVoidAsync();
 
@@ -54,8 +56,7 @@ namespace Dbus.Sample
 
         private async Task callMyEchoAsync(uint replySerial, MessageHeader header, byte[] receivedBody)
         {
-            if (header.BodySignature != "s")
-                throw new DbusException("com.dbuscore.Error.InvalidSignature", "Invalid signature");
+            assertSignature(header.BodySignature, "s");
 
             var index = 0;
             var message = Decoder.GetString(receivedBody, ref index);
@@ -76,8 +77,7 @@ namespace Dbus.Sample
 
         private async Task callMyComplexMethodAsync(uint replySerial, MessageHeader header, byte[] receivedBody)
         {
-            if (header.BodySignature != "sii")
-                throw new DbusException("com.dbuscore.Error.InvalidSignature", "Invalid signature");
+            assertSignature(header.BodySignature, "sii");
 
             var index = 0;
             var p1 = Decoder.GetString(receivedBody, ref index);
@@ -97,6 +97,15 @@ namespace Dbus.Sample
                 sendBody,
                 "si"
             );
+        }
+
+        private static void assertSignature(string actual, string expected)
+        {
+            if (expected == null && !string.IsNullOrEmpty(actual) || actual != expected)
+                throw new DbusException(
+                    DbusException.CreateErrorName("InvalidSignature"),
+                    "Invalid signature"
+                );
         }
 
         public void Dispose()

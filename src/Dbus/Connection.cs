@@ -320,7 +320,7 @@ namespace Dbus
                         await sendMethodCallErrorAsync(
                             replySerial,
                             header.Sender,
-                            "org.dbuscore.Error.General",
+                            DbusException.CreateErrorName("General"),
                             e.Message
                          );
                     }
@@ -329,7 +329,7 @@ namespace Dbus
                 Task.Run(() => sendMethodCallErrorAsync(
                     replySerial,
                     header.Sender,
-                    "org.dbuscore.Error.MethodCallTargetNotFound",
+                    DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 ));
         }
