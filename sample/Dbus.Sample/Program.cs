@@ -35,6 +35,7 @@ namespace Dbus.Sample
             using (var connection = await Connection.CreateAsync(address))
             using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
             using (var orgFreedesktopUpower = new OrgFreedesktopUpower(connection))
+            using (var sampleObjectProxy = new SampleObject_Proxy(connection, new SampleObject()))
             {
                 orgFreedesktopDbus.NameAcquired += x =>
                 {

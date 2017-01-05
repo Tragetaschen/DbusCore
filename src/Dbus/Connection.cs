@@ -15,6 +15,7 @@ namespace Dbus
         private readonly Stream stream;
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
+        private readonly ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>> objectProxies;
         private readonly CancellationTokenSource receiveCts;
 
         private int serialCounter;
@@ -25,6 +26,7 @@ namespace Dbus
 
             expectedMessages = new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
+            objectProxies = new ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>>();
             receiveCts = new CancellationTokenSource();
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -46,6 +48,26 @@ namespace Dbus
             return new Connection(stream);
         }
 
+        public IDisposable RegisterObjectProxy(
+            string path,
+            string interfaceName,
+            Func<uint, MessageHeader, byte[], Task> proxy
+        )
+        {
+            var dictionaryEntry = path + "\0" + interfaceName;
+            if (!objectProxies.TryAdd(dictionaryEntry, proxy))
+                throw new InvalidOperationException("Attempted to register an object proxy twice");
+
+            return new deregistration
+            {
+                Deregister = () =>
+                {
+                    Func<uint, MessageHeader, byte[], Task> _;
+                    objectProxies.TryRemove(dictionaryEntry, out _);
+                }
+            };
+        }
+
         public IDisposable RegisterSignalHandler(
             string path,
             string interfaceName,
@@ -57,7 +79,7 @@ namespace Dbus
             if (!signalHandlers.TryAdd(dictionaryEntry, handler))
                 throw new InvalidOperationException("Attempted to register a signal handler twice");
 
-            return new signalDeregistration
+            return new deregistration
             {
                 Deregister = () =>
                 {
@@ -129,6 +151,98 @@ namespace Dbus
             return await tcs.Task.ConfigureAwait(false);
         }
 
+        public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, string signature)
+        {
+            var serial = Interlocked.Increment(ref serialCounter);
+
+            var message = Encoder.StartNew();
+            var index = 0;
+            Encoder.Add(message, ref index, (byte)'l'); // little endian
+            Encoder.Add(message, ref index, (byte)2); // method return
+            Encoder.Add(message, ref index, (byte)1); // no reply expected
+            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, body.Count); // Actually uint
+            Encoder.Add(message, ref index, serial); // Actually uint
+
+            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            {
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)6);
+                Encoder.AddVariant(buffer, ref localIndex, destination);
+
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)5);
+                Encoder.AddVariant(buffer, ref localIndex, replySerial);
+
+                if (body.Count > 0)
+                {
+                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                    Encoder.Add(buffer, ref localIndex, (byte)8);
+                    Encoder.AddVariantSignature(buffer, ref localIndex, signature);
+                }
+            });
+            Encoder.EnsureAlignment(message, ref index, 8);
+
+            var messageArray = message.ToArray();
+            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+
+            if (body.Count > 0)
+            {
+                var bodyArray = body.ToArray();
+                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
+            }
+        }
+
+        private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
+        {
+            var serial = Interlocked.Increment(ref serialCounter);
+
+            var index = 0;
+            var body = Encoder.StartNew();
+            Encoder.Add(body, ref index, errorMessage);
+
+            var message = Encoder.StartNew();
+            index = 0;
+            Encoder.Add(message, ref index, (byte)'l'); // little endian
+            Encoder.Add(message, ref index, (byte)3); // error
+            Encoder.Add(message, ref index, (byte)1); // no reply expected
+            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, body.Count); // Actually uint
+            Encoder.Add(message, ref index, serial); // Actually uint
+
+            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            {
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)6);
+                Encoder.AddVariant(buffer, ref localIndex, destination);
+
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)4);
+                Encoder.AddVariant(buffer, ref localIndex, error);
+
+                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                Encoder.Add(buffer, ref localIndex, (byte)5);
+                Encoder.AddVariant(buffer, ref localIndex, replySerial);
+
+                if (body.Count > 0)
+                {
+                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
+                    Encoder.Add(buffer, ref localIndex, (byte)8);
+                    Encoder.AddVariantSignature(buffer, ref localIndex, "s");
+                }
+            });
+            Encoder.EnsureAlignment(message, ref index, 8);
+
+            var messageArray = message.ToArray();
+            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+
+            if (body.Count > 0)
+            {
+                var bodyArray = body.ToArray();
+                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
+            }
+        }
+
         private async Task receive()
         {
             var fixedLengthHeader = new byte[16]; // header up until the array length
@@ -157,11 +271,17 @@ namespace Dbus
                 var header = new MessageHeader(headerBytes);
 
                 var body = new byte[bodyLength];
-                await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
+                if (bodyLength > 0)
+                {
+                    await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                }
 
                 switch (messageType)
                 {
+                    case 1:
+                        handleMethodCall(receivedSerial, header, body);
+                        break;
                     case 2:
                         handleMethodReturn(header, body);
                         break;
@@ -173,6 +293,45 @@ namespace Dbus
                         break;
                 }
             }
+        }
+
+        private void handleMethodCall(uint replySerial, MessageHeader header, byte[] body)
+        {
+            var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
+            Func<uint, MessageHeader, byte[], Task> proxy;
+            if (objectProxies.TryGetValue(dictionaryEntry, out proxy))
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await proxy(replySerial, header, body);
+                    }
+                    catch (DbusException dbusException)
+                    {
+                        await sendMethodCallErrorAsync(
+                            replySerial,
+                            header.Sender,
+                            dbusException.ErrorName,
+                            dbusException.ErrorMessage
+                         );
+                    }
+                    catch (Exception e)
+                    {
+                        await sendMethodCallErrorAsync(
+                            replySerial,
+                            header.Sender,
+                            "org.dbuscore.Error.General",
+                            e.Message
+                         );
+                    }
+                });
+            else
+                Task.Run(() => sendMethodCallErrorAsync(
+                    replySerial,
+                    header.Sender,
+                    "org.dbuscore.Error.MethodCallTargetNotFound",
+                    "The requested method call isn't mapped to an actual object"
+                ));
         }
 
         private void handleMethodReturn(
@@ -226,7 +385,7 @@ namespace Dbus
             stream.Dispose();
         }
 
-        private class signalDeregistration : IDisposable
+        private class deregistration : IDisposable
         {
             public Action Deregister;
 
