@@ -2,9 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,34 +12,38 @@ namespace Dbus
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
-        private readonly CancellationTokenSource receiveCts;
-        private readonly Socket socket;
         private readonly Stream stream;
-        private int serialCounter;
         private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
+        private readonly CancellationTokenSource receiveCts;
 
-        private Connection(EndPoint endPoint)
+        private int serialCounter;
+
+        private Connection(Stream stream)
         {
+            this.stream = stream;
+
             expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
-            socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
-            socket.Connect(endPoint);
-            stream = new LoggingStream(new NetworkStream(socket));
             receiveCts = new CancellationTokenSource();
+
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            // Ideally, there would be a DisposeAsync to properly await the receive task.
+            // It's stopped properly, though
+            Task.Run(receive);
+#pragma warning restore CS4014
         }
 
         public async static Task<Connection> CreateAsync(string address)
         {
             var endPoint = EndPointFactory.Create(address);
-            var result = new Connection(endPoint);
-            await authenticate(result.stream).ConfigureAwait(false);
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            // Ideally, there would be a DisposeAsync to properly await the receive task.
-            // It's stopped properly, though
-            Task.Run(result.receive);
-#pragma warning restore CS4014
-            return result;
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
+            await socket.ConnectAsync(endPoint).ConfigureAwait(false);
+            var stream = new LoggingStream(new NetworkStream(socket, ownsSocket: true));
+
+            await authenticate(stream).ConfigureAwait(false);
+
+            return new Connection(stream);
         }
 
         public IDisposable RegisterSignalHandler(
@@ -222,7 +224,6 @@ namespace Dbus
         {
             receiveCts.Cancel();
             stream.Dispose();
-            socket.Dispose();
         }
 
         private class signalDeregistration : IDisposable
