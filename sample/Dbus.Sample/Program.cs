@@ -53,7 +53,7 @@ namespace Dbus.Sample
                 }
                 Console.WriteLine();
 
-                var requestResult = await orgFreedesktopDbus.RequestNameAsync("com.dbuscore.sample", 0);
+                var requestResult = await orgFreedesktopDbus.RequestNameAsync("org.dbuscore.sample", 0);
                 Console.WriteLine($"Request result: {requestResult}");
 
                 await stopConnection;

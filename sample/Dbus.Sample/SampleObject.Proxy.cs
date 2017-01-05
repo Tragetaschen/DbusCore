@@ -15,8 +15,8 @@ namespace Dbus.Sample
             this.connection = connection;
             this.target = target;
             registration = connection.RegisterObjectProxy(
-                "/com/dbuscore/sample",
-                "com.dbuscore.sample.interface",
+                "/org/dbuscore/sample",
+                "org.dbuscore.sample.interface",
                 handleMethodCall
             );
         }
