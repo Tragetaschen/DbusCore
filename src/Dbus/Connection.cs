@@ -217,7 +217,7 @@ namespace Dbus
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
             Action<MessageHeader, byte[]> handler;
             if (signalHandlers.TryGetValue(dictionaryEntry, out handler))
-                Task.Factory.StartNew(() => handler(header, body));
+                Task.Run(() => handler(header, body));
         }
 
         public void Dispose()
