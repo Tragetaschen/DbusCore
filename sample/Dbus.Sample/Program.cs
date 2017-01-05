@@ -36,9 +36,9 @@ namespace Dbus.Sample
             using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
             using (var sampleObjectProxy = new SampleObject_Proxy(connection, new SampleObject()))
             {
-                orgFreedesktopDbus.NameAcquired += x =>
+                orgFreedesktopDbus.NameAcquired += async x =>
                 {
-                    Console.WriteLine($"Name acquired {x}");
+                    await Task.Run(() => Console.WriteLine($"Name acquired {x}"));
                 };
                 Console.WriteLine("Connected");
                 var path = await orgFreedesktopDbus.HelloAsync();
@@ -55,7 +55,6 @@ namespace Dbus.Sample
 
                 var requestResult = await orgFreedesktopDbus.RequestNameAsync("com.dbuscore.sample", 0);
                 Console.WriteLine($"Request result: {requestResult}");
-
 
                 await stopConnection;
             }
