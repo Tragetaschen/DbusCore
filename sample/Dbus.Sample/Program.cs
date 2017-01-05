@@ -34,7 +34,6 @@ namespace Dbus.Sample
             var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
             using (var connection = await Connection.CreateAsync(address))
             using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
-            using (var orgFreedesktopUpower = new OrgFreedesktopUpower(connection))
             using (var sampleObjectProxy = new SampleObject_Proxy(connection, new SampleObject()))
             {
                 orgFreedesktopDbus.NameAcquired += x =>
@@ -57,9 +56,6 @@ namespace Dbus.Sample
                 var requestResult = await orgFreedesktopDbus.RequestNameAsync("com.dbuscore.sample", 0);
                 Console.WriteLine($"Request result: {requestResult}");
 
-                var properties = await orgFreedesktopUpower.GetAllAsync();
-                foreach (var pair in properties)
-                    Console.WriteLine($"Key: {pair.Key} Value: {pair.Value}");
 
                 await stopConnection;
             }
