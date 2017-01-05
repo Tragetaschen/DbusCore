@@ -135,18 +135,13 @@ namespace Dbus
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
+            message.AddRange(body);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
             expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
             await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
-
-            if (body.Count > 0)
-            {
-                var bodyArray = body.ToArray();
-                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
-            }
 
             return await tcs.Task.ConfigureAwait(false);
         }
@@ -182,15 +177,10 @@ namespace Dbus
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
+            message.AddRange(body);
 
             var messageArray = message.ToArray();
             await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
-
-            if (body.Count > 0)
-            {
-                var bodyArray = body.ToArray();
-                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
-            }
         }
 
         private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
@@ -232,15 +222,10 @@ namespace Dbus
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
+            message.AddRange(body);
 
             var messageArray = message.ToArray();
             await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
-
-            if (body.Count > 0)
-            {
-                var bodyArray = body.ToArray();
-                await stream.WriteAsync(bodyArray, 0, bodyArray.Length).ConfigureAwait(false);
-            }
         }
 
         private async Task receive()
