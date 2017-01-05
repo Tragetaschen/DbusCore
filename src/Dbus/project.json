@@ -7,6 +7,9 @@
 
   "frameworks": {
     "net452": {
+      "buildOptions": {
+        "define": [ "FULL_FRAMEWORK" ]
+      }
     },
     "netstandard1.6": {
       "imports": "dnxcore50"
