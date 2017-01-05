@@ -47,6 +47,9 @@ namespace Dbus.Sample
                 }
                 Console.WriteLine();
 
+                var requestResult = await orgFreedesktopDbus.RequestNameAsync("com.dbuscore.sample", 0);
+                Console.WriteLine($"Request result: {requestResult}");
+
                 var properties = await orgFreedesktopUpower.GetAllAsync();
                 foreach (var pair in properties)
                     Console.WriteLine($"Key: {pair.Key} Value: {pair.Value}");

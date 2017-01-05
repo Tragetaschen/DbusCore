@@ -62,6 +62,28 @@ namespace Dbus
             return names;
         }
 
+        public async Task<int> RequestNameAsync(string name, int flags)
+        {
+            var sendBody = Encoder.StartNew();
+            var sendIndex = 0;
+            Encoder.Add(sendBody, ref sendIndex, name);
+            Encoder.Add(sendBody, ref sendIndex, flags);
+
+            var receivedMessage = await connection.SendMethodCall(
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "RequestName",
+                "org.freedesktop.DBus",
+                sendBody,
+                "su"
+            );
+            assertSignature(receivedMessage.Signature, "u");
+            var body = receivedMessage.Body;
+            var index = 0;
+            var result = Decoder.GetInt32(body, ref index);
+            return result;
+        }
+
         public event Action<string> NameAcquired;
         private void handleNameAcquired(MessageHeader header, byte[] body)
         {
