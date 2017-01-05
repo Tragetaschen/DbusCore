@@ -24,7 +24,7 @@
                         ErrorName = (string)value;
                         break;
                     case 5:
-                        ReplySerial = (int)value;
+                        ReplySerial = (uint)value;
                         break;
                     case 6:
                         Destination = (string)value;
@@ -46,11 +46,11 @@
         public string InterfaceName { get; }
         public string Member { get; }
         public string ErrorName { get; }
-        public int ReplySerial { get; }
+        public uint ReplySerial { get; }
         public string Destination { get; }
         public string Sender { get; }
         public string BodySignature { get; }
-        //public int UnixFds { get; }
+        //public uint UnixFds { get; }
 
         public override string ToString()
         {

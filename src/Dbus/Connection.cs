@@ -13,7 +13,7 @@ namespace Dbus
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
         private readonly Stream stream;
-        private readonly ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
+        private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
         private readonly CancellationTokenSource receiveCts;
 
@@ -23,7 +23,7 @@ namespace Dbus
         {
             this.stream = stream;
 
-            expectedMessages = new ConcurrentDictionary<int, TaskCompletionSource<ReceivedMethodReturn>>();
+            expectedMessages = new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
             receiveCts = new CancellationTokenSource();
 
@@ -84,8 +84,8 @@ namespace Dbus
             Encoder.Add(message, ref index, (byte)1); // method call
             Encoder.Add(message, ref index, (byte)0); // flags
             Encoder.Add(message, ref index, (byte)1); // protocol version
-            Encoder.Add(message, ref index, body.Count);
-            Encoder.Add(message, ref index, serial);
+            Encoder.Add(message, ref index, body.Count); // Actually uint
+            Encoder.Add(message, ref index, serial); // Actually uint
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
@@ -115,7 +115,7 @@ namespace Dbus
             Encoder.EnsureAlignment(message, ref index, 8);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
-            expectedMessages[serial] = tcs;
+            expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
             await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
@@ -147,9 +147,9 @@ namespace Dbus
                 var protocolVersion = Decoder.GetByte(fixedLengthHeader, ref index);
                 if (protocolVersion != 1)
                     throw new InvalidDataException("Wrong protocol version");
-                var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index);
-                var receivedSerial = Decoder.GetInt32(fixedLengthHeader, ref index);
-                var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index);
+                var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index); // Actually uint
+                var receivedSerial = Decoder.GetUInt32(fixedLengthHeader, ref index);
+                var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index); // Actually uint
                 Alignment.Advance(ref receivedArrayLength, 8);
                 var headerBytes = new byte[receivedArrayLength];
                 await stream.ReadAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);

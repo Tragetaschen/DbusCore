@@ -12,7 +12,8 @@ namespace Dbus
             { "g", GetSignature },
             { "y", box(GetByte) },
             { "b", box(GetBoolean) },
-            { "u", box(GetInt32) },
+            { "i", box(GetInt32) },
+            { "u", box(GetUInt32) },
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
@@ -28,7 +29,7 @@ namespace Dbus
         /// <returns>The decoded string</returns>
         public static string GetString(byte[] buffer, ref int index)
         {
-            var stringLength = GetInt32(buffer, ref index);
+            var stringLength = GetInt32(buffer, ref index); // Actually uint
             var result = Encoding.UTF8.GetString(buffer, index, stringLength);
             index += stringLength + 1 /* null byte */;
             return result;
@@ -87,6 +88,20 @@ namespace Dbus
         }
 
         /// <summary>
+        /// Decodes an UInt32 from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the UInt32 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded UInt32</returns>
+        public static uint GetUInt32(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 4);
+            var result = BitConverter.ToUInt32(buffer, index);
+            index += 4;
+            return result;
+        }
+
+        /// <summary>
         /// Decoder for element types
         /// </summary>
         /// <typeparam name="T">Result type of the decoder</typeparam>
@@ -106,7 +121,7 @@ namespace Dbus
         public static List<T> GetArray<T>(byte[] buffer, ref int index, ElementDecoder<T> decoder)
         {
             var result = new List<T>();
-            var arrayLength = GetInt32(buffer, ref index);
+            var arrayLength = GetInt32(buffer, ref index); // Actually uint
             while (index < arrayLength)
             {
                 var element = decoder(buffer, ref index);
@@ -133,7 +148,7 @@ namespace Dbus
         )
         {
             var result = new Dictionary<TKey, TValue>();
-            var arrayLength = GetInt32(buffer, ref index);
+            var arrayLength = GetInt32(buffer, ref index); // Actually uint
             while (index < arrayLength)
             {
                 Alignment.Advance(ref index, 8);

@@ -62,7 +62,7 @@ namespace Dbus
             return names;
         }
 
-        public async Task<int> RequestNameAsync(string name, int flags)
+        public async Task<uint> RequestNameAsync(string name, uint flags)
         {
             var sendBody = Encoder.StartNew();
             var sendIndex = 0;
@@ -80,7 +80,7 @@ namespace Dbus
             assertSignature(receivedMessage.Signature, "u");
             var body = receivedMessage.Body;
             var index = 0;
-            var result = Decoder.GetInt32(body, ref index);
+            var result = Decoder.GetUInt32(body, ref index);
             return result;
         }
 
