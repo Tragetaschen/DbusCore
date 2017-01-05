@@ -4,6 +4,7 @@
     {
         public MessageHeader(byte[] headerBytes)
         {
+            BodySignature = "";
             var index = 0;
             while (index < headerBytes.Length)
             {
@@ -33,7 +34,7 @@
                         Sender = (string)value;
                         break;
                     case 8:
-                        BodySignature = (string)value;
+                        BodySignature = (Signature)value;
                         break;
                     case 9: /* UNIX_FDS: UINT32 */
                         break;
@@ -49,7 +50,7 @@
         public uint ReplySerial { get; }
         public string Destination { get; }
         public string Sender { get; }
-        public string BodySignature { get; }
+        public Signature BodySignature { get; }
         //public uint UnixFds { get; }
 
         public override string ToString()

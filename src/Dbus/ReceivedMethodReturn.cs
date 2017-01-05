@@ -2,7 +2,7 @@
 {
     public struct ReceivedMethodReturn
     {
-        public string Signature;
+        public Signature Signature;
         public byte[] Body;
     }
 }

@@ -41,7 +41,7 @@ namespace Dbus
             return result;
         }
 
-        private static void assertSignature(string actual, string expected)
+        private static void assertSignature(Signature actual, Signature expected)
         {
             if (actual != expected)
                 throw new InvalidOperationException($"Unexpected signature. Got ${actual}, but expected ${expected}");

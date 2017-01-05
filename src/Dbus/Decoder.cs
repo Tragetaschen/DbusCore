@@ -41,7 +41,7 @@ namespace Dbus
         /// <param name="buffer">Buffer to decode the signature from</param>
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded signature</returns>
-        public static string GetSignature(byte[] buffer, ref int index)
+        public static Signature GetSignature(byte[] buffer, ref int index)
         {
             var signatureLength = GetByte(buffer, ref index);
             var result = Encoding.UTF8.GetString(buffer, index, signatureLength);
@@ -165,7 +165,7 @@ namespace Dbus
         {
             var signature = GetSignature(buffer, ref index);
             ElementDecoder<object> elementDecoder;
-            if (typeDecoders.TryGetValue(signature, out elementDecoder))
+            if (typeDecoders.TryGetValue(signature.ToString(), out elementDecoder))
                 return elementDecoder(buffer, ref index);
             throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }

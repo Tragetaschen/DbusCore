@@ -95,7 +95,7 @@ namespace Dbus
             string methodName,
             string destination,
             List<byte> body,
-            string signature
+            Signature signature
         )
         {
             var serial = Interlocked.Increment(ref serialCounter);
@@ -131,7 +131,7 @@ namespace Dbus
                 {
                     Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                     Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariantSignature(buffer, ref localIndex, signature);
+                    Encoder.AddVariant(buffer, ref localIndex, signature);
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
@@ -146,7 +146,7 @@ namespace Dbus
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, string signature)
+        public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
         {
             var serial = Interlocked.Increment(ref serialCounter);
 
@@ -173,7 +173,7 @@ namespace Dbus
                 {
                     Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                     Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariantSignature(buffer, ref localIndex, signature);
+                    Encoder.AddVariant(buffer, ref localIndex, signature);
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
@@ -218,7 +218,7 @@ namespace Dbus
                 {
                     Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                     Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariantSignature(buffer, ref localIndex, "s");
+                    Encoder.AddVariant(buffer, ref localIndex, (Signature)"s");
                 }
             });
             Encoder.EnsureAlignment(message, ref index, 8);
@@ -340,7 +340,7 @@ namespace Dbus
         {
             if (header.ReplySerial == 0)
                 throw new InvalidOperationException("Only errors for method calls are supported");
-            if (!header.BodySignature.StartsWith("s"))
+            if (!header.BodySignature.ToString().StartsWith("s"))
                 throw new InvalidOperationException("Errors are expected to start their body with a string");
 
             TaskCompletionSource<ReceivedMethodReturn> tcs;

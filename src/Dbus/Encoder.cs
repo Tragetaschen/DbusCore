@@ -23,9 +23,9 @@ namespace Dbus
             index += 1;
         }
 
-        public static void AddSignature(List<byte> buffer, ref int index, string signature)
+        public static void Add(List<byte> buffer, ref int index, Signature signature)
         {
-            var bytes = Encoding.UTF8.GetBytes(signature);
+            var bytes = Encoding.UTF8.GetBytes(signature.ToString());
             Add(buffer, ref index, (byte)bytes.Length);
             buffer.AddRange(bytes);
             index += bytes.Length;
@@ -71,20 +71,20 @@ namespace Dbus
 
         public static void AddVariant(List<byte> buffer, ref int index, string value, bool isObjectPath = false)
         {
-            AddSignature(buffer, ref index, isObjectPath ? "o" : "s");
+            Add(buffer, ref index, (Signature)(isObjectPath ? "o" : "s"));
             Add(buffer, ref index, value);
         }
 
         public static void AddVariant(List<byte> buffer, ref int index, uint value)
         {
-            AddSignature(buffer, ref index, "u");
+            Add(buffer, ref index, (Signature)"u");
             Add(buffer, ref index, value);
         }
 
-        public static void AddVariantSignature(List<byte> buffer, ref int index, string signature)
+        public static void AddVariant(List<byte> buffer, ref int index, Signature signature)
         {
-            AddSignature(buffer, ref index, "g");
-            AddSignature(buffer, ref index, signature);
+            Add(buffer, ref index, (Signature)"g");
+            Add(buffer, ref index, signature);
         }
 
         public static void EnsureAlignment(List<byte> buffer, ref int index, int alignment)

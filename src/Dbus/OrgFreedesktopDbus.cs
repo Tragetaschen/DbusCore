@@ -33,7 +33,7 @@ namespace Dbus
                 "Hello",
                 "org.freedesktop.DBus",
                 sendBody,
-                string.Empty
+                ""
             );
             assertSignature(receivedMessage.Signature, "s");
 
@@ -53,7 +53,7 @@ namespace Dbus
                 "ListNames",
                 "org.freedesktop.DBus",
                 sendBody,
-                string.Empty
+                ""
             );
             assertSignature(receivedMessage.Signature, "as");
             var body = receivedMessage.Body;
@@ -95,7 +95,7 @@ namespace Dbus
             NameAcquired?.Invoke(name);
         }
 
-        private static void assertSignature(string actual, string expected)
+        private static void assertSignature(Signature actual, Signature expected)
         {
             if (actual != expected)
                 throw new InvalidOperationException($"Unexpected signature. Got ${actual}, but expected ${expected}");

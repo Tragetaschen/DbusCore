@@ -41,7 +41,7 @@ namespace Dbus.Sample
 
         private async Task callMyVoidAsync(uint replySerial, MessageHeader header, byte[] receivedBod)
         {
-            assertSignature(header.BodySignature, null);
+            assertSignature(header.BodySignature, "");
 
             await target.MyVoidAsync();
 
@@ -99,9 +99,9 @@ namespace Dbus.Sample
             );
         }
 
-        private static void assertSignature(string actual, string expected)
+        private static void assertSignature(Signature actual, Signature expected)
         {
-            if (expected == null && !string.IsNullOrEmpty(actual) || actual != expected)
+            if (actual != expected)
                 throw new DbusException(
                     DbusException.CreateErrorName("InvalidSignature"),
                     "Invalid signature"
