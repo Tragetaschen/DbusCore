@@ -33,6 +33,11 @@ namespace Dbus
             index += 1;
         }
 
+        public static void Add(List<byte> buffer, ref int index, ObjectPath value)
+        {
+            Add(buffer, ref index, value.ToString());
+        }
+
         public static void Add(List<byte> buffer, ref int index, int value)
         {
             EnsureAlignment(buffer, ref index, 4);
@@ -69,10 +74,16 @@ namespace Dbus
                 buffer[lengthPosition + i] = lengthBytes[i];
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, string value, bool isObjectPath = false)
+        public static void AddVariant(List<byte> buffer, ref int index, string value)
         {
-            Add(buffer, ref index, (Signature)(isObjectPath ? "o" : "s"));
+            Add(buffer, ref index, (Signature)"s");
             Add(buffer, ref index, value);
+        }
+
+        public static void AddVariant(List<byte> buffer, ref int index, ObjectPath value)
+        {
+            Add(buffer, ref index, (Signature)"o");
+            Add(buffer, ref index, value.ToString());
         }
 
         public static void AddVariant(List<byte> buffer, ref int index, uint value)

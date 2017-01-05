@@ -49,7 +49,7 @@ namespace Dbus
         }
 
         public IDisposable RegisterObjectProxy(
-            string path,
+            ObjectPath path,
             string interfaceName,
             Func<uint, MessageHeader, byte[], Task> proxy
         )
@@ -69,7 +69,7 @@ namespace Dbus
         }
 
         public IDisposable RegisterSignalHandler(
-            string path,
+            ObjectPath path,
             string interfaceName,
             string member,
             Action<MessageHeader, byte[]> handler
@@ -90,7 +90,7 @@ namespace Dbus
         }
 
         public async Task<ReceivedMethodReturn> SendMethodCall(
-            string path,
+            ObjectPath path,
             string interfaceName,
             string methodName,
             string destination,
@@ -113,7 +113,7 @@ namespace Dbus
             {
                 Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                 Encoder.Add(buffer, ref localIndex, (byte)1);
-                Encoder.AddVariant(buffer, ref localIndex, path, isObjectPath: true);
+                Encoder.AddVariant(buffer, ref localIndex, path);
 
                 Encoder.EnsureAlignment(buffer, ref localIndex, 8);
                 Encoder.Add(buffer, ref localIndex, (byte)2);

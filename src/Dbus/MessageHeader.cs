@@ -13,7 +13,7 @@
                 switch (typeCode)
                 {
                     case 1:
-                        Path = (string)value;
+                        Path = (ObjectPath)value;
                         break;
                     case 2:
                         InterfaceName = (string)value;
@@ -43,7 +43,7 @@
             }
         }
 
-        public string Path { get; }
+        public ObjectPath Path { get; }
         public string InterfaceName { get; }
         public string Member { get; }
         public string ErrorName { get; }

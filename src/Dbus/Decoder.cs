@@ -7,7 +7,7 @@ namespace Dbus
     public static class Decoder
     {
         private static readonly Dictionary<string, ElementDecoder<object>> typeDecoders = new Dictionary<string, ElementDecoder<object>> {
-            { "o", GetString },
+            { "o", GetObjectPath},
             { "s", GetString },
             { "g", GetSignature },
             { "y", box(GetByte) },
@@ -33,6 +33,17 @@ namespace Dbus
             var result = Encoding.UTF8.GetString(buffer, index, stringLength);
             index += stringLength + 1 /* null byte */;
             return result;
+        }
+
+        /// <summary>
+        /// Decodes an object path from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the object path from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded object path</returns>
+        public static ObjectPath GetObjectPath(byte[] buffer, ref int index)
+        {
+            return GetString(buffer, ref index);
         }
 
         /// <summary>
