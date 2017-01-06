@@ -89,6 +89,34 @@ namespace Dbus
             };
         }
 
+        private static void AddHeader(List<byte> buffer, ref int index, ObjectPath path)
+        {
+            Encoder.EnsureAlignment(buffer, ref index, 8);
+            Encoder.Add(buffer, ref index, (byte)1);
+            Encoder.AddVariant(buffer, ref index, path);
+        }
+
+        private static void AddHeader(List<byte> buffer, ref int index, uint replySerial)
+        {
+            Encoder.EnsureAlignment(buffer, ref index, 8);
+            Encoder.Add(buffer, ref index, (byte)5);
+            Encoder.AddVariant(buffer, ref index, replySerial);
+        }
+
+        private static void AddHeader(List<byte> buffer, ref int index, Signature signature)
+        {
+            Encoder.EnsureAlignment(buffer, ref index, 8);
+            Encoder.Add(buffer, ref index, (byte)8);
+            Encoder.AddVariant(buffer, ref index, signature);
+        }
+
+        private static void AddHeader(List<byte> buffer, ref int index, byte type, string value)
+        {
+            Encoder.EnsureAlignment(buffer, ref index, 8);
+            Encoder.Add(buffer, ref index, type);
+            Encoder.AddVariant(buffer, ref index, value);
+        }
+
         public async Task<ReceivedMethodReturn> SendMethodCall(
             ObjectPath path,
             string interfaceName,
@@ -111,28 +139,12 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)1);
-                Encoder.AddVariant(buffer, ref localIndex, path);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)2);
-                Encoder.AddVariant(buffer, ref localIndex, interfaceName);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)3);
-                Encoder.AddVariant(buffer, ref localIndex, methodName);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)6);
-                Encoder.AddVariant(buffer, ref localIndex, destination);
-
+                AddHeader(buffer, ref localIndex, path);
+                AddHeader(buffer, ref localIndex, 2, interfaceName);
+                AddHeader(buffer, ref localIndex, 3, methodName);
+                AddHeader(buffer, ref localIndex, 6, destination);
                 if (body.Count > 0)
-                {
-                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                    Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariant(buffer, ref localIndex, signature);
-                }
+                    AddHeader(buffer, ref localIndex, signature);
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
@@ -161,20 +173,10 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)6);
-                Encoder.AddVariant(buffer, ref localIndex, destination);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)5);
-                Encoder.AddVariant(buffer, ref localIndex, replySerial);
-
+                AddHeader(buffer, ref localIndex, 6, destination);
+                AddHeader(buffer, ref localIndex, replySerial);
                 if (body.Count > 0)
-                {
-                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                    Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariant(buffer, ref localIndex, signature);
-                }
+                    AddHeader(buffer, ref localIndex, signature);
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
@@ -202,24 +204,11 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)6);
-                Encoder.AddVariant(buffer, ref localIndex, destination);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)4);
-                Encoder.AddVariant(buffer, ref localIndex, error);
-
-                Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                Encoder.Add(buffer, ref localIndex, (byte)5);
-                Encoder.AddVariant(buffer, ref localIndex, replySerial);
-
+                AddHeader(buffer, ref localIndex, 6, destination);
+                AddHeader(buffer, ref localIndex, 4, error);
+                AddHeader(buffer, ref localIndex, replySerial);
                 if (body.Count > 0)
-                {
-                    Encoder.EnsureAlignment(buffer, ref localIndex, 8);
-                    Encoder.Add(buffer, ref localIndex, (byte)8);
-                    Encoder.AddVariant(buffer, ref localIndex, (Signature)"s");
-                }
+                    AddHeader(buffer, ref localIndex, (Signature)"s");
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
