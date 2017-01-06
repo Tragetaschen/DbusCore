@@ -6,14 +6,15 @@ namespace Dbus
 {
     public static class Decoder
     {
-        private static readonly Dictionary<string, ElementDecoder<object>> typeDecoders = new Dictionary<string, ElementDecoder<object>> {
-            { "o", GetObjectPath},
-            { "s", GetString },
-            { "g", GetSignature },
-            { "y", box(GetByte) },
-            { "b", box(GetBoolean) },
-            { "i", box(GetInt32) },
-            { "u", box(GetUInt32) },
+        private static readonly Dictionary<string, ElementDecoder<object>> typeDecoders = new Dictionary<string, ElementDecoder<object>>
+        {
+            ["o"] = GetObjectPath,
+            ["s"] = GetString,
+            ["g"] = GetSignature,
+            ["y"] = box(GetByte),
+            ["b"] = box(GetBoolean),
+            ["i"] = box(GetInt32),
+            ["u"] = box(GetUInt32),
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
