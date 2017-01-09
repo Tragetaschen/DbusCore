@@ -173,7 +173,7 @@ namespace Dbus
             return result;
         }
 
-        public static object GetVariant(byte[] buffer, ref int index)
+        public static object GetObject(byte[] buffer, ref int index)
         {
             var signature = GetSignature(buffer, ref index);
             ElementDecoder<object> elementDecoder;

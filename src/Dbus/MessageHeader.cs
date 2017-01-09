@@ -9,7 +9,7 @@
             while (index < headerBytes.Length)
             {
                 var typeCode = Decoder.GetByte(headerBytes, ref index);
-                var value = Decoder.GetVariant(headerBytes, ref index);
+                var value = Decoder.GetObject(headerBytes, ref index);
                 switch (typeCode)
                 {
                     case 1:
