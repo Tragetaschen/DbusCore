@@ -27,9 +27,14 @@ namespace Dbus
 
         public override int GetHashCode() => signature.GetHashCode();
         public override string ToString() => signature;
-        public static bool operator ==(Signature lhs, Signature rhs) =>
-            lhs.signature == rhs.signature;
-        public static bool operator !=(Signature lhs, Signature rhs) =>
-            lhs.signature != rhs.signature;
+        public static bool operator ==(Signature lhs, Signature rhs)
+        {
+            if (ReferenceEquals(lhs, rhs))
+                return true;
+            if ((object)lhs == null || (object)rhs == null)
+                return false;
+            return lhs.signature == rhs.signature;
+        }
+        public static bool operator !=(Signature lhs, Signature rhs) => !(lhs == rhs);
     }
 }

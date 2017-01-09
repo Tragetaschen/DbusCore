@@ -27,9 +27,14 @@ namespace Dbus
 
         public override int GetHashCode() => objectPath.GetHashCode();
         public override string ToString() => objectPath;
-        public static bool operator ==(ObjectPath lhs, ObjectPath rhs) =>
-            lhs.objectPath == rhs.objectPath;
-        public static bool operator !=(ObjectPath lhs, ObjectPath rhs) =>
-            lhs.objectPath != rhs.objectPath;
+        public static bool operator ==(ObjectPath lhs, ObjectPath rhs)
+        {
+            if (ReferenceEquals(lhs, rhs))
+                return true;
+            if ((object)lhs == null || (object)rhs == null)
+                return false;
+            return lhs.objectPath == rhs.objectPath;
+        }
+        public static bool operator !=(ObjectPath lhs, ObjectPath rhs) => !(lhs == rhs);
     }
 }
