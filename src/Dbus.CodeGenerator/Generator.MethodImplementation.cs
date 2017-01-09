@@ -11,8 +11,6 @@ namespace Dbus.CodeGenerator
     {
         private static string generateMethodImplementation(MethodInfo methodInfo, string interfaceName)
         {
-            const string indent = "            ";
-
             if (!methodInfo.Name.EndsWith("Async"))
                 throw new InvalidOperationException("Only method names ending with 'Async' are supported");
             var callName = methodInfo.Name.Substring(0, methodInfo.Name.Length - "Async".Length);

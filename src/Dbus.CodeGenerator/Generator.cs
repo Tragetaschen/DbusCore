@@ -19,6 +19,7 @@ namespace Dbus.CodeGenerator
             [typeof(int)] = "i",
             [typeof(uint)] = "u",
         };
+        const string indent = "            ";
 
         public static string Run()
         {
@@ -60,7 +61,11 @@ namespace Dbus.CodeGenerator
                 EventInfo eventInfo;
 
                 if ((eventInfo = member as EventInfo) != null)
-                    Console.WriteLine(member.Name);
+                {
+                    var result = generateEventImplementation(eventInfo, consume.InterfaceName);
+                    eventSubscriptions.Append(result.Item1);
+                    eventImplementations.Append(result.Item2);
+                }
                 else if ((methodInfo = member as MethodInfo) != null)
                 {
                     if (!methodInfo.IsSpecialName)
