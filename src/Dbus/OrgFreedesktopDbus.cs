@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public class OrgFreedesktopDbus : IDisposable
+    public class OrgFreedesktopDbus : IOrgFreedesktopDbus
     {
         private readonly Connection connection;
         private readonly List<IDisposable> eventSubscriptions = new List<IDisposable>();
