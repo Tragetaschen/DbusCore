@@ -5,7 +5,8 @@
   },
 
   "dependencies": {
-    "Dbus": "*"
+    "Dbus": "*",
+    "Dbus.CodeGenerator": "*"
   },
 
   "frameworks": {

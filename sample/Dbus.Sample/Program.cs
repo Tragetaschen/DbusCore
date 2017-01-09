@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Dbus.CodeGenerator;
+using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Dbus.Sample
@@ -7,6 +9,17 @@ namespace Dbus.Sample
     {
         public static void Main(string[] args)
         {
+            if (args.Length == 1 && args[0] == "gen")
+            {
+                var code = Generator.Run();
+                File.WriteAllText("Dbus.Generated.cs", @"namespace Dbus.Sample
+{
+" + code + @"
+}
+");
+                return;
+            }
+
             var tcs = new TaskCompletionSource<int>();
             var workTask = Task.Run(() => work(tcs.Task));
             var readlineTask = Task.Factory.StartNew(() =>
@@ -33,7 +46,7 @@ namespace Dbus.Sample
             Console.WriteLine("Running");
             var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
             using (var connection = await Connection.CreateAsync(address))
-            using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection))
+            using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection)) //, "/org/freedesktop/DBus", "org.freedesktop.DBus"))
             using (var sampleObjectProxy = new SampleObject_Proxy(connection, new SampleObject()))
             {
                 orgFreedesktopDbus.NameAcquired += async x =>
