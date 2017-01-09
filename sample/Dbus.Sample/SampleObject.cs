@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 
 namespace Dbus.Sample
 {
+    [DbusProvide("org.dbuscore.sample.interface", Path = "/org/dbuscore/sample")]
     public class SampleObject
     {
         public Task MyVoidAsync()

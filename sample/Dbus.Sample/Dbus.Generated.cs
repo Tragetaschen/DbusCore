@@ -152,4 +152,91 @@ namespace Dbus.Sample
         }
     }
 
+    public sealed class SampleObject_Proxy: System.IDisposable
+    {
+        private readonly Dbus.Connection connection;
+        private readonly Dbus.Sample.SampleObject target;
+
+        private System.IDisposable registration;
+
+        public SampleObject_Proxy(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path = default(Dbus.ObjectPath))
+        {
+            this.connection = connection;
+            this.target = target;
+            registration = connection.RegisterObjectProxy(
+                path ?? "/org/dbuscore/sample",
+                "org.dbuscore.sample.interface",
+                handleMethodCall
+            );
+        }
+
+        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)
+        {
+            switch (header.Member)
+            {
+                case "MyComplexMethod":
+                    return handleMyComplexMethodAsync(replySerial, header, body);
+                case "MyEcho":
+                    return handleMyEchoAsync(replySerial, header, body);
+                case "MyVoid":
+                    return handleMyVoidAsync(replySerial, header, body);
+                default:
+                    throw new DbusException(
+                        DbusException.CreateErrorName("UnknownMethod"),
+                        "Method not supported"
+                    );
+            }
+        }
+
+        private async System.Threading.Tasks.Task handleMyComplexMethodAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        {
+            assertSignature(header.BodySignature, "sii");
+            var receiveIndex = 0;
+            var p1 = Decoder.GetString(receivedBody, ref receiveIndex);
+            var p2 = Decoder.GetInt32(receivedBody, ref receiveIndex);
+            var p3 = Decoder.GetInt32(receivedBody, ref receiveIndex);
+            var result = await target.MyComplexMethodAsync(p1, p2, p3);
+            var sendBody = Encoder.StartNew();
+            var sendIndex = 0;
+            Encoder.Add(sendBody, ref sendIndex, result.Item1);
+            Encoder.Add(sendBody, ref sendIndex, result.Item2);
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"si");
+        }
+
+        private async System.Threading.Tasks.Task handleMyEchoAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        {
+            assertSignature(header.BodySignature, "s");
+            var receiveIndex = 0;
+            var message = Decoder.GetString(receivedBody, ref receiveIndex);
+            var result = await target.MyEchoAsync(message);
+            var sendBody = Encoder.StartNew();
+            var sendIndex = 0;
+            Encoder.Add(sendBody, ref sendIndex, result);
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"s");
+        }
+
+        private async System.Threading.Tasks.Task handleMyVoidAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        {
+            assertSignature(header.BodySignature, "");
+            await target.MyVoidAsync();
+            var sendBody = Encoder.StartNew();
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"");
+        }
+
+
+        private static void assertSignature(Signature actual, Signature expected)
+        {
+            if (actual != expected)
+                throw new DbusException(
+                    DbusException.CreateErrorName("InvalidSignature"),
+                    "Invalid signature"
+                );
+        }
+
+        public void Dispose()
+        {
+            registration.Dispose();
+        }
+    }
+
 }

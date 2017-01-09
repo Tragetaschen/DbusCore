@@ -40,6 +40,10 @@ namespace Dbus.CodeGenerator
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
                 if (consume != null)
                     result.Append(generateConsumeImplementation(type, consume));
+
+                var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
+                if (provide != null)
+                    result.Append(generateProvideImplementation(type, provide));
             }
 
             return result.ToString();
@@ -97,6 +101,77 @@ namespace Dbus.CodeGenerator
         public void Dispose()
         {
             eventSubscriptions.ForEach(x => x.Dispose());
+        }
+    }
+";
+        }
+
+        private static string generateProvideImplementation(Type type, DbusProvideAttribute provide)
+        {
+            var knownMethods = new List<string>();
+            var proxies = new StringBuilder();
+
+            var methods = type.GetTypeInfo().GetMethods();
+            foreach (var method in methods.OrderBy(x => x.Name))
+            {
+                if (method.IsSpecialName)
+                    continue;
+                if (method.DeclaringType == typeof(object))
+                    continue;
+
+                var result = generateMethodProxy(method);
+
+                knownMethods.Add(result.Item1);
+                proxies.Append(result.Item2);
+            }
+
+            return @"
+    public sealed class " + type.Name + @"_Proxy: System.IDisposable
+    {
+        private readonly Dbus.Connection connection;
+        private readonly " + type.FullName + @" target;
+
+        private System.IDisposable registration;
+
+        public " + type.Name + @"_Proxy(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path = default(Dbus.ObjectPath))
+        {
+            this.connection = connection;
+            this.target = target;
+            registration = connection.RegisterObjectProxy(
+                path ?? """ + provide.Path + @""",
+                """ + provide.InterfaceName + @""",
+                handleMethodCall
+            );
+        }
+
+        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)
+        {
+            switch (header.Member)
+            {
+                " + string.Join(@"
+                ", knownMethods.Select(x => @"case """ + x + @""":
+                    return handle" + x + @"Async(replySerial, header, body);")) + @"
+                default:
+                    throw new DbusException(
+                        DbusException.CreateErrorName(""UnknownMethod""),
+                        ""Method not supported""
+                    );
+            }
+        }
+" + proxies.ToString() + @"
+
+        private static void assertSignature(Signature actual, Signature expected)
+        {
+            if (actual != expected)
+                throw new DbusException(
+                    DbusException.CreateErrorName(""InvalidSignature""),
+                    ""Invalid signature""
+                );
+        }
+
+        public void Dispose()
+        {
+            registration.Dispose();
         }
     }
 ";
