@@ -35,14 +35,11 @@ namespace Dbus.CodeGenerator
 
             var result = new StringBuilder();
 
-            foreach (var type in candidateTypes)
+            foreach (var type in candidateTypes.OrderBy(x => x.FullName))
             {
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
-
                 if (consume != null)
-                {
                     result.Append(generateConsumeImplementation(type, consume));
-                }
             }
 
             return result.ToString();
@@ -56,7 +53,7 @@ namespace Dbus.CodeGenerator
             var eventImplementations = new StringBuilder();
 
             var members = type.GetTypeInfo().GetMembers();
-            foreach (var member in members)
+            foreach (var member in members.OrderBy(x => x.Name))
             {
                 MethodInfo methodInfo;
                 EventInfo eventInfo;
