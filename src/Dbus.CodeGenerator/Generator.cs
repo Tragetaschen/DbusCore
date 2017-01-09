@@ -82,11 +82,11 @@ namespace Dbus.CodeGenerator
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public " + className + @"(Connection connection, ObjectPath path = null, string destination = """")
+        public " + className + @"(Connection connection, ObjectPath path = null, string destination = null)
         {
             this.connection = connection;
-            this.path = path == null ? """ + consume.Path + @""" : path;
-            this.destination = destination == """" ? """ + consume.Destination + @""" : destination;
+            this.path = path ?? """ + consume.Path + @""";
+            this.destination = destination ?? """ + consume.Destination + @""";
 " + eventSubscriptions + @"
         }
 " + methodImplementations + @"

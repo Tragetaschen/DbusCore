@@ -8,11 +8,11 @@ namespace Dbus.Sample
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public OrgFreedesktopUpower(Connection connection, ObjectPath path = null, string destination = "")
+        public OrgFreedesktopUpower(Connection connection, ObjectPath path = null, string destination = null)
         {
             this.connection = connection;
-            this.path = path == null ? "/org/freedesktop/UPower" : path;
-            this.destination = destination == "" ? "org.freedesktop.UPower" : destination;
+            this.path = path ?? "/org/freedesktop/UPower";
+            this.destination = destination ?? "org.freedesktop.UPower";
 
         }
 
@@ -57,11 +57,11 @@ namespace Dbus.Sample
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public OrgFreedesktopDbus(Connection connection, ObjectPath path = null, string destination = "")
+        public OrgFreedesktopDbus(Connection connection, ObjectPath path = null, string destination = null)
         {
             this.connection = connection;
-            this.path = path == null ? "/org/freedesktop/DBus" : path;
-            this.destination = destination == "" ? "org.freedesktop.DBus" : destination;
+            this.path = path ?? "/org/freedesktop/DBus";
+            this.destination = destination ?? "org.freedesktop.DBus";
             eventSubscriptions.Add(connection.RegisterSignalHandler(
                 path,
                 "org.freedesktop.DBus",
