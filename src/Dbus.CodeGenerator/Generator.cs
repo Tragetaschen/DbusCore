@@ -18,6 +18,7 @@ namespace Dbus.CodeGenerator
             [typeof(bool)] = "b",
             [typeof(int)] = "i",
             [typeof(uint)] = "u",
+            [typeof(object)] = "v",
         };
         const string indent = "            ";
 

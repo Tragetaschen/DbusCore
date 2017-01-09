@@ -61,16 +61,37 @@ namespace Dbus.CodeGenerator
                 else
                 {
                     var genericType = actualReturnType.GetGenericTypeDefinition();
-                    if (genericType != typeof(IEnumerable<>))
-                        throw new InvalidOperationException("Only IEnumerable is supported as generic type");
-                    var elementType = actualReturnType.GenericTypeArguments[0];
-                    decoder.Append(indent);
-                    decoder.AppendLine("var result = Decoder.GetArray(receivedMessage.Body, ref index, Decoder.Get" + elementType.Name + ");");
-                    decoder.Append(indent);
-                    decoder.AppendLine("return result;");
+                    if (genericType == typeof(IEnumerable<>))
+                    {
+                        var elementType = actualReturnType.GenericTypeArguments[0];
+                        decoder.Append(indent);
+                        decoder.AppendLine("var result = Decoder.GetArray(receivedMessage.Body, ref index, Decoder.Get" + elementType.Name + ");");
+                        decoder.Append(indent);
+                        decoder.AppendLine("return result;");
 
-                    decoderSignature += "a";
-                    decoderSignature += signatures[elementType];
+                        decoderSignature += "a";
+                        decoderSignature += signatures[elementType];
+                    }
+                    else if (genericType == typeof(IDictionary<,>))
+                    {
+                        var keyType = actualReturnType.GenericTypeArguments[0];
+                        var valueType = actualReturnType.GenericTypeArguments[1];
+
+                        decoder.Append(indent);
+                        decoder.Append("var result = Decoder.GetDictionary(receivedMessage.Body, ref index");
+                        decoder.Append(", Decoder.Get" + keyType.Name);
+                        decoder.Append(", Decoder.Get" + valueType.Name);
+                        decoder.AppendLine(");");
+                        decoder.Append(indent);
+                        decoder.AppendLine("return result;");
+
+                        decoderSignature += "a{";
+                        decoderSignature += signatures[keyType];
+                        decoderSignature += signatures[valueType];
+                        decoderSignature += "}";
+                    }
+                    else
+                        throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
                 }
             }
 
