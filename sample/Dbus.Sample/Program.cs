@@ -56,8 +56,6 @@ namespace Dbus.Sample
                     await Task.Run(() => Console.WriteLine($"Name acquired {x}"));
                 };
                 Console.WriteLine("Connected");
-                var path = await orgFreedesktopDbus.HelloAsync();
-                Console.WriteLine($"Done: {path}");
 
                 var names = await orgFreedesktopDbus.ListNamesAsync();
                 Console.Write("Names:");

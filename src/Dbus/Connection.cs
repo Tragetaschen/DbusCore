@@ -45,7 +45,19 @@ namespace Dbus
 
             await authenticate(stream).ConfigureAwait(false);
 
-            return new Connection(stream);
+            var result = new Connection(stream);
+
+            try
+            {
+                using (var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>())
+                    await orgFreedesktopDbus.HelloAsync();
+            }
+            catch(KeyNotFoundException)
+            {
+                throw new InvalidOperationException("Could not find the generated implementation of 'IOrgFreedesktopDbus'. Did you run the DoInit method of the generated code?");
+            }
+
+            return result;
         }
 
         public IDisposable RegisterObjectProxy(
