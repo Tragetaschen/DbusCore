@@ -24,7 +24,7 @@ namespace Dbus.Sample
             this.path = path ?? "/org/freedesktop/DBus";
             this.destination = destination ?? "org.freedesktop.DBus";
             eventSubscriptions.Add(connection.RegisterSignalHandler(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "NameAcquired",
                 handleNameAcquired

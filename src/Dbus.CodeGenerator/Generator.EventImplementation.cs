@@ -16,7 +16,7 @@ namespace Dbus.CodeGenerator
             subscription.AppendLine("eventSubscriptions.Add(connection.RegisterSignalHandler(");
             subscription.Append(indent);
             subscription.Append("    ");
-            subscription.AppendLine("path,");
+            subscription.AppendLine("this.path,");
             subscription.Append(indent);
             subscription.Append("    ");
             subscription.AppendLine(@"""" + interfaceName + @""",");
