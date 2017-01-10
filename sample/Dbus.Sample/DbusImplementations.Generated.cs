@@ -38,6 +38,25 @@ namespace Dbus.Sample
         }
 
 
+        public async global::System.Threading.Tasks.Task AddMatchAsync(global::System.String match)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, match);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus",
+                "AddMatch",
+                destination,
+                sendBody,
+                "s"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
         public async global::System.Threading.Tasks.Task<global::System.String> HelloAsync()
         {
             var sendBody = global::Dbus.Encoder.StartNew();
@@ -73,6 +92,25 @@ namespace Dbus.Sample
             var index = 0;
             var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString);
             return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task RemoveMatchAsync(global::System.String match)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, match);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus",
+                "RemoveMatch",
+                destination,
+                sendBody,
+                "s"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
 
         }
 

@@ -19,6 +19,7 @@ namespace Dbus
         private readonly CancellationTokenSource receiveCts;
 
         private int serialCounter;
+        private IOrgFreedesktopDbus orgFreedesktopDbus;
 
         private Connection(Stream stream)
         {
@@ -49,10 +50,11 @@ namespace Dbus
 
             try
             {
-                using (var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>())
-                    await orgFreedesktopDbus.HelloAsync();
+                var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>();
+                result.orgFreedesktopDbus = orgFreedesktopDbus;
+                await orgFreedesktopDbus.HelloAsync();
             }
-            catch(KeyNotFoundException)
+            catch (KeyNotFoundException)
             {
                 throw new InvalidOperationException("Could not find the generated implementation of 'IOrgFreedesktopDbus'. Did you run the DoInit method of the generated code?");
             }
@@ -94,10 +96,17 @@ namespace Dbus
                 (_, existingHandler) => existingHandler + handler
             );
 
+            var match = $"type='signal',interface='{interfaceName}',member={member},path='{path}'";
+            var canRegister = orgFreedesktopDbus != null;
+            if (canRegister)
+                Task.Run(async () => await orgFreedesktopDbus.AddMatchAsync(match));
+
             return new deregistration
             {
                 Deregister = () =>
                 {
+                    if (canRegister)
+                        Task.Run(async () => await orgFreedesktopDbus.RemoveMatchAsync(match));
                     Action<MessageHeader, byte[]> current;
                     do
                     {
@@ -373,6 +382,7 @@ namespace Dbus
 
         public void Dispose()
         {
+            orgFreedesktopDbus.Dispose();
             receiveCts.Cancel();
             stream.Dispose();
         }

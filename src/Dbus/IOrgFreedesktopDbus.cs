@@ -9,6 +9,8 @@ namespace Dbus
     {
         event Action<string> NameAcquired;
 
+        Task AddMatchAsync(string match);
+        Task RemoveMatchAsync(string match);
         Task<string> HelloAsync();
         Task<IEnumerable<string>> ListNamesAsync();
         Task<uint> RequestNameAsync(string name, uint flags);
