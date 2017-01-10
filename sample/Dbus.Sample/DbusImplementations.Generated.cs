@@ -5,6 +5,8 @@ namespace Dbus.Sample
     {
         static partial void DoInit()
         {
+            Dbus.Connection.AddConsumeImplementation<Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
+            Dbus.Connection.AddConsumeImplementation<Dbus.Sample.IOrgFreedesktopUpower>(OrgFreedesktopUpower.Factory);
             Dbus.Connection.AddPublishProxy<SampleObject>(SampleObject_Proxy.Factory);
         }
     }
@@ -16,7 +18,7 @@ namespace Dbus.Sample
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public OrgFreedesktopDbus(Connection connection, ObjectPath path = null, string destination = null)
+        private OrgFreedesktopDbus(Connection connection, ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? "/org/freedesktop/DBus";
@@ -29,6 +31,12 @@ namespace Dbus.Sample
             ));
 
         }
+
+        public static Dbus.IOrgFreedesktopDbus Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        {
+            return new OrgFreedesktopDbus(connection, path, destination);
+        }
+
 
         public async System.Threading.Tasks.Task<System.String> HelloAsync()
         {
@@ -118,13 +126,19 @@ namespace Dbus.Sample
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public OrgFreedesktopUpower(Connection connection, ObjectPath path = null, string destination = null)
+        private OrgFreedesktopUpower(Connection connection, ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? "/org/freedesktop/UPower";
             this.destination = destination ?? "org.freedesktop.UPower";
 
         }
+
+        public static Dbus.Sample.IOrgFreedesktopUpower Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        {
+            return new OrgFreedesktopUpower(connection, path, destination);
+        }
+
 
         public async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<System.String,System.Object>> GetAllAsync(System.String interfaceName)
         {

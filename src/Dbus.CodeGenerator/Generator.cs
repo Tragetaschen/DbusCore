@@ -32,21 +32,25 @@ namespace Dbus.CodeGenerator
                 )
             ;
 
-            var proxyRegistrations = new List<string>();
+            var registrations = new List<string>();
             var result = new StringBuilder();
 
             foreach (var type in candidateTypes.OrderBy(x => x.FullName))
             {
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
                 if (consume != null)
-                    result.Append(generateConsumeImplementation(type, consume));
+                {
+                    var consumeImplementation = generateConsumeImplementation(type, consume);
+                    result.Append(consumeImplementation.Item1);
+                    registrations.Add(consumeImplementation.Item2);
+                }
 
                 var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
                 if (provide != null)
                 {
                     var provideImplementation = generateProvideImplementation(type, provide);
                     result.Append(provideImplementation.Item1);
-                    proxyRegistrations.Add(provideImplementation.Item2);
+                    registrations.Add(provideImplementation.Item2);
                 }
             }
 
@@ -56,7 +60,7 @@ namespace Dbus.CodeGenerator
         static partial void DoInit()
         {
             " + string.Join(@"
-            ", proxyRegistrations) + @"
+            ", registrations) + @"
         }
     }
 ";
@@ -64,7 +68,7 @@ namespace Dbus.CodeGenerator
             return initClass + result.ToString();
         }
 
-        private static string generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
+        private static Tuple<string, string> generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
         {
             var className = type.Name.Substring(1);
             var eventSubscriptions = new StringBuilder();
@@ -90,7 +94,8 @@ namespace Dbus.CodeGenerator
                 }
             }
 
-            return @"
+            var registration = "Dbus.Connection.AddConsumeImplementation<" + type.FullName + ">(" + className + ".Factory);";
+            var implementationClass = @"
     public sealed class " + className + @" : " + type.FullName + @"
     {
         private readonly Connection connection;
@@ -98,13 +103,19 @@ namespace Dbus.CodeGenerator
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        public " + className + @"(Connection connection, ObjectPath path = null, string destination = null)
+        private " + className + @"(Connection connection, ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? """ + consume.Path + @""";
             this.destination = destination ?? """ + consume.Destination + @""";
 " + eventSubscriptions + @"
         }
+
+        public static " + type.FullName + @" Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        {
+            return new " + className + @"(connection, path, destination);
+        }
+
 " + methodImplementations + @"
 " + eventImplementations + @"
         private static void assertSignature(Signature actual, Signature expected)
@@ -119,6 +130,7 @@ namespace Dbus.CodeGenerator
         }
     }
 ";
+            return Tuple.Create(implementationClass, registration);
         }
 
         private static Tuple<string, string> generateProvideImplementation(Type type, DbusProvideAttribute provide)
