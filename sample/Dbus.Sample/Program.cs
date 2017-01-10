@@ -34,7 +34,7 @@ namespace Dbus.Sample
             {
                 var tasks = new[] { workTask, readlineTask };
                 var completedTask = Task.WaitAny(tasks);
-                tasks[completedTask].Wait();
+                tasks[completedTask].GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
