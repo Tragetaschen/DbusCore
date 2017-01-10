@@ -34,7 +34,7 @@ namespace Dbus.CodeGenerator
                 {
                     receivedSignature += signatures[parameter.ParameterType];
                     decoders.Append(indent);
-                    decoders.AppendLine("var " + parameter.Name + " = Decoder.Get" + parameter.ParameterType.Name + "(receivedBody, ref receiveIndex);");
+                    decoders.AppendLine("var " + parameter.Name + " = Dbus.Decoder.Get" + parameter.ParameterType.Name + "(receivedBody, ref receiveIndex);");
                 }
             }
 
@@ -55,14 +55,14 @@ namespace Dbus.CodeGenerator
                         ++counter;
                         sendSignature += signatures[p];
                         encoders.Append(indent);
-                        encoders.AppendLine("Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
+                        encoders.AppendLine("Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
                     }
                 }
                 else
                 {
                     sendSignature += signatures[returnType];
                     encoders.Append(indent);
-                    encoders.AppendLine("Encoder.Add(sendBody, ref sendIndex, result);");
+                    encoders.AppendLine("Dbus.Encoder.Add(sendBody, ref sendIndex, result);");
                 }
             }
 
@@ -76,7 +76,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
             methodImplementation.AppendLine(");");
             methodImplementation.Append(indent);
-            methodImplementation.AppendLine("var sendBody = Encoder.StartNew();");
+            methodImplementation.AppendLine("var sendBody = Dbus.Encoder.StartNew();");
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
             methodImplementation.Append(indent);

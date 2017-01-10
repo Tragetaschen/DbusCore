@@ -94,16 +94,16 @@ namespace Dbus.CodeGenerator
                 }
             }
 
-            var registration = "Dbus.Connection.AddConsumeImplementation<" + type.FullName + ">(" + className + ".Factory);";
+            var registration = "Dbus.Connection.AddConsumeImplementation<" + buildTypeString(type) + ">(" + className + ".Factory);";
             var implementationClass = @"
-    public sealed class " + className + @" : " + type.FullName + @"
+    public sealed class " + className + @" : " + buildTypeString(type) + @"
     {
-        private readonly Connection connection;
-        private readonly ObjectPath path;
+        private readonly Dbus.Connection connection;
+        private readonly Dbus.ObjectPath path;
         private readonly string destination;
         private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
 
-        private " + className + @"(Connection connection, ObjectPath path, string destination)
+        private " + className + @"(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? """ + consume.Path + @""";
@@ -111,14 +111,14 @@ namespace Dbus.CodeGenerator
 " + eventSubscriptions + @"
         }
 
-        public static " + type.FullName + @" Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        public static " + buildTypeString(type) + @" Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
         {
             return new " + className + @"(connection, path, destination);
         }
 
 " + methodImplementations + @"
 " + eventImplementations + @"
-        private static void assertSignature(Signature actual, Signature expected)
+        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
         {
             if (actual != expected)
                 throw new System.InvalidOperationException($""Unexpected signature. Got ${ actual}, but expected ${ expected}"");
@@ -152,16 +152,16 @@ namespace Dbus.CodeGenerator
                 proxies.Append(result.Item2);
             }
 
-            var proxyRegistration = "Dbus.Connection.AddPublishProxy<" + type.Name + ">(" + type.Name + "_Proxy.Factory);";
+            var proxyRegistration = "Dbus.Connection.AddPublishProxy<" + buildTypeString(type)+ ">(" + type.Name + "_Proxy.Factory);";
             var proxyClass = @"
     public sealed class " + type.Name + @"_Proxy: System.IDisposable
     {
         private readonly Dbus.Connection connection;
-        private readonly " + type.FullName + @" target;
+        private readonly " + buildTypeString(type) + @" target;
 
         private System.IDisposable registration;
 
-        private " + type.Name + @"_Proxy(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path)
+        private " +  type.Name + @"_Proxy(Dbus.Connection connection, " + buildTypeString(type) + @" target, Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -185,19 +185,19 @@ namespace Dbus.CodeGenerator
                 ", knownMethods.Select(x => @"case """ + x + @""":
                     return handle" + x + @"Async(replySerial, header, body);")) + @"
                 default:
-                    throw new DbusException(
-                        DbusException.CreateErrorName(""UnknownMethod""),
+                    throw new Dbus.DbusException(
+                        Dbus.DbusException.CreateErrorName(""UnknownMethod""),
                         ""Method not supported""
                     );
             }
         }
 " + proxies.ToString() + @"
 
-        private static void assertSignature(Signature actual, Signature expected)
+        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
         {
             if (actual != expected)
-                throw new DbusException(
-                    DbusException.CreateErrorName(""InvalidSignature""),
+                throw new Dbus.DbusException(
+                    Dbus.DbusException.CreateErrorName(""InvalidSignature""),
                     ""Invalid signature""
                 );
         }
