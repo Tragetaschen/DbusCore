@@ -39,7 +39,7 @@ namespace Dbus.CodeGenerator
                 decoder.Append(indent);
                 decoder.AppendLine("var index = 0;");
                 decoder.Append(indent);
-                decoder.AppendLine("var decoded = Dbus.Decoder.Get" + bodyType.Name + "(body, ref index);");
+                decoder.AppendLine("var decoded = global::Dbus.Decoder.Get" + bodyType.Name + "(body, ref index);");
                 decoder.Append(indent);
                 decoder.AppendLine(eventInfo.Name + "?.Invoke(decoded);");
             }
@@ -59,7 +59,7 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.Append("private void handle");
             implementation.Append(eventInfo.Name);
-            implementation.AppendLine("(Dbus.MessageHeader header, byte[] body)");
+            implementation.AppendLine("(global::Dbus.MessageHeader header, byte[] body)");
             implementation.Append("        ");
             implementation.AppendLine("{");
             implementation.Append(indent);

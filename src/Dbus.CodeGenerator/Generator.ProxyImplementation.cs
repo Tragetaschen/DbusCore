@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
             var methodImplementation = new StringBuilder();
 
             methodImplementation.Append(@"
-        private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
 ");
             var decoders = new StringBuilder();
@@ -34,7 +34,7 @@ namespace Dbus.CodeGenerator
                 {
                     receivedSignature += signatures[parameter.ParameterType];
                     decoders.Append(indent);
-                    decoders.AppendLine("var " + parameter.Name + " = Dbus.Decoder.Get" + parameter.ParameterType.Name + "(receivedBody, ref receiveIndex);");
+                    decoders.AppendLine("var " + parameter.Name + " = global::Dbus.Decoder.Get" + parameter.ParameterType.Name + "(receivedBody, ref receiveIndex);");
                 }
             }
 
@@ -55,14 +55,14 @@ namespace Dbus.CodeGenerator
                         ++counter;
                         sendSignature += signatures[p];
                         encoders.Append(indent);
-                        encoders.AppendLine("Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
+                        encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
                     }
                 }
                 else
                 {
                     sendSignature += signatures[returnType];
                     encoders.Append(indent);
-                    encoders.AppendLine("Dbus.Encoder.Add(sendBody, ref sendIndex, result);");
+                    encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result);");
                 }
             }
 
@@ -76,7 +76,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
             methodImplementation.AppendLine(");");
             methodImplementation.Append(indent);
-            methodImplementation.AppendLine("var sendBody = Dbus.Encoder.StartNew();");
+            methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
             methodImplementation.Append(indent);

@@ -94,16 +94,16 @@ namespace Dbus.CodeGenerator
                 }
             }
 
-            var registration = "Dbus.Connection.AddConsumeImplementation<" + buildTypeString(type) + ">(" + className + ".Factory);";
+            var registration = "global::Dbus.Connection.AddConsumeImplementation<" + buildTypeString(type) + ">(" + className + ".Factory);";
             var implementationClass = @"
     public sealed class " + className + @" : " + buildTypeString(type) + @"
     {
-        private readonly Dbus.Connection connection;
-        private readonly Dbus.ObjectPath path;
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.ObjectPath path;
         private readonly string destination;
-        private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
+        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
 
-        private " + className + @"(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        private " + className + @"(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? """ + consume.Path + @""";
@@ -111,14 +111,14 @@ namespace Dbus.CodeGenerator
 " + eventSubscriptions + @"
         }
 
-        public static " + buildTypeString(type) + @" Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        public static " + buildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new " + className + @"(connection, path, destination);
         }
 
 " + methodImplementations + @"
 " + eventImplementations + @"
-        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
                 throw new System.InvalidOperationException($""Unexpected signature. Got ${ actual}, but expected ${ expected}"");
@@ -152,16 +152,16 @@ namespace Dbus.CodeGenerator
                 proxies.Append(result.Item2);
             }
 
-            var proxyRegistration = "Dbus.Connection.AddPublishProxy<" + buildTypeString(type)+ ">(" + type.Name + "_Proxy.Factory);";
+            var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + buildTypeString(type)+ ">(" + type.Name + "_Proxy.Factory);";
             var proxyClass = @"
-    public sealed class " + type.Name + @"_Proxy: System.IDisposable
+    public sealed class " + type.Name + @"_Proxy: global::System.IDisposable
     {
-        private readonly Dbus.Connection connection;
+        private readonly global::Dbus.Connection connection;
         private readonly " + buildTypeString(type) + @" target;
 
-        private System.IDisposable registration;
+        private global::System.IDisposable registration;
 
-        private " +  type.Name + @"_Proxy(Dbus.Connection connection, " + buildTypeString(type) + @" target, Dbus.ObjectPath path)
+        private " +  type.Name + @"_Proxy(global::Dbus.Connection connection, " + buildTypeString(type) + @" target, global::Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -172,12 +172,12 @@ namespace Dbus.CodeGenerator
             );
         }
 
-        public static " + type.Name + @"_Proxy Factory(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path)
+        public static " + type.Name + @"_Proxy Factory(global::Dbus.Connection connection, " + type.FullName + @" target, global::Dbus.ObjectPath path)
         {
             return new " + type.Name + @"_Proxy(connection, target, path);
         }
 
-        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)
+        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, global::Dbus.MessageHeader header, byte[] body)
         {
             switch (header.Member)
             {
@@ -185,19 +185,19 @@ namespace Dbus.CodeGenerator
                 ", knownMethods.Select(x => @"case """ + x + @""":
                     return handle" + x + @"Async(replySerial, header, body);")) + @"
                 default:
-                    throw new Dbus.DbusException(
-                        Dbus.DbusException.CreateErrorName(""UnknownMethod""),
+                    throw new global::Dbus.DbusException(
+                        global::Dbus.DbusException.CreateErrorName(""UnknownMethod""),
                         ""Method not supported""
                     );
             }
         }
 " + proxies.ToString() + @"
 
-        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
-                throw new Dbus.DbusException(
-                    Dbus.DbusException.CreateErrorName(""InvalidSignature""),
+                throw new global::Dbus.DbusException(
+                    global::Dbus.DbusException.CreateErrorName(""InvalidSignature""),
                     ""Invalid signature""
                 );
         }
@@ -215,11 +215,11 @@ namespace Dbus.CodeGenerator
         private static string buildTypeString(Type type)
         {
             if (!type.IsConstructedGenericType)
-                return type.FullName;
+                return "global::" + type.FullName;
 
             var genericName = type.GetGenericTypeDefinition().FullName;
             var withoutSuffix = genericName.Substring(0, genericName.Length - 2);
-            var result = withoutSuffix + "<" +
+            var result = "global::" + withoutSuffix + "<" +
                 string.Join(",", type.GenericTypeArguments.Select(buildTypeString)) +
                 ">"
             ;

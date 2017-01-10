@@ -17,8 +17,8 @@ namespace Dbus.CodeGenerator
 
             var returnType = methodInfo.ReturnType;
             var returnTypeString = buildTypeString(returnType);
-            if (returnTypeString != "System.Threading.Tasks.Task" &&
-                !returnTypeString.StartsWith("System.Threading.Tasks.Task<"))
+            if (returnTypeString != "global::System.Threading.Tasks.Task" &&
+                !returnTypeString.StartsWith("global::System.Threading.Tasks.Task<"))
                 throw new InvalidOperationException("Only Task based return types are supported");
 
 
@@ -32,7 +32,7 @@ namespace Dbus.CodeGenerator
                 foreach (var parameter in parameters)
                 {
                     encoder.Append(indent);
-                    encoder.AppendLine("Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
+                    encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
                     encoderSignature += signatures[parameter.ParameterType];
                 }
             }
@@ -52,7 +52,7 @@ namespace Dbus.CodeGenerator
                 if (!actualReturnType.IsConstructedGenericType)
                 {
                     decoder.Append(indent);
-                    decoder.AppendLine("var result = Dbus.Decoder.Get" + actualReturnType.Name + "(receivedMessage.Body, ref index);");
+                    decoder.AppendLine("var result = global::Dbus.Decoder.Get" + actualReturnType.Name + "(receivedMessage.Body, ref index);");
                     decoder.Append(indent);
                     decoder.AppendLine("return result;");
 
@@ -65,7 +65,7 @@ namespace Dbus.CodeGenerator
                     {
                         var elementType = actualReturnType.GenericTypeArguments[0];
                         decoder.Append(indent);
-                        decoder.AppendLine("var result = Dbus.Decoder.GetArray(receivedMessage.Body, ref index, Dbus.Decoder.Get" + elementType.Name + ");");
+                        decoder.AppendLine("var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref index, global::Dbus.Decoder.Get" + elementType.Name + ");");
                         decoder.Append(indent);
                         decoder.AppendLine("return result;");
 
@@ -78,9 +78,9 @@ namespace Dbus.CodeGenerator
                         var valueType = actualReturnType.GenericTypeArguments[1];
 
                         decoder.Append(indent);
-                        decoder.Append("var result = Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index");
-                        decoder.Append(", Dbus.Decoder.Get" + keyType.Name);
-                        decoder.Append(", Dbus.Decoder.Get" + valueType.Name);
+                        decoder.Append("var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index");
+                        decoder.Append(", global::Dbus.Decoder.Get" + keyType.Name);
+                        decoder.Append(", global::Dbus.Decoder.Get" + valueType.Name);
                         decoder.AppendLine(");");
                         decoder.Append(indent);
                         decoder.AppendLine("return result;");
@@ -98,7 +98,7 @@ namespace Dbus.CodeGenerator
             return @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => buildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
 " + encoder + @"
             var receivedMessage = await connection.SendMethodCall(
                 path,

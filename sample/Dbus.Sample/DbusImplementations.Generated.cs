@@ -5,20 +5,20 @@ namespace Dbus.Sample
     {
         static partial void DoInit()
         {
-            Dbus.Connection.AddConsumeImplementation<Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
-            Dbus.Connection.AddConsumeImplementation<Dbus.Sample.IOrgFreedesktopUpower>(OrgFreedesktopUpower.Factory);
-            Dbus.Connection.AddPublishProxy<Dbus.Sample.SampleObject>(SampleObject_Proxy.Factory);
+            global::Dbus.Connection.AddConsumeImplementation<global::Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
+            global::Dbus.Connection.AddConsumeImplementation<global::Dbus.Sample.IOrgFreedesktopUpower>(OrgFreedesktopUpower.Factory);
+            global::Dbus.Connection.AddPublishProxy<global::Dbus.Sample.SampleObject>(SampleObject_Proxy.Factory);
         }
     }
 
-    public sealed class OrgFreedesktopDbus : Dbus.IOrgFreedesktopDbus
+    public sealed class OrgFreedesktopDbus : global::Dbus.IOrgFreedesktopDbus
     {
-        private readonly Dbus.Connection connection;
-        private readonly Dbus.ObjectPath path;
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.ObjectPath path;
         private readonly string destination;
-        private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
+        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
 
-        private OrgFreedesktopDbus(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        private OrgFreedesktopDbus(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? "/org/freedesktop/DBus";
@@ -32,15 +32,15 @@ namespace Dbus.Sample
 
         }
 
-        public static Dbus.IOrgFreedesktopDbus Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        public static global::Dbus.IOrgFreedesktopDbus Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new OrgFreedesktopDbus(connection, path, destination);
         }
 
 
-        public async System.Threading.Tasks.Task<System.String> HelloAsync()
+        public async global::System.Threading.Tasks.Task<global::System.String> HelloAsync()
         {
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
                 path,
@@ -52,14 +52,14 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "s");
             var index = 0;
-            var result = Dbus.Decoder.GetString(receivedMessage.Body, ref index);
+            var result = global::Dbus.Decoder.GetString(receivedMessage.Body, ref index);
             return result;
 
         }
 
-        public async System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<System.String>> ListNamesAsync()
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::System.String>> ListNamesAsync()
         {
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
                 path,
@@ -71,17 +71,17 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "as");
             var index = 0;
-            var result = Dbus.Decoder.GetArray(receivedMessage.Body, ref index, Dbus.Decoder.GetString);
+            var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString);
             return result;
 
         }
 
-        public async System.Threading.Tasks.Task<System.UInt32> RequestNameAsync(System.String name, System.UInt32 flags)
+        public async global::System.Threading.Tasks.Task<global::System.UInt32> RequestNameAsync(global::System.String name, global::System.UInt32 flags)
         {
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
-            Dbus.Encoder.Add(sendBody, ref sendIndex, name);
-            Dbus.Encoder.Add(sendBody, ref sendIndex, flags);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, name);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, flags);
 
             var receivedMessage = await connection.SendMethodCall(
                 path,
@@ -93,21 +93,21 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "u");
             var index = 0;
-            var result = Dbus.Decoder.GetUInt32(receivedMessage.Body, ref index);
+            var result = global::Dbus.Decoder.GetUInt32(receivedMessage.Body, ref index);
             return result;
 
         }
 
-        public event System.Action<System.String> NameAcquired;
-        private void handleNameAcquired(Dbus.MessageHeader header, byte[] body)
+        public event global::System.Action<global::System.String> NameAcquired;
+        private void handleNameAcquired(global::Dbus.MessageHeader header, byte[] body)
         {
             assertSignature(header.BodySignature, "s");
             var index = 0;
-            var decoded = Dbus.Decoder.GetString(body, ref index);
+            var decoded = global::Dbus.Decoder.GetString(body, ref index);
             NameAcquired?.Invoke(decoded);
         }
 
-        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
                 throw new System.InvalidOperationException($"Unexpected signature. Got ${ actual}, but expected ${ expected}");
@@ -119,14 +119,14 @@ namespace Dbus.Sample
         }
     }
 
-    public sealed class OrgFreedesktopUpower : Dbus.Sample.IOrgFreedesktopUpower
+    public sealed class OrgFreedesktopUpower : global::Dbus.Sample.IOrgFreedesktopUpower
     {
-        private readonly Dbus.Connection connection;
-        private readonly Dbus.ObjectPath path;
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.ObjectPath path;
         private readonly string destination;
-        private readonly System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new System.Collections.Generic.List<System.IDisposable>();
+        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
 
-        private OrgFreedesktopUpower(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        private OrgFreedesktopUpower(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             this.connection = connection;
             this.path = path ?? "/org/freedesktop/UPower";
@@ -134,17 +134,17 @@ namespace Dbus.Sample
 
         }
 
-        public static Dbus.Sample.IOrgFreedesktopUpower Factory(Dbus.Connection connection, Dbus.ObjectPath path, string destination)
+        public static global::Dbus.Sample.IOrgFreedesktopUpower Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new OrgFreedesktopUpower(connection, path, destination);
         }
 
 
-        public async System.Threading.Tasks.Task<System.Collections.Generic.IDictionary<System.String,System.Object>> GetAllAsync(System.String interfaceName)
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>> GetAllAsync(global::System.String interfaceName)
         {
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
-            Dbus.Encoder.Add(sendBody, ref sendIndex, interfaceName);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, interfaceName);
 
             var receivedMessage = await connection.SendMethodCall(
                 path,
@@ -156,13 +156,13 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "a{sv}");
             var index = 0;
-            var result = Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, Dbus.Decoder.GetString, Dbus.Decoder.GetObject);
+            var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
             return result;
 
         }
 
 
-        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
                 throw new System.InvalidOperationException($"Unexpected signature. Got ${ actual}, but expected ${ expected}");
@@ -174,14 +174,14 @@ namespace Dbus.Sample
         }
     }
 
-    public sealed class SampleObject_Proxy: System.IDisposable
+    public sealed class SampleObject_Proxy: global::System.IDisposable
     {
-        private readonly Dbus.Connection connection;
-        private readonly Dbus.Sample.SampleObject target;
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.Sample.SampleObject target;
 
-        private System.IDisposable registration;
+        private global::System.IDisposable registration;
 
-        private SampleObject_Proxy(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path)
+        private SampleObject_Proxy(global::Dbus.Connection connection, global::Dbus.Sample.SampleObject target, global::Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -192,12 +192,12 @@ namespace Dbus.Sample
             );
         }
 
-        public static SampleObject_Proxy Factory(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path)
+        public static SampleObject_Proxy Factory(global::Dbus.Connection connection, Dbus.Sample.SampleObject target, global::Dbus.ObjectPath path)
         {
             return new SampleObject_Proxy(connection, target, path);
         }
 
-        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)
+        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, global::Dbus.MessageHeader header, byte[] body)
         {
             switch (header.Member)
             {
@@ -208,54 +208,54 @@ namespace Dbus.Sample
                 case "MyVoid":
                     return handleMyVoidAsync(replySerial, header, body);
                 default:
-                    throw new DbusException(
-                        DbusException.CreateErrorName("UnknownMethod"),
+                    throw new global::Dbus.DbusException(
+                        global::Dbus.DbusException.CreateErrorName("UnknownMethod"),
                         "Method not supported"
                     );
             }
         }
 
-        private async System.Threading.Tasks.Task handleMyComplexMethodAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        private async System.Threading.Tasks.Task handleMyComplexMethodAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
             assertSignature(header.BodySignature, "sii");
             var receiveIndex = 0;
-            var p1 = Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
-            var p2 = Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
-            var p3 = Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
+            var p1 = global::Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
+            var p2 = global::Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
+            var p3 = global::Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
             var result = await target.MyComplexMethodAsync(p1, p2, p3);
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
-            Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item1);
-            Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item2);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item1);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item2);
             await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"si");
         }
 
-        private async System.Threading.Tasks.Task handleMyEchoAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        private async System.Threading.Tasks.Task handleMyEchoAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
             assertSignature(header.BodySignature, "s");
             var receiveIndex = 0;
-            var message = Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
+            var message = global::Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
             var result = await target.MyEchoAsync(message);
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
-            Dbus.Encoder.Add(sendBody, ref sendIndex, result);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, result);
             await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"s");
         }
 
-        private async System.Threading.Tasks.Task handleMyVoidAsync(uint replySerial, Dbus.MessageHeader header, byte[] receivedBody)
+        private async System.Threading.Tasks.Task handleMyVoidAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
             assertSignature(header.BodySignature, "");
             await target.MyVoidAsync();
-            var sendBody = Dbus.Encoder.StartNew();
+            var sendBody = global::Dbus.Encoder.StartNew();
             await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"");
         }
 
 
-        private static void assertSignature(Dbus.Signature actual, Dbus.Signature expected)
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
-                throw new DbusException(
-                    DbusException.CreateErrorName("InvalidSignature"),
+                throw new global::Dbus.DbusException(
+                    global::Dbus.DbusException.CreateErrorName("InvalidSignature"),
                     "Invalid signature"
                 );
         }
