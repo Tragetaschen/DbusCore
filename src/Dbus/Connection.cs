@@ -41,7 +41,7 @@ namespace Dbus
             var endPoint = EndPointFactory.Create(address);
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             await socket.ConnectAsync(endPoint).ConfigureAwait(false);
-            var stream = new LoggingStream(new NetworkStream(socket, ownsSocket: true));
+            var stream = new NetworkStream(socket, ownsSocket: true);
 
             await authenticate(stream).ConfigureAwait(false);
 
