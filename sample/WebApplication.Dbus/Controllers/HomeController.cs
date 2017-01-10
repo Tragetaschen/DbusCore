@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Dbus;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace WebApplication.Dbus.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
+        public async Task<IActionResult> Index([FromServices] Task<IOrgFreedesktopDbus> orgFreedesktopDbusTask)
         {
-            return View(new[] {
-                ":1.1",
-                ":1.2",
-                "org.freedesktop.Dbus",
-            });
+            using (var orgFreedesktopDbus = await orgFreedesktopDbusTask)
+            {
+                var names = await orgFreedesktopDbus.ListNamesAsync();
+                return View(names);
+            }
         }
 
         public IActionResult Error()

@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
 
 namespace WebApplication.Dbus
 {
@@ -29,6 +27,17 @@ namespace WebApplication.Dbus
         {
             // Add framework services.
             services.AddMvc();
+
+            services.AddSingleton(serviceProvider =>
+            {
+                var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
+                return global::Dbus.Connection.CreateAsync(address);
+            });
+            services.AddTransient(async serviceProvider =>
+            {
+                var connection = await serviceProvider.GetService<Task<global::Dbus.Connection>>();
+                return connection.Consume<global::Dbus.IOrgFreedesktopDbus>();
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
