@@ -33,16 +33,7 @@ namespace WebApplication.Dbus
             {
                 x.Address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
             });
-            services.AddSingleton(serviceProvider =>
-            {
-                var options = serviceProvider.GetService<IOptions<global::Dbus.DbusConnectionOptions>>();
-                return global::Dbus.Connection.CreateAsync(options.Value);
-            });
-            services.AddTransient(async serviceProvider =>
-            {
-                var connection = await serviceProvider.GetService<Task<global::Dbus.Connection>>();
-                return connection.Consume<global::Dbus.IOrgFreedesktopDbus>();
-            });
+            services.AddDbus();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

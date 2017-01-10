@@ -3,9 +3,19 @@ namespace WebApplication.Dbus
 
     public static partial class DbusImplementations
     {
-        static partial void DoInit()
+        static partial void DoAddDbus(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, serviceProvider =>
+            {
+                var options = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::Microsoft.Extensions.Options.IOptions<global::Dbus.DbusConnectionOptions>>(serviceProvider);
+                return global::Dbus.Connection.CreateAsync(options.Value);
+            });
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, async serviceProvider =>
+            {
+                var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider);
+                return connection.Consume<global::Dbus.IOrgFreedesktopDbus>();
+            });
         }
     }
 

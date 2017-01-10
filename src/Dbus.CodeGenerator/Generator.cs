@@ -32,7 +32,10 @@ namespace Dbus.CodeGenerator
                 )
             ;
 
+            var shouldGenerateServiceCollectionExtension = candidateTypes.Where(x => x.FullName == "Microsoft.Extensions.DependencyInjection.IServiceCollection").Any();
+
             var registrations = new List<string>();
+            var services = new List<string>();
             var result = new StringBuilder();
 
             foreach (var type in candidateTypes.OrderBy(x => x.FullName))
@@ -43,6 +46,7 @@ namespace Dbus.CodeGenerator
                     var consumeImplementation = generateConsumeImplementation(type, consume);
                     result.Append(consumeImplementation.Item1);
                     registrations.Add(consumeImplementation.Item2);
+                    services.Add(buildTypeString(type));
                 }
 
                 var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
@@ -54,13 +58,36 @@ namespace Dbus.CodeGenerator
                 }
             }
 
-            var initClass = @"
+            var initClass = "";
+            if (!shouldGenerateServiceCollectionExtension)
+                initClass = @"
     public static partial class DbusImplementations
     {
         static partial void DoInit()
         {
             " + string.Join(@"
             ", registrations) + @"
+        }
+    }
+";
+            else
+                initClass = @"
+    public static partial class DbusImplementations
+    {
+        static partial void DoAddDbus(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+        {
+            " + string.Join(@"
+            ", registrations) + @"
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, serviceProvider =>
+            {
+                var options = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::Microsoft.Extensions.Options.IOptions<global::Dbus.DbusConnectionOptions>>(serviceProvider);
+                return global::Dbus.Connection.CreateAsync(options.Value);
+            });" + string.Join("", services.Select(x => @"
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, async serviceProvider =>
+            {
+                var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider);
+                return connection.Consume<" + x + @">();
+            });")) + @"
         }
     }
 ";
@@ -152,7 +179,7 @@ namespace Dbus.CodeGenerator
                 proxies.Append(result.Item2);
             }
 
-            var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + buildTypeString(type)+ ">(" + type.Name + "_Proxy.Factory);";
+            var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + buildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
             var proxyClass = @"
     public sealed class " + type.Name + @"_Proxy: global::System.IDisposable
     {
@@ -161,7 +188,7 @@ namespace Dbus.CodeGenerator
 
         private global::System.IDisposable registration;
 
-        private " +  type.Name + @"_Proxy(global::Dbus.Connection connection, " + buildTypeString(type) + @" target, global::Dbus.ObjectPath path)
+        private " + type.Name + @"_Proxy(global::Dbus.Connection connection, " + buildTypeString(type) + @" target, global::Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;

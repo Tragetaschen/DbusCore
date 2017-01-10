@@ -23,8 +23,6 @@ namespace WebApplication.Dbus
                 return;
             }
 
-            DbusImplementations.Init();
-
             var host = new WebHostBuilder()
                 .UseKestrel()
                 .UseUrls("http://0.0.0.0:5000")

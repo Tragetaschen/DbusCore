@@ -1,12 +1,15 @@
-﻿namespace WebApplication.Dbus
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace WebApplication.Dbus
 {
     public static partial class DbusImplementations
     {
-        static partial void DoInit();
+        static partial void DoAddDbus(IServiceCollection services);
 
-        public static void Init()
+        public static IServiceCollection AddDbus(this IServiceCollection services)
         {
-            DoInit();
+            DoAddDbus(services);
+            return services;
         }
     }
 }
