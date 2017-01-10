@@ -15,6 +15,7 @@ namespace Dbus
             ["b"] = box(GetBoolean),
             ["i"] = box(GetInt32),
             ["u"] = box(GetUInt32),
+            ["x"] = box(GetInt64),
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
@@ -110,6 +111,20 @@ namespace Dbus
             Alignment.Advance(ref index, 4);
             var result = BitConverter.ToUInt32(buffer, index);
             index += 4;
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes an Int64 from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the Int64 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded Int64</returns>
+        public static long GetInt64(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 8);
+            var result = BitConverter.ToInt64(buffer, index);
+            index += 8;
             return result;
         }
 

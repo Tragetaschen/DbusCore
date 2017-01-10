@@ -52,6 +52,13 @@ namespace Dbus
             index += 4;
         }
 
+        public static void Add(List<byte> buffer, ref int index, long value)
+        {
+            EnsureAlignment(buffer, ref index, 8);
+            buffer.AddRange(BitConverter.GetBytes(value));
+            index += 8;
+        }
+
         public static void Add(List<byte> buffer, ref int index, byte value)
         {
             buffer.Add(value);
