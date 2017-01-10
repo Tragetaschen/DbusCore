@@ -1,6 +1,14 @@
 namespace Dbus.Sample
 {
 
+    public static partial class DbusImplementations
+    {
+        static partial void DoInit()
+        {
+            Dbus.Connection.AddPublishProxy<SampleObject>(SampleObject_Proxy.Factory);
+        }
+    }
+
     public sealed class OrgFreedesktopDbus : Dbus.IOrgFreedesktopDbus
     {
         private readonly Connection connection;
@@ -159,7 +167,7 @@ namespace Dbus.Sample
 
         private System.IDisposable registration;
 
-        public SampleObject_Proxy(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path = default(Dbus.ObjectPath))
+        private SampleObject_Proxy(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -168,6 +176,11 @@ namespace Dbus.Sample
                 "org.dbuscore.sample.interface",
                 handleMethodCall
             );
+        }
+
+        public static SampleObject_Proxy Factory(Dbus.Connection connection, Dbus.Sample.SampleObject target, Dbus.ObjectPath path)
+        {
+            return new SampleObject_Proxy(connection, target, path);
         }
 
         private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)

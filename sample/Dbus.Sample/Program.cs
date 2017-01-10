@@ -12,13 +12,15 @@ namespace Dbus.Sample
             if (args.Length == 1 && args[0] == "gen")
             {
                 var code = Generator.Run();
-                File.WriteAllText("Dbus.Generated.cs", @"namespace Dbus.Sample
+                File.WriteAllText("DbusImplementations.Generated.cs", @"namespace Dbus.Sample
 {
 " + code + @"
 }
 ");
                 return;
             }
+
+            DbusImplementations.Init();
 
             var tcs = new TaskCompletionSource<int>();
             var workTask = Task.Run(() => work(tcs.Task));
@@ -47,7 +49,7 @@ namespace Dbus.Sample
             var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
             using (var connection = await Connection.CreateAsync(address))
             using (var orgFreedesktopDbus = new OrgFreedesktopDbus(connection)) //, "/org/freedesktop/DBus", "org.freedesktop.DBus"))
-            using (var sampleObjectProxy = new SampleObject_Proxy(connection, new SampleObject()))
+            using (connection.Publish(new SampleObject()))
             {
                 orgFreedesktopDbus.NameAcquired += async x =>
                 {

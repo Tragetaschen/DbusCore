@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Dbus.CodeGenerator
 {
@@ -33,6 +32,7 @@ namespace Dbus.CodeGenerator
                 )
             ;
 
+            var proxyRegistrations = new List<string>();
             var result = new StringBuilder();
 
             foreach (var type in candidateTypes.OrderBy(x => x.FullName))
@@ -43,10 +43,25 @@ namespace Dbus.CodeGenerator
 
                 var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
                 if (provide != null)
-                    result.Append(generateProvideImplementation(type, provide));
+                {
+                    var provideImplementation = generateProvideImplementation(type, provide);
+                    result.Append(provideImplementation.Item1);
+                    proxyRegistrations.Add(provideImplementation.Item2);
+                }
             }
 
-            return result.ToString();
+            var initClass = @"
+    public static partial class DbusImplementations
+    {
+        static partial void DoInit()
+        {
+            " + string.Join(@"
+            ", proxyRegistrations) + @"
+        }
+    }
+";
+
+            return initClass + result.ToString();
         }
 
         private static string generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
@@ -106,7 +121,7 @@ namespace Dbus.CodeGenerator
 ";
         }
 
-        private static string generateProvideImplementation(Type type, DbusProvideAttribute provide)
+        private static Tuple<string, string> generateProvideImplementation(Type type, DbusProvideAttribute provide)
         {
             var knownMethods = new List<string>();
             var proxies = new StringBuilder();
@@ -125,7 +140,8 @@ namespace Dbus.CodeGenerator
                 proxies.Append(result.Item2);
             }
 
-            return @"
+            var proxyRegistration = "Dbus.Connection.AddPublishProxy<" + type.Name + ">(" + type.Name + "_Proxy.Factory);";
+            var proxyClass = @"
     public sealed class " + type.Name + @"_Proxy: System.IDisposable
     {
         private readonly Dbus.Connection connection;
@@ -133,7 +149,7 @@ namespace Dbus.CodeGenerator
 
         private System.IDisposable registration;
 
-        public " + type.Name + @"_Proxy(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path = default(Dbus.ObjectPath))
+        private " + type.Name + @"_Proxy(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -142,6 +158,11 @@ namespace Dbus.CodeGenerator
                 """ + provide.InterfaceName + @""",
                 handleMethodCall
             );
+        }
+
+        public static " + type.Name + @"_Proxy Factory(Dbus.Connection connection, " + type.FullName + @" target, Dbus.ObjectPath path)
+        {
+            return new " + type.Name + @"_Proxy(connection, target, path);
         }
 
         private System.Threading.Tasks.Task handleMethodCall(uint replySerial, Dbus.MessageHeader header, byte[] body)
@@ -175,6 +196,8 @@ namespace Dbus.CodeGenerator
         }
     }
 ";
+
+            return Tuple.Create(proxyClass, proxyRegistration);
         }
 
         private static string buildTypeString(Type type)
