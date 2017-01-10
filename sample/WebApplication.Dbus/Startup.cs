@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Threading.Tasks;
 
@@ -28,10 +29,14 @@ namespace WebApplication.Dbus
             // Add framework services.
             services.AddMvc();
 
+            services.Configure<global::Dbus.DbusConnectionOptions>(x =>
+            {
+                x.Address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
+            });
             services.AddSingleton(serviceProvider =>
             {
-                var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
-                return global::Dbus.Connection.CreateAsync(address);
+                var options = serviceProvider.GetService<IOptions<global::Dbus.DbusConnectionOptions>>();
+                return global::Dbus.Connection.CreateAsync(options.Value);
             });
             services.AddTransient(async serviceProvider =>
             {

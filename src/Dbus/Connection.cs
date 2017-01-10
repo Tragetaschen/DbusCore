@@ -36,9 +36,9 @@ namespace Dbus
 #pragma warning restore CS4014
         }
 
-        public async static Task<Connection> CreateAsync(string address)
+        public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
         {
-            var endPoint = EndPointFactory.Create(address);
+            var endPoint = EndPointFactory.Create(options.Address);
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
             await socket.ConnectAsync(endPoint).ConfigureAwait(false);
             var stream = new NetworkStream(socket, ownsSocket: true);

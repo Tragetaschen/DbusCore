@@ -46,8 +46,11 @@ namespace Dbus.Sample
         private static async Task work(Task stopConnection)
         {
             Console.WriteLine("Running");
-            var address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
-            using (var connection = await Connection.CreateAsync(address))
+            var options = new DbusConnectionOptions()
+            {
+                Address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS"),
+            };
+            using (var connection = await Connection.CreateAsync(options))
             using (var orgFreedesktopDbus = connection.Consume<IOrgFreedesktopDbus>()) //, "/org/freedesktop/DBus", "org.freedesktop.DBus"))
             using (connection.Publish(new SampleObject()))
             {
