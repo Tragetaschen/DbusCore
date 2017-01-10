@@ -88,15 +88,21 @@ namespace Dbus
         )
         {
             var dictionaryEntry = path + "\0" + interfaceName + "\0" + member;
-            if (!signalHandlers.TryAdd(dictionaryEntry, handler))
-                throw new InvalidOperationException("Attempted to register a signal handler twice");
+            signalHandlers.AddOrUpdate(
+                dictionaryEntry,
+                handler,
+                (_, existingHandler) => existingHandler + handler
+            );
 
             return new deregistration
             {
                 Deregister = () =>
                 {
-                    Action<MessageHeader, byte[]> _;
-                    signalHandlers.TryRemove(dictionaryEntry, out _);
+                    Action<MessageHeader, byte[]> current;
+                    do
+                    {
+                        signalHandlers.TryGetValue(dictionaryEntry, out current);
+                    } while (!signalHandlers.TryUpdate(dictionaryEntry, current - handler, current));
                 }
             };
         }
