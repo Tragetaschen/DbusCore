@@ -150,7 +150,7 @@ namespace Dbus.CodeGenerator
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
             if (actual != expected)
-                throw new System.InvalidOperationException($""Unexpected signature. Got ${ actual}, but expected ${ expected}"");
+                throw new System.InvalidOperationException($""Unexpected signature. Got '{actual}', but expected '{expected}'"");
         }
 
         public void Dispose()
