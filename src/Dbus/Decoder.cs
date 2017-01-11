@@ -16,6 +16,7 @@ namespace Dbus
             ["i"] = box(GetInt32),
             ["u"] = box(GetUInt32),
             ["x"] = box(GetInt64),
+            ["d"] = box(GetDouble),
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
@@ -124,6 +125,20 @@ namespace Dbus
         {
             Alignment.Advance(ref index, 8);
             var result = BitConverter.ToInt64(buffer, index);
+            index += 8;
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes an Double from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the Double from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded Double</returns>
+        public static double GetDouble(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 8);
+            var result = BitConverter.ToDouble(buffer, index);
             index += 8;
             return result;
         }
