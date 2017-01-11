@@ -164,7 +164,8 @@ namespace Dbus
         {
             var result = new List<T>();
             var arrayLength = GetInt32(buffer, ref index); // Actually uint
-            while (index < arrayLength)
+            var startIndex = index;
+            while (index - startIndex < arrayLength)
             {
                 var element = decoder(buffer, ref index);
                 result.Add(element);
@@ -191,7 +192,8 @@ namespace Dbus
         {
             var result = new Dictionary<TKey, TValue>();
             var arrayLength = GetInt32(buffer, ref index); // Actually uint
-            while (index < arrayLength)
+            var startIndex = index;
+            while (index - startIndex < arrayLength)
             {
                 Alignment.Advance(ref index, 8);
 
