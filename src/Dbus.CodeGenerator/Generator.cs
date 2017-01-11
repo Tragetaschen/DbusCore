@@ -103,24 +103,96 @@ namespace Dbus.CodeGenerator
             var eventSubscriptions = new StringBuilder();
             var methodImplementations = new StringBuilder();
             var eventImplementations = new StringBuilder();
+            var propertyImplementations = new StringBuilder();
+            var typeInfo = type.GetTypeInfo();
 
-            var members = type.GetTypeInfo().GetMembers();
-            foreach (var member in members.OrderBy(x => x.Name))
+            foreach (var eventInfo in typeInfo.GetEvents().OrderBy(x => x.Name))
             {
-                MethodInfo methodInfo;
-                EventInfo eventInfo;
+                var result = generateEventImplementation(eventInfo, consume.InterfaceName);
+                eventSubscriptions.Append(result.Item1);
+                eventImplementations.Append(result.Item2);
+            }
+            foreach (var methodInfo in typeInfo.GetMethods().OrderBy(x => x.Name))
+            {
+                if (!methodInfo.IsSpecialName)
+                    methodImplementations.Append(generateMethodImplementation(methodInfo, consume.InterfaceName));
+            }
 
-                if ((eventInfo = member as EventInfo) != null)
+            var properties = typeInfo.GetProperties();
+            if (properties.Length > 0)
+            {
+                if (!typeof(IDbusPropertyInitialization).GetTypeInfo().IsAssignableFrom(typeInfo))
+                    throw new InvalidOperationException("Interface " + type.Name + " with cache properties does not implement 'IDbusPropertyInitialization'");
+                if (!typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(typeInfo))
+                    throw new InvalidOperationException("Interface " + type.Name + " with cache properties does not implement 'INotifyPropertyChanged'");
+
+                eventSubscriptions.Append(@"
+            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                this.path,
+                ""org.freedesktop.DBus.Properties"",
+                ""PropertiesChanged"",
+                handleProperties
+            ));
+            PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
+");
+                propertyImplementations.Append(@"
+        private void handleProperties(global::Dbus.MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, ""sa{sv}as"");
+            var index = 0;
+            var interfaceName = global::Dbus.Decoder.GetString(body, ref index);
+            var changed = global::Dbus.Decoder.GetDictionary(body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            //var invalidated = global::Dbus.Decoder.GetArray(body, ref index, global::Dbus.Decoder.GetString);
+            applyProperties(changed);
+        }
+
+        private async global::System.Threading.Tasks.Task initProperties()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + consume.InterfaceName + @""");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                ""org.freedesktop.DBus.Properties"",
+                ""GetAll"",
+                destination,
+                sendBody,
+                ""s""
+            );
+            assertSignature(receivedMessage.Signature, ""a{sv}"");
+            var index = 0;
+            var properties = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            applyProperties(properties);
+        }
+
+        private void applyProperties(global::System.Collections.Generic.IDictionary<string, object> changed)
+        {
+            foreach (var entry in changed)
+            {
+                switch (entry.Key)
+                {");
+                foreach (var property in properties)
                 {
-                    var result = generateEventImplementation(eventInfo, consume.InterfaceName);
-                    eventSubscriptions.Append(result.Item1);
-                    eventImplementations.Append(result.Item2);
+                    if (property.SetMethod != null)
+                        throw new InvalidOperationException("Cache properties can only have getters");
+                    propertyImplementations.Append(@"
+                    case """ + property.Name + @""":
+                        " + property.Name + @" = (" + buildTypeString(property.PropertyType) + @")entry.Value;
+                        break;");
                 }
-                else if ((methodInfo = member as MethodInfo) != null)
-                {
-                    if (!methodInfo.IsSpecialName)
-                        methodImplementations.Append(generateMethodImplementation(methodInfo, consume.InterfaceName));
+                propertyImplementations.Append(@"
                 }
+                PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(entry.Key));
+            }
+        }
+
+        public event global::System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        public global::System.Threading.Tasks.Task PropertyInitializationFinished { get; }
+");
+                foreach (var property in properties)
+                    propertyImplementations.Append(@"
+        public " + buildTypeString(property.PropertyType) + " " + property.Name + " { get; private set; }");
             }
 
             var registration = "global::Dbus.Connection.AddConsumeImplementation<" + buildTypeString(type) + ">(" + className + ".Factory);";
@@ -145,7 +217,7 @@ namespace Dbus.CodeGenerator
             return new " + className + @"(connection, path, destination);
         }
 
-" + methodImplementations + @"
+" + propertyImplementations + methodImplementations + @"
 " + eventImplementations + @"
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {

@@ -232,6 +232,14 @@ namespace Dbus.Sample
                 handleSeeked
             ));
 
+            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                this.path,
+                "org.freedesktop.DBus.Properties",
+                "PropertiesChanged",
+                handleProperties
+            ));
+            PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
+
         }
 
         public static global::Dbus.Sample.IOrgMprisMediaPlayer2Player Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
@@ -240,6 +248,102 @@ namespace Dbus.Sample
         }
 
 
+        private void handleProperties(global::Dbus.MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "sa{sv}as");
+            var index = 0;
+            var interfaceName = global::Dbus.Decoder.GetString(body, ref index);
+            var changed = global::Dbus.Decoder.GetDictionary(body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            //var invalidated = global::Dbus.Decoder.GetArray(body, ref index, global::Dbus.Decoder.GetString);
+            applyProperties(changed);
+        }
+
+        private async global::System.Threading.Tasks.Task initProperties()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "GetAll",
+                destination,
+                sendBody,
+                "s"
+            );
+            assertSignature(receivedMessage.Signature, "a{sv}");
+            var index = 0;
+            var properties = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            applyProperties(properties);
+        }
+
+        private void applyProperties(global::System.Collections.Generic.IDictionary<string, object> changed)
+        {
+            foreach (var entry in changed)
+            {
+                switch (entry.Key)
+                {
+                    case "PlaybackStatus":
+                        PlaybackStatus = (global::System.String)entry.Value;
+                        break;
+                    case "LoopStatus":
+                        LoopStatus = (global::System.String)entry.Value;
+                        break;
+                    case "Rate":
+                        Rate = (global::System.Double)entry.Value;
+                        break;
+                    case "Shuffle":
+                        Shuffle = (global::System.Boolean)entry.Value;
+                        break;
+                    case "Metadata":
+                        Metadata = (global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>)entry.Value;
+                        break;
+                    case "Volume":
+                        Volume = (global::System.Double)entry.Value;
+                        break;
+                    case "MinimumRate":
+                        MinimumRate = (global::System.Double)entry.Value;
+                        break;
+                    case "MaximumRate":
+                        MaximumRate = (global::System.Double)entry.Value;
+                        break;
+                    case "CanGoNext":
+                        CanGoNext = (global::System.Boolean)entry.Value;
+                        break;
+                    case "CanGoPrevious":
+                        CanGoPrevious = (global::System.Boolean)entry.Value;
+                        break;
+                    case "CanPlay":
+                        CanPlay = (global::System.Boolean)entry.Value;
+                        break;
+                    case "CanPause":
+                        CanPause = (global::System.Boolean)entry.Value;
+                        break;
+                    case "CanSeek":
+                        CanSeek = (global::System.Boolean)entry.Value;
+                        break;
+                }
+                PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(entry.Key));
+            }
+        }
+
+        public event global::System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        public global::System.Threading.Tasks.Task PropertyInitializationFinished { get; }
+
+        public global::System.String PlaybackStatus { get; private set; }
+        public global::System.String LoopStatus { get; private set; }
+        public global::System.Double Rate { get; private set; }
+        public global::System.Boolean Shuffle { get; private set; }
+        public global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object> Metadata { get; private set; }
+        public global::System.Double Volume { get; private set; }
+        public global::System.Double MinimumRate { get; private set; }
+        public global::System.Double MaximumRate { get; private set; }
+        public global::System.Boolean CanGoNext { get; private set; }
+        public global::System.Boolean CanGoPrevious { get; private set; }
+        public global::System.Boolean CanPlay { get; private set; }
+        public global::System.Boolean CanPause { get; private set; }
+        public global::System.Boolean CanSeek { get; private set; }
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanControlAsync()
         {
             var sendBody = global::Dbus.Encoder.StartNew();
@@ -755,12 +859,12 @@ namespace Dbus.Sample
 
         }
 
-        public async global::System.Threading.Tasks.Task SetSuffleAsync(global::System.Boolean shuffle)
+        public async global::System.Threading.Tasks.Task SetShuffleAsync(global::System.Boolean shuffle)
         {
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Suffle");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Shuffle");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, shuffle);
 
             var receivedMessage = await connection.SendMethodCall(
