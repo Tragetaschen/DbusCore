@@ -179,7 +179,7 @@ namespace Dbus.Sample
         }
 
 
-        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>> GetAllAsync(global::System.String interfaceName)
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>> GetAllAsync(global::System.String interfaceName)
         {
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
@@ -297,7 +297,7 @@ namespace Dbus.Sample
                         Shuffle = (global::System.Boolean)entry.Value;
                         break;
                     case "Metadata":
-                        Metadata = (global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>)entry.Value;
+                        Metadata = (global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>)entry.Value;
                         break;
                     case "Volume":
                         Volume = (global::System.Double)entry.Value;
@@ -335,7 +335,7 @@ namespace Dbus.Sample
         public global::System.String LoopStatus { get; private set; }
         public global::System.Double Rate { get; private set; }
         public global::System.Boolean Shuffle { get; private set; }
-        public global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object> Metadata { get; private set; }
+        public global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object> Metadata { get; private set; }
         public global::System.Double Volume { get; private set; }
         public global::System.Double MinimumRate { get; private set; }
         public global::System.Double MaximumRate { get; private set; }
@@ -520,7 +520,7 @@ namespace Dbus.Sample
 
         }
 
-        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>> GetMetadataAsync()
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>> GetMetadataAsync()
         {
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
@@ -537,7 +537,7 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "v");
             var index = 0;
-            var result = (global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            var result = (global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
             return result;
 
         }
@@ -939,7 +939,7 @@ namespace Dbus.Sample
         }
     }
 
-    public sealed class SampleObject_Proxy: global::System.IDisposable
+    public sealed class SampleObject_Proxy : global::System.IDisposable
     {
         private readonly global::Dbus.Connection connection;
         private readonly global::Dbus.Sample.SampleObject target;
@@ -992,7 +992,7 @@ namespace Dbus.Sample
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item1);
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item2);
-            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"si");
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, "si");
         }
 
         private async System.Threading.Tasks.Task handleMyEchoAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
@@ -1004,7 +1004,7 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, result);
-            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"s");
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, "s");
         }
 
         private async System.Threading.Tasks.Task handleMyVoidAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
@@ -1012,7 +1012,7 @@ namespace Dbus.Sample
             assertSignature(header.BodySignature, "");
             await target.MyVoidAsync();
             var sendBody = global::Dbus.Encoder.StartNew();
-            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,"");
+            await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, "");
         }
 
 

@@ -255,7 +255,7 @@ namespace Dbus.CodeGenerator
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + buildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
             var proxyClass = @"
-    public sealed class " + type.Name + @"_Proxy: global::System.IDisposable
+    public sealed class " + type.Name + @"_Proxy : global::System.IDisposable
     {
         private readonly global::Dbus.Connection connection;
         private readonly " + buildTypeString(type) + @" target;
@@ -321,7 +321,7 @@ namespace Dbus.CodeGenerator
             var genericName = type.GetGenericTypeDefinition().FullName;
             var withoutSuffix = genericName.Substring(0, genericName.Length - 2);
             var result = "global::" + withoutSuffix + "<" +
-                string.Join(",", type.GenericTypeArguments.Select(buildTypeString)) +
+                string.Join(", ", type.GenericTypeArguments.Select(buildTypeString)) +
                 ">"
             ;
             return result;

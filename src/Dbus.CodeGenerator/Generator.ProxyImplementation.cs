@@ -80,7 +80,7 @@ namespace Dbus.CodeGenerator
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
             methodImplementation.Append(indent);
-            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody,""" + sendSignature + @""");");
+            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""");");
             methodImplementation.AppendLine(@"
         }");
 
