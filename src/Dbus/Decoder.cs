@@ -17,11 +17,23 @@ namespace Dbus
             ["u"] = box(GetUInt32),
             ["x"] = box(GetInt64),
             ["d"] = box(GetDouble),
+            ["a{sv}"] = getPropertyList,
+            ["as"] = getStringArray,
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
         {
             return (byte[] buffer, ref int index) => orig(buffer, ref index);
+        }
+
+        private static IDictionary<string, object> getPropertyList(byte[] buffer, ref int index)
+        {
+            return GetDictionary(buffer, ref index, GetString, GetObject);
+        }
+
+        private static List<string> getStringArray(byte[] buffer, ref int index)
+        {
+            return GetArray(buffer, ref index, GetString);
         }
 
         /// <summary>
@@ -208,9 +220,15 @@ namespace Dbus
         public static object GetObject(byte[] buffer, ref int index)
         {
             var signature = GetSignature(buffer, ref index);
+            var stringSignature = signature.ToString();
             ElementDecoder<object> elementDecoder;
-            if (typeDecoders.TryGetValue(signature.ToString(), out elementDecoder))
+            if (typeDecoders.TryGetValue(stringSignature, out elementDecoder))
                 return elementDecoder(buffer, ref index);
+            else if (stringSignature.StartsWith("a"))
+            {
+                if (typeDecoders.TryGetValue(stringSignature.Substring(1), out elementDecoder))
+                    return GetArray(buffer, ref index, elementDecoder);
+            }
             throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }
     }
