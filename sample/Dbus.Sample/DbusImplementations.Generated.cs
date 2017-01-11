@@ -7,6 +7,7 @@ namespace Dbus.Sample
         {
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.Sample.IOrgFreedesktopUpower>(OrgFreedesktopUpower.Factory);
+            global::Dbus.Connection.AddConsumeImplementation<global::Dbus.Sample.IOrgMprisMediaPlayer2Player>(OrgMprisMediaPlayer2Player.Factory);
             global::Dbus.Connection.AddPublishProxy<global::Dbus.Sample.SampleObject>(SampleObject_Proxy.Factory);
         }
     }
@@ -199,6 +200,628 @@ namespace Dbus.Sample
 
         }
 
+
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
+        {
+            if (actual != expected)
+                throw new System.InvalidOperationException($"Unexpected signature. Got '{actual}', but expected '{expected}'");
+        }
+
+        public void Dispose()
+        {
+            eventSubscriptions.ForEach(x => x.Dispose());
+        }
+    }
+
+    public sealed class OrgMprisMediaPlayer2Player : global::Dbus.Sample.IOrgMprisMediaPlayer2Player
+    {
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.ObjectPath path;
+        private readonly string destination;
+        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
+
+        private OrgMprisMediaPlayer2Player(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        {
+            this.connection = connection;
+            this.path = path ?? "";
+            this.destination = destination ?? "";
+            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                this.path,
+                "org.mpris.MediaPlayer2.Player",
+                "Seeked",
+                handleSeeked
+            ));
+
+        }
+
+        public static global::Dbus.Sample.IOrgMprisMediaPlayer2Player Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        {
+            return new OrgMprisMediaPlayer2Player(connection, path, destination);
+        }
+
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanControlAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanControl");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanGoNextAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanGoNext");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanGoPreviousAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanGoPrevious");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanPauseAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanPause");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanPlayAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanPlay");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanSeekAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanSeek");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.String> GetLoopStatusAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "LoopStatus");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.String)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Double> GetMaximumRateAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "MaximumRate");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>> GetMetadataAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Metadata");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Collections.Generic.IDictionary<global::System.String,global::System.Object>)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Double> GetMinimumRateAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "MinimumRate");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.String> GetPlaybackStatusAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "PlaybackStatus");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.String)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Int64> GetPositionAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Position");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Int64)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Double> GetRateAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Rate");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Boolean> GetShuffleAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Shuffle");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task<global::System.Double> GetVolumeAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Volume");
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                destination,
+                sendBody,
+                "ss"
+            );
+            assertSignature(receivedMessage.Signature, "v");
+            var index = 0;
+            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
+            return result;
+
+        }
+
+        public async global::System.Threading.Tasks.Task NextAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Next",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task OperUriAsync(global::System.String uri)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, uri);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "OperUri",
+                destination,
+                sendBody,
+                "s"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task PauseAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Pause",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task PlayAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Play",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task PlayPauseAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "PlayPause",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task PreviousAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Previous",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SeekAsync(global::System.Int64 offsetInUsec)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, offsetInUsec);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Seek",
+                destination,
+                sendBody,
+                "x"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SetLoopStatusAsync(global::System.String status)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "LoopStatus");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, status);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                destination,
+                sendBody,
+                "sss"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SetPositionAsync(global::Dbus.ObjectPath track, global::System.Int64 startPosition)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, track);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, startPosition);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "SetPosition",
+                destination,
+                sendBody,
+                "ox"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SetRateAsync(global::System.Double rate)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Rate");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, rate);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                destination,
+                sendBody,
+                "ssd"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SetSuffleAsync(global::System.Boolean shuffle)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Suffle");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, shuffle);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                destination,
+                sendBody,
+                "ssb"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task SetVolumeAsync(global::System.Double volume)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Volume");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, volume);
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                destination,
+                sendBody,
+                "ssd"
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public async global::System.Threading.Tasks.Task StopAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.mpris.MediaPlayer2.Player",
+                "Stop",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "");
+            return;
+
+        }
+
+        public event global::System.Action<global::System.Int64> Seeked;
+        private void handleSeeked(global::Dbus.MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "x");
+            var index = 0;
+            var decoded = global::Dbus.Decoder.GetInt64(body, ref index);
+            Seeked?.Invoke(decoded);
+        }
 
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
         {
