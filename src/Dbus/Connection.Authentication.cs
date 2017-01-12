@@ -35,7 +35,7 @@ namespace Dbus
             }
         }
 
-        [DllImport("c")]
+        [DllImport("libc")]
         private static extern int getuid();
     }
 }
