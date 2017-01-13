@@ -12,47 +12,37 @@ namespace Dbus.CodeGenerator
         public static Tuple<string, string> generateEventImplementation(EventInfo eventInfo, string interfaceName)
         {
             var subscription = new StringBuilder();
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.AppendLine("eventSubscriptions.Add(connection.RegisterSignalHandler(");
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.Append("    ");
             subscription.AppendLine("this.path,");
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.Append("    ");
             subscription.AppendLine(@"""" + interfaceName + @""",");
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.Append("    ");
             subscription.AppendLine(@"""" + eventInfo.Name + @""",");
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.Append("    ");
             subscription.AppendLine("handle" + eventInfo.Name);
-            subscription.Append(indent);
+            subscription.Append(Indent);
             subscription.AppendLine("));");
 
 
-            var signature = "";
-            var decoder = new StringBuilder();
+            var invocationParameter = "";
+            var decoder = new DecoderGenerator("body");
+
             if (eventInfo.EventHandlerType.IsConstructedGenericType)
             {
-                var bodyType = eventInfo.EventHandlerType.GenericTypeArguments[0];
-                signature = signatures[bodyType];
-                decoder.Append(indent);
-                decoder.AppendLine("var index = 0;");
-                decoder.Append(indent);
-                decoder.AppendLine("var decoded = global::Dbus.Decoder.Get" + bodyType.Name + "(body, ref index);");
-                decoder.Append(indent);
-                decoder.AppendLine(eventInfo.Name + "?.Invoke(decoded);");
-            }
-            else
-            {
-                decoder.Append(indent);
-                decoder.AppendLine(eventInfo.Name + "?.Invoke();");
+                invocationParameter = "decoded";
+                decoder.Add(invocationParameter, eventInfo.EventHandlerType.GenericTypeArguments[0]);
             }
 
             var implementation = new StringBuilder();
             implementation.Append("        ");
             implementation.Append("public event ");
-            implementation.Append(buildTypeString(eventInfo.EventHandlerType));
+            implementation.Append(BuildTypeString(eventInfo.EventHandlerType));
             implementation.Append(" ");
             implementation.Append(eventInfo.Name);
             implementation.AppendLine(";");
@@ -62,9 +52,11 @@ namespace Dbus.CodeGenerator
             implementation.AppendLine("(global::Dbus.MessageHeader header, byte[] body)");
             implementation.Append("        ");
             implementation.AppendLine("{");
-            implementation.Append(indent);
-            implementation.AppendLine(@"assertSignature(header.BodySignature, """ + signature + @""");");
-            implementation.Append(decoder);
+            implementation.Append(Indent);
+            implementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
+            implementation.Append(decoder.Result);
+            implementation.Append(Indent);
+            implementation.AppendLine(eventInfo.Name + "?.Invoke(" + invocationParameter + ");");
             implementation.Append("        ");
             implementation.AppendLine("}");
 

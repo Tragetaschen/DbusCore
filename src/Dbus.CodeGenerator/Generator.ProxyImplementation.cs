@@ -22,27 +22,16 @@ namespace Dbus.CodeGenerator
         private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
 ");
-            var decoders = new StringBuilder();
-            var receivedSignature = "";
+            var decoder = new DecoderGenerator("receivedBody");
             var parameters = method.GetParameters();
-            if (parameters.Length > 0)
-            {
-                decoders.Append(indent);
-                decoders.AppendLine("var receiveIndex = 0;");
-
-                foreach (var parameter in method.GetParameters())
-                {
-                    receivedSignature += signatures[parameter.ParameterType];
-                    decoders.Append(indent);
-                    decoders.AppendLine("var " + parameter.Name + " = global::Dbus.Decoder.Get" + parameter.ParameterType.Name + "(receivedBody, ref receiveIndex);");
-                }
-            }
+            foreach (var parameter in method.GetParameters())
+                decoder.Add(parameter.Name, parameter.ParameterType);
 
             var sendSignature = "";
             var encoders = new StringBuilder();
             if (method.ReturnType != typeof(Task)) // Task<T>
             {
-                encoders.Append(indent);
+                encoders.Append(Indent);
                 encoders.AppendLine("var sendIndex = 0;");
 
                 var returnType = method.ReturnType.GenericTypeArguments[0];
@@ -53,33 +42,33 @@ namespace Dbus.CodeGenerator
                     foreach (var p in tupleParameters)
                     {
                         ++counter;
-                        sendSignature += signatures[p];
-                        encoders.Append(indent);
+                        sendSignature += SignatureString.For[p];
+                        encoders.Append(Indent);
                         encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
                     }
                 }
                 else
                 {
-                    sendSignature += signatures[returnType];
-                    encoders.Append(indent);
+                    sendSignature += SignatureString.For[returnType];
+                    encoders.Append(Indent);
                     encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result);");
                 }
             }
 
-            methodImplementation.Append(indent);
-            methodImplementation.AppendLine(@"assertSignature(header.BodySignature, """ + receivedSignature + @""");");
-            methodImplementation.Append(decoders);
-            methodImplementation.Append(indent);
+            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
+            methodImplementation.Append(decoder.Result);
+            methodImplementation.Append(Indent);
             if (sendSignature != "")
                 methodImplementation.Append("var result = ");
             methodImplementation.Append("await target." + method.Name + "(");
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
             methodImplementation.AppendLine(");");
-            methodImplementation.Append(indent);
+            methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
-            methodImplementation.Append(indent);
+            methodImplementation.Append(Indent);
             methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""");");
             methodImplementation.AppendLine(@"
         }");

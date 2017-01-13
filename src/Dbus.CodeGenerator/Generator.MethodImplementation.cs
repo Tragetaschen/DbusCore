@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
             var callName = methodInfo.Name.Substring(0, methodInfo.Name.Length - "Async".Length);
 
             var returnType = methodInfo.ReturnType;
-            var returnTypeString = buildTypeString(returnType);
+            var returnTypeString = BuildTypeString(returnType);
             if (returnTypeString != "global::System.Threading.Tasks.Task" &&
                 !returnTypeString.StartsWith("global::System.Threading.Tasks.Task<"))
                 throw new InvalidOperationException("Only Task based return types are supported");
@@ -38,13 +38,13 @@ namespace Dbus.CodeGenerator
 
             if (parameters.Length > 0 || isProperty)
             {
-                encoder.Append(indent);
+                encoder.Append(Indent);
                 encoder.AppendLine("var sendIndex = 0;");
                 if (isProperty)
                 {
-                    encoder.Append(indent);
+                    encoder.Append(Indent);
                     encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + interfaceName + @""");");
-                    encoder.Append(indent);
+                    encoder.Append(Indent);
                     encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + callName.Substring(3 /* "Get" or "Set" */) + @""");");
                     encoderSignature += "ss";
                     interfaceName = "org.freedesktop.DBus.Properties";
@@ -52,81 +52,31 @@ namespace Dbus.CodeGenerator
                 }
                 foreach (var parameter in parameters)
                 {
-                    encoder.Append(indent);
+                    encoder.Append(Indent);
                     encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
-                    encoderSignature += signatures[parameter.ParameterType];
+                    encoderSignature += SignatureString.For[parameter.ParameterType];
                 }
             }
 
-            var decoder = new StringBuilder();
-            var decoderSignature = string.Empty;
+            string returnStatement;
+            var decoder = new DecoderGenerator("receivedMessage.Body");
+
             if (returnType == typeof(Task))
+                returnStatement = "return;";
+            else if (isProperty)
             {
-                decoder.Append(indent);
-                decoder.AppendLine("return;");
+                // must be "Get"
+                decoder.Add("result", typeof(object));
+                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")result;";
             }
             else // Task<T>
             {
-                decoder.Append(indent);
-                decoder.AppendLine("var index = 0;");
-                var actualReturnType = returnType.GenericTypeArguments[0];
-                if (isProperty) // must be "Get"
-                {
-                    decoder.Append(indent);
-                    decoder.AppendLine("var result = (" + buildTypeString(actualReturnType) + ")global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);");
-                    decoder.Append(indent);
-                    decoder.AppendLine("return result;");
-
-                    decoderSignature += signatures[typeof(object)];
-                }
-                else if (!actualReturnType.IsConstructedGenericType)
-                {
-                    decoder.Append(indent);
-                    decoder.AppendLine("var result = global::Dbus.Decoder.Get" + actualReturnType.Name + "(receivedMessage.Body, ref index);");
-                    decoder.Append(indent);
-                    decoder.AppendLine("return result;");
-
-                    decoderSignature += signatures[actualReturnType];
-                }
-                else
-                {
-                    var genericType = actualReturnType.GetGenericTypeDefinition();
-                    if (genericType == typeof(IEnumerable<>))
-                    {
-                        var elementType = actualReturnType.GenericTypeArguments[0];
-                        decoder.Append(indent);
-                        decoder.AppendLine("var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref index, global::Dbus.Decoder.Get" + elementType.Name + ");");
-                        decoder.Append(indent);
-                        decoder.AppendLine("return result;");
-
-                        decoderSignature += "a";
-                        decoderSignature += signatures[elementType];
-                    }
-                    else if (genericType == typeof(IDictionary<,>))
-                    {
-                        var keyType = actualReturnType.GenericTypeArguments[0];
-                        var valueType = actualReturnType.GenericTypeArguments[1];
-
-                        decoder.Append(indent);
-                        decoder.Append("var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index");
-                        decoder.Append(", global::Dbus.Decoder.Get" + keyType.Name);
-                        decoder.Append(", global::Dbus.Decoder.Get" + valueType.Name);
-                        decoder.AppendLine(");");
-                        decoder.Append(indent);
-                        decoder.AppendLine("return result;");
-
-                        decoderSignature += "a{";
-                        decoderSignature += signatures[keyType];
-                        decoderSignature += signatures[valueType];
-                        decoderSignature += "}";
-                    }
-                    else
-                        throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
-                }
+                decoder.Add("result", returnType.GenericTypeArguments[0]);
+                returnStatement = "return result;";
             }
 
             return @"
-        public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => buildTypeString(x.ParameterType) + " " + x.Name)) + @")
+        public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
             var sendBody = global::Dbus.Encoder.StartNew();
 " + encoder + @"
@@ -138,8 +88,8 @@ namespace Dbus.CodeGenerator
                 sendBody,
                 """ + encoderSignature + @"""
             );
-            assertSignature(receivedMessage.Signature, """ + decoderSignature + @""");
-" + decoder + @"
+            assertSignature(receivedMessage.Signature, """ + decoder.Signature + @""");
+" + decoder.Result + @"            " + returnStatement + @"
         }
 ";
         }

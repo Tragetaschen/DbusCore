@@ -8,20 +8,7 @@ namespace Dbus.CodeGenerator
 {
     public static partial class Generator
     {
-        private static Dictionary<Type, string> signatures = new Dictionary<Type, string>()
-        {
-            [typeof(ObjectPath)] = "o",
-            [typeof(string)] = "s",
-            [typeof(Signature)] = "g",
-            [typeof(byte)] = "y",
-            [typeof(bool)] = "b",
-            [typeof(int)] = "i",
-            [typeof(uint)] = "u",
-            [typeof(object)] = "v",
-            [typeof(long)] = "x",
-            [typeof(double)] = "d",
-        };
-        const string indent = "            ";
+        public const string Indent = "            ";
 
         public static string Run()
         {
@@ -48,7 +35,7 @@ namespace Dbus.CodeGenerator
                     var consumeImplementation = generateConsumeImplementation(type, consume);
                     result.Append(consumeImplementation.Item1);
                     registrations.Add(consumeImplementation.Item2);
-                    services.Add(buildTypeString(type));
+                    services.Add(BuildTypeString(type));
                 }
 
                 var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
@@ -178,7 +165,7 @@ namespace Dbus.CodeGenerator
                         throw new InvalidOperationException("Cache properties can only have getters");
                     propertyImplementations.Append(@"
                     case """ + property.Name + @""":
-                        " + property.Name + @" = (" + buildTypeString(property.PropertyType) + @")entry.Value;
+                        " + property.Name + @" = (" + BuildTypeString(property.PropertyType) + @")entry.Value;
                         break;");
                 }
                 propertyImplementations.Append(@"
@@ -192,12 +179,12 @@ namespace Dbus.CodeGenerator
 ");
                 foreach (var property in properties)
                     propertyImplementations.Append(@"
-        public " + buildTypeString(property.PropertyType) + " " + property.Name + " { get; private set; }");
+        public " + BuildTypeString(property.PropertyType) + " " + property.Name + " { get; private set; }");
             }
 
-            var registration = "global::Dbus.Connection.AddConsumeImplementation<" + buildTypeString(type) + ">(" + className + ".Factory);";
+            var registration = "global::Dbus.Connection.AddConsumeImplementation<" + BuildTypeString(type) + ">(" + className + ".Factory);";
             var implementationClass = @"
-    public sealed class " + className + @" : " + buildTypeString(type) + @"
+    public sealed class " + className + @" : " + BuildTypeString(type) + @"
     {
         private readonly global::Dbus.Connection connection;
         private readonly global::Dbus.ObjectPath path;
@@ -212,7 +199,7 @@ namespace Dbus.CodeGenerator
 " + eventSubscriptions + @"
         }
 
-        public static " + buildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        public static " + BuildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new " + className + @"(connection, path, destination);
         }
@@ -253,16 +240,16 @@ namespace Dbus.CodeGenerator
                 proxies.Append(result.Item2);
             }
 
-            var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + buildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
+            var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
             var proxyClass = @"
     public sealed class " + type.Name + @"_Proxy : global::System.IDisposable
     {
         private readonly global::Dbus.Connection connection;
-        private readonly " + buildTypeString(type) + @" target;
+        private readonly " + BuildTypeString(type) + @" target;
 
         private global::System.IDisposable registration;
 
-        private " + type.Name + @"_Proxy(global::Dbus.Connection connection, " + buildTypeString(type) + @" target, global::Dbus.ObjectPath path)
+        private " + type.Name + @"_Proxy(global::Dbus.Connection connection, " + BuildTypeString(type) + @" target, global::Dbus.ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
@@ -313,7 +300,7 @@ namespace Dbus.CodeGenerator
             return Tuple.Create(proxyClass, proxyRegistration);
         }
 
-        private static string buildTypeString(Type type)
+        public static string BuildTypeString(Type type)
         {
             if (!type.IsConstructedGenericType)
                 return "global::" + type.FullName;
@@ -321,7 +308,7 @@ namespace Dbus.CodeGenerator
             var genericName = type.GetGenericTypeDefinition().FullName;
             var withoutSuffix = genericName.Substring(0, genericName.Length - 2);
             var result = "global::" + withoutSuffix + "<" +
-                string.Join(", ", type.GenericTypeArguments.Select(buildTypeString)) +
+                string.Join(", ", type.GenericTypeArguments.Select(BuildTypeString)) +
                 ">"
             ;
             return result;

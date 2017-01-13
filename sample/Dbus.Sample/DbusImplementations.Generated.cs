@@ -55,7 +55,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task<global::System.String> HelloAsync()
@@ -71,10 +70,9 @@ namespace Dbus.Sample
                 ""
             );
             assertSignature(receivedMessage.Signature, "s");
-            var index = 0;
-            var result = global::Dbus.Decoder.GetString(receivedMessage.Body, ref index);
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetString(receivedMessage.Body, ref decoderIndex);
             return result;
-
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::System.String>> ListNamesAsync()
@@ -90,10 +88,9 @@ namespace Dbus.Sample
                 ""
             );
             assertSignature(receivedMessage.Signature, "as");
-            var index = 0;
-            var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString);
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetArray(receivedMessage.Body, ref decoderIndex, global::Dbus.Decoder.GetString);
             return result;
-
         }
 
         public async global::System.Threading.Tasks.Task RemoveMatchAsync(global::System.String match)
@@ -112,7 +109,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task<global::System.UInt32> RequestNameAsync(global::System.String name, global::System.UInt32 flags)
@@ -131,18 +127,17 @@ namespace Dbus.Sample
                 "su"
             );
             assertSignature(receivedMessage.Signature, "u");
-            var index = 0;
-            var result = global::Dbus.Decoder.GetUInt32(receivedMessage.Body, ref index);
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetUInt32(receivedMessage.Body, ref decoderIndex);
             return result;
-
         }
 
         public event global::System.Action<global::System.String> NameAcquired;
         private void handleNameAcquired(global::Dbus.MessageHeader header, byte[] body)
         {
             assertSignature(header.BodySignature, "s");
-            var index = 0;
-            var decoded = global::Dbus.Decoder.GetString(body, ref index);
+            var decoderIndex = 0;
+            var decoded = global::Dbus.Decoder.GetString(body, ref decoderIndex);
             NameAcquired?.Invoke(decoded);
         }
 
@@ -194,10 +189,9 @@ namespace Dbus.Sample
                 "s"
             );
             assertSignature(receivedMessage.Signature, "a{sv}");
-            var index = 0;
-            var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref decoderIndex, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
             return result;
-
         }
 
 
@@ -360,10 +354,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanGoNextAsync()
@@ -382,10 +375,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanGoPreviousAsync()
@@ -404,10 +396,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanPauseAsync()
@@ -426,10 +417,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanPlayAsync()
@@ -448,10 +438,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetCanSeekAsync()
@@ -470,10 +459,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.String> GetLoopStatusAsync()
@@ -492,10 +480,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.String)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.String)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Double> GetMaximumRateAsync()
@@ -514,10 +501,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Double)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>> GetMetadataAsync()
@@ -536,10 +522,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Double> GetMinimumRateAsync()
@@ -558,10 +543,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Double)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.String> GetPlaybackStatusAsync()
@@ -580,10 +564,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.String)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.String)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Int64> GetPositionAsync()
@@ -602,10 +585,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Int64)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Int64)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Double> GetRateAsync()
@@ -624,10 +606,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Double)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Boolean> GetShuffleAsync()
@@ -646,10 +627,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Boolean)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Boolean)result;
         }
 
         public async global::System.Threading.Tasks.Task<global::System.Double> GetVolumeAsync()
@@ -668,10 +648,9 @@ namespace Dbus.Sample
                 "ss"
             );
             assertSignature(receivedMessage.Signature, "v");
-            var index = 0;
-            var result = (global::System.Double)global::Dbus.Decoder.GetObject(receivedMessage.Body, ref index);
-            return result;
-
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetObject(receivedMessage.Body, ref decoderIndex);
+            return (global::System.Double)result;
         }
 
         public async global::System.Threading.Tasks.Task NextAsync()
@@ -688,7 +667,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task OperUriAsync(global::System.String uri)
@@ -707,7 +685,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task PauseAsync()
@@ -724,7 +701,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task PlayAsync()
@@ -741,7 +717,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task PlayPauseAsync()
@@ -758,7 +733,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task PreviousAsync()
@@ -775,7 +749,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SeekAsync(global::System.Int64 offsetInUsec)
@@ -794,7 +767,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SetLoopStatusAsync(global::System.String status)
@@ -815,7 +787,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SetPositionAsync(global::Dbus.ObjectPath track, global::System.Int64 startPosition)
@@ -835,7 +806,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SetRateAsync(global::System.Double rate)
@@ -856,7 +826,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SetShuffleAsync(global::System.Boolean shuffle)
@@ -877,7 +846,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task SetVolumeAsync(global::System.Double volume)
@@ -898,7 +866,6 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public async global::System.Threading.Tasks.Task StopAsync()
@@ -915,15 +882,14 @@ namespace Dbus.Sample
             );
             assertSignature(receivedMessage.Signature, "");
             return;
-
         }
 
         public event global::System.Action<global::System.Int64> Seeked;
         private void handleSeeked(global::Dbus.MessageHeader header, byte[] body)
         {
             assertSignature(header.BodySignature, "x");
-            var index = 0;
-            var decoded = global::Dbus.Decoder.GetInt64(body, ref index);
+            var decoderIndex = 0;
+            var decoded = global::Dbus.Decoder.GetInt64(body, ref decoderIndex);
             Seeked?.Invoke(decoded);
         }
 
@@ -983,10 +949,10 @@ namespace Dbus.Sample
         private async System.Threading.Tasks.Task handleMyComplexMethodAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
             assertSignature(header.BodySignature, "sii");
-            var receiveIndex = 0;
-            var p1 = global::Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
-            var p2 = global::Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
-            var p3 = global::Dbus.Decoder.GetInt32(receivedBody, ref receiveIndex);
+            var decoderIndex = 0;
+            var p1 = global::Dbus.Decoder.GetString(receivedBody, ref decoderIndex);
+            var p2 = global::Dbus.Decoder.GetInt32(receivedBody, ref decoderIndex);
+            var p3 = global::Dbus.Decoder.GetInt32(receivedBody, ref decoderIndex);
             var result = await target.MyComplexMethodAsync(p1, p2, p3);
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
@@ -998,8 +964,8 @@ namespace Dbus.Sample
         private async System.Threading.Tasks.Task handleMyEchoAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
             assertSignature(header.BodySignature, "s");
-            var receiveIndex = 0;
-            var message = global::Dbus.Decoder.GetString(receivedBody, ref receiveIndex);
+            var decoderIndex = 0;
+            var message = global::Dbus.Decoder.GetString(receivedBody, ref decoderIndex);
             var result = await target.MyEchoAsync(message);
             var sendBody = global::Dbus.Encoder.StartNew();
             var sendIndex = 0;
