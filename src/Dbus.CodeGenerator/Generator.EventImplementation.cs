@@ -30,13 +30,18 @@ namespace Dbus.CodeGenerator
             subscription.AppendLine("));");
 
 
-            var invocationParameter = "";
+            var invocationParameters = new List<string>();
             var decoder = new DecoderGenerator("body");
 
             if (eventInfo.EventHandlerType.IsConstructedGenericType)
             {
-                invocationParameter = "decoded";
-                decoder.Add(invocationParameter, eventInfo.EventHandlerType.GenericTypeArguments[0]);
+                var arguments = eventInfo.EventHandlerType.GenericTypeArguments;
+                for (var i = 0; i < arguments.Length; ++i)
+                {
+                    var invocationParameter = "decoded" + i;
+                    decoder.Add(invocationParameter, arguments[i]);
+                    invocationParameters.Add(invocationParameter);
+                }
             }
 
             var implementation = new StringBuilder();
@@ -56,7 +61,7 @@ namespace Dbus.CodeGenerator
             implementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
             implementation.Append(decoder.Result);
             implementation.Append(Indent);
-            implementation.AppendLine(eventInfo.Name + "?.Invoke(" + invocationParameter + ");");
+            implementation.AppendLine(eventInfo.Name + "?.Invoke(" + string.Join(", ", invocationParameters) + ");");
             implementation.Append("        ");
             implementation.AppendLine("}");
 

@@ -137,8 +137,8 @@ namespace Dbus.Sample
         {
             assertSignature(header.BodySignature, "s");
             var decoderIndex = 0;
-            var decoded = global::Dbus.Decoder.GetString(body, ref decoderIndex);
-            NameAcquired?.Invoke(decoded);
+            var decoded0 = global::Dbus.Decoder.GetString(body, ref decoderIndex);
+            NameAcquired?.Invoke(decoded0);
         }
 
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
@@ -889,8 +889,8 @@ namespace Dbus.Sample
         {
             assertSignature(header.BodySignature, "x");
             var decoderIndex = 0;
-            var decoded = global::Dbus.Decoder.GetInt64(body, ref decoderIndex);
-            Seeked?.Invoke(decoded);
+            var decoded0 = global::Dbus.Decoder.GetInt64(body, ref decoderIndex);
+            Seeked?.Invoke(decoded0);
         }
 
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
