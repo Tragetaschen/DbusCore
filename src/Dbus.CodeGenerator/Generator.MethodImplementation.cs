@@ -25,6 +25,7 @@ namespace Dbus.CodeGenerator
                 throw new InvalidOperationException("Only Task based return types are supported");
 
             var isProperty = propertyName.IsMatch(callName);
+            isProperty &= methodInfo.GetCustomAttribute<DbusMethodAttribute>() == null;
 
             var encoder = new StringBuilder();
             var encoderSignature = string.Empty;
