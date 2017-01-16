@@ -18,6 +18,7 @@ namespace Dbus
             ["i"] = box(GetInt32),
             ["u"] = box(GetUInt32),
             ["x"] = box(GetInt64),
+            ["t"] = box(GetUInt64),
             ["d"] = box(GetDouble),
             ["a{sv}"] = getPropertyList,
             ["as"] = getStringArray,
@@ -167,6 +168,20 @@ namespace Dbus
         {
             Alignment.Advance(ref index, 8);
             var result = BitConverter.ToInt64(buffer, index);
+            index += 8;
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes an UInt64 from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the UInt64 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded UInt64</returns>
+        public static ulong GetUInt64(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 8);
+            var result = BitConverter.ToUInt64(buffer, index);
             index += 8;
             return result;
         }
