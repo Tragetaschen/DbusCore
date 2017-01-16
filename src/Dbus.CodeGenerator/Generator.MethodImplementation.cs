@@ -51,12 +51,22 @@ namespace Dbus.CodeGenerator
                     interfaceName = "org.freedesktop.DBus.Properties";
                     callName = callName.Substring(0, 3); // "Get" or "Set"
                 }
-                foreach (var parameter in parameters)
-                {
-                    encoder.Append(Indent);
-                    encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
-                    encoderSignature += SignatureString.For[parameter.ParameterType];
-                }
+                if (!isProperty)
+                    foreach (var parameter in parameters)
+                    {
+                        encoder.Append(Indent);
+                        encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
+                        encoderSignature += SignatureString.For[parameter.ParameterType];
+                    }
+                else
+                    foreach (var parameter in parameters)
+                    {
+                        encoder.Append(Indent);
+                        encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)""" + SignatureString.For[parameter.ParameterType] + @""");");
+                        encoder.Append(Indent);
+                        encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
+                        encoderSignature += "v";
+                    }
             }
 
             string returnStatement;
