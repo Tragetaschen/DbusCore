@@ -6,6 +6,7 @@ namespace Dbus.Sample
         static partial void DoInit()
         {
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.IOrgFreedesktopDbus>(OrgFreedesktopDbus.Factory);
+            global::Dbus.Connection.AddConsumeImplementation<global::Dbus.IOrgFreedesktopDbusObjectManager>(OrgFreedesktopDbusObjectManager.Factory);
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.Sample.IOrgFreedesktopUpower>(OrgFreedesktopUpower.Factory);
             global::Dbus.Connection.AddConsumeImplementation<global::Dbus.Sample.IOrgMprisMediaPlayer2Player>(OrgMprisMediaPlayer2Player.Factory);
             global::Dbus.Connection.AddPublishProxy<global::Dbus.Sample.SampleObject>(SampleObject_Proxy.Factory);
@@ -139,6 +140,103 @@ namespace Dbus.Sample
             var decoderIndex = 0;
             var decoded0 = global::Dbus.Decoder.GetString(body, ref decoderIndex);
             NameAcquired?.Invoke(decoded0);
+        }
+
+        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
+        {
+            if (actual != expected)
+                throw new System.InvalidOperationException($"Unexpected signature. Got '{actual}', but expected '{expected}'");
+        }
+
+        public void Dispose()
+        {
+            eventSubscriptions.ForEach(x => x.Dispose());
+        }
+    }
+
+    public sealed class OrgFreedesktopDbusObjectManager : global::Dbus.IOrgFreedesktopDbusObjectManager
+    {
+        private readonly global::Dbus.Connection connection;
+        private readonly global::Dbus.ObjectPath path;
+        private readonly string destination;
+        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
+
+        private OrgFreedesktopDbusObjectManager(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        {
+            this.connection = connection;
+            this.path = path ?? "";
+            this.destination = destination ?? "";
+            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                this.path,
+                "org.freedesktop.DBus.ObjectManager",
+                "InterfacesAdded",
+                handleInterfacesAdded
+            ));
+            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                this.path,
+                "org.freedesktop.DBus.ObjectManager",
+                "InterfacesRemoved",
+                handleInterfacesRemoved
+            ));
+
+        }
+
+        public static global::Dbus.IOrgFreedesktopDbusObjectManager Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        {
+            return new OrgFreedesktopDbusObjectManager(connection, path, destination);
+        }
+
+
+        public async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IDictionary<global::Dbus.ObjectPath, global::System.Collections.Generic.IDictionary<global::System.String, global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>>>> GetManagedObjectsAsync()
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                "org.freedesktop.DBus.ObjectManager",
+                "GetManagedObjects",
+                destination,
+                sendBody,
+                ""
+            );
+            assertSignature(receivedMessage.Signature, "a{oa{sa{sv}}}");
+            var decoderIndex = 0;
+            var result = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref decoderIndex, global::Dbus.Decoder.GetObjectPath, (byte[] result_v_b, ref int result_v_i) =>
+                {
+                    var result_v_inner = global::Dbus.Decoder.GetDictionary(result_v_b, ref result_v_i, global::Dbus.Decoder.GetString, (byte[] result_v_inner_v_b, ref int result_v_inner_v_i) =>
+                        {
+                            var result_v_inner_v_inner = global::Dbus.Decoder.GetDictionary(result_v_inner_v_b, ref result_v_inner_v_i, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+
+                            return result_v_inner_v_inner;
+                        });
+
+                    return result_v_inner;
+                });
+            return result;
+        }
+
+        public event global::System.Action<global::Dbus.ObjectPath, global::System.Collections.Generic.IDictionary<global::System.String, global::System.Collections.Generic.IDictionary<global::System.String, global::System.Object>>> InterfacesAdded;
+        private void handleInterfacesAdded(global::Dbus.MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "oa{sa{sv}}");
+            var decoderIndex = 0;
+            var decoded0 = global::Dbus.Decoder.GetObjectPath(body, ref decoderIndex);
+            var decoded1 = global::Dbus.Decoder.GetDictionary(body, ref decoderIndex, global::Dbus.Decoder.GetString, (byte[] decoded1_v_b, ref int decoded1_v_i) =>
+                {
+                    var decoded1_v_inner = global::Dbus.Decoder.GetDictionary(decoded1_v_b, ref decoded1_v_i, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+
+                    return decoded1_v_inner;
+                });
+            InterfacesAdded?.Invoke(decoded0, decoded1);
+        }
+        public event global::System.Action<global::Dbus.ObjectPath, global::System.Collections.Generic.IEnumerable<global::System.String>> InterfacesRemoved;
+        private void handleInterfacesRemoved(global::Dbus.MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "oas");
+            var decoderIndex = 0;
+            var decoded0 = global::Dbus.Decoder.GetObjectPath(body, ref decoderIndex);
+            var decoded1 = global::Dbus.Decoder.GetArray(body, ref decoderIndex, global::Dbus.Decoder.GetString);
+            InterfacesRemoved?.Invoke(decoded0, decoded1);
         }
 
         private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
