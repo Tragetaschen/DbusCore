@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Dbus.CodeGenerator
 {
@@ -15,6 +12,8 @@ namespace Dbus.CodeGenerator
             [typeof(Signature)] = "g",
             [typeof(byte)] = "y",
             [typeof(bool)] = "b",
+            [typeof(short)] = "n",
+            [typeof(ushort)] = "q",
             [typeof(int)] = "i",
             [typeof(uint)] = "u",
             [typeof(object)] = "v",

@@ -13,6 +13,8 @@ namespace Dbus
             ["g"] = GetSignature,
             ["y"] = box(GetByte),
             ["b"] = box(GetBoolean),
+            ["n"] = box(GetInt16),
+            ["q"] = box(GetUInt16),
             ["i"] = box(GetInt32),
             ["u"] = box(GetUInt32),
             ["x"] = box(GetInt64),
@@ -97,6 +99,34 @@ namespace Dbus
         public static bool GetBoolean(byte[] buffer, ref int index)
         {
             return GetInt32(buffer, ref index) != 0;
+        }
+
+        /// <summary>
+        /// Decodes an Int16 from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the Int16 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded Int16</returns>
+        public static short GetInt16(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 2);
+            var result = BitConverter.ToInt16(buffer, index);
+            index += 2;
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes an UInt16 from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the UInt16 from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded UInt16</returns>
+        public static ushort GetUInt16(byte[] buffer, ref int index)
+        {
+            Alignment.Advance(ref index, 2);
+            var result = BitConverter.ToUInt16(buffer, index);
+            index += 2;
+            return result;
         }
 
         /// <summary>

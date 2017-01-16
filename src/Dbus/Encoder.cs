@@ -38,6 +38,20 @@ namespace Dbus
             Add(buffer, ref index, value.ToString());
         }
 
+        public static void Add(List<byte> buffer, ref int index, short value)
+        {
+            EnsureAlignment(buffer, ref index, 2);
+            buffer.AddRange(BitConverter.GetBytes(value));
+            index += 2;
+        }
+
+        public static void Add(List<byte> buffer, ref int index, ushort value)
+        {
+            EnsureAlignment(buffer, ref index, 2);
+            buffer.AddRange(BitConverter.GetBytes(value));
+            index += 2;
+        }
+
         public static void Add(List<byte> buffer, ref int index, int value)
         {
             EnsureAlignment(buffer, ref index, 4);
