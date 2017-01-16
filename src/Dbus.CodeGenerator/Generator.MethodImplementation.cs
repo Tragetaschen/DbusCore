@@ -15,14 +15,14 @@ namespace Dbus.CodeGenerator
         private static string generateMethodImplementation(MethodInfo methodInfo, string interfaceName)
         {
             if (!methodInfo.Name.EndsWith("Async"))
-                throw new InvalidOperationException("Only method names ending with 'Async' are supported");
+                throw new InvalidOperationException($"The method '{methodInfo.Name}' does not end with 'Async'");
             var callName = methodInfo.Name.Substring(0, methodInfo.Name.Length - "Async".Length);
 
             var returnType = methodInfo.ReturnType;
             var returnTypeString = BuildTypeString(returnType);
             if (returnTypeString != "global::System.Threading.Tasks.Task" &&
                 !returnTypeString.StartsWith("global::System.Threading.Tasks.Task<"))
-                throw new InvalidOperationException("Only Task based return types are supported");
+                throw new InvalidOperationException($"The method '{methodInfo.Name}' does not return a Task type");
 
             var isProperty = propertyName.IsMatch(callName);
             isProperty &= methodInfo.GetCustomAttribute<DbusMethodAttribute>() == null;
