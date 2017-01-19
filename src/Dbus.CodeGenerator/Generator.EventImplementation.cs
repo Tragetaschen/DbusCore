@@ -25,7 +25,7 @@ namespace Dbus.CodeGenerator
             subscription.AppendLine(@"""" + eventInfo.Name + @""",");
             subscription.Append(Indent);
             subscription.Append("    ");
-            subscription.AppendLine("handle" + eventInfo.Name);
+            subscription.AppendLine("this.handle" + eventInfo.Name);
             subscription.Append(Indent);
             subscription.AppendLine("));");
 

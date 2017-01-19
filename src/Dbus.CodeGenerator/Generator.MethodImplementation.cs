@@ -92,10 +92,10 @@ namespace Dbus.CodeGenerator
             var sendBody = global::Dbus.Encoder.StartNew();
 " + encoder + @"
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 """ + interfaceName + @""",
                 """ + callName + @""",
-                destination,
+                this.destination,
                 sendBody,
                 """ + encoderSignature + @"""
             );

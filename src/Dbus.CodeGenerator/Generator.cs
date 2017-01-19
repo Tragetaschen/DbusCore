@@ -118,7 +118,7 @@ namespace Dbus.CodeGenerator
                 this.path,
                 ""org.freedesktop.DBus.Properties"",
                 ""PropertiesChanged"",
-                handleProperties
+                this.handleProperties
             ));
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
 ");
@@ -140,10 +140,10 @@ namespace Dbus.CodeGenerator
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + consume.InterfaceName + @""");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 ""org.freedesktop.DBus.Properties"",
                 ""GetAll"",
-                destination,
+                this.destination,
                 sendBody,
                 ""s""
             );
@@ -256,7 +256,7 @@ namespace Dbus.CodeGenerator
             registration = connection.RegisterObjectProxy(
                 path ?? """ + provide.Path + @""",
                 """ + provide.InterfaceName + @""",
-                handleMethodCall
+                this.handleMethodCall
             );
         }
 

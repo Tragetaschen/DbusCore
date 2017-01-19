@@ -29,7 +29,7 @@ namespace Dbus.Sample
                 this.path,
                 "org.freedesktop.DBus",
                 "NameAcquired",
-                handleNameAcquired
+                this.handleNameAcquired
             ));
 
         }
@@ -47,10 +47,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, match);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "AddMatch",
-                destination,
+                this.destination,
                 sendBody,
                 "s"
             );
@@ -63,10 +63,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "Hello",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -81,10 +81,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "ListNames",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -101,10 +101,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, match);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "RemoveMatch",
-                destination,
+                this.destination,
                 sendBody,
                 "s"
             );
@@ -120,10 +120,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, flags);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus",
                 "RequestName",
-                destination,
+                this.destination,
                 sendBody,
                 "su"
             );
@@ -170,13 +170,13 @@ namespace Dbus.Sample
                 this.path,
                 "org.freedesktop.DBus.ObjectManager",
                 "InterfacesAdded",
-                handleInterfacesAdded
+                this.handleInterfacesAdded
             ));
             eventSubscriptions.Add(connection.RegisterSignalHandler(
                 this.path,
                 "org.freedesktop.DBus.ObjectManager",
                 "InterfacesRemoved",
-                handleInterfacesRemoved
+                this.handleInterfacesRemoved
             ));
 
         }
@@ -192,10 +192,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.ObjectManager",
                 "GetManagedObjects",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -279,10 +279,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, interfaceName);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.UPower",
                 "GetAll",
-                destination,
+                this.destination,
                 sendBody,
                 "s"
             );
@@ -321,14 +321,14 @@ namespace Dbus.Sample
                 this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Seeked",
-                handleSeeked
+                this.handleSeeked
             ));
 
             eventSubscriptions.Add(connection.RegisterSignalHandler(
                 this.path,
                 "org.freedesktop.DBus.Properties",
                 "PropertiesChanged",
-                handleProperties
+                this.handleProperties
             ));
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
 
@@ -357,10 +357,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "GetAll",
-                destination,
+                this.destination,
                 sendBody,
                 "s"
             );
@@ -444,10 +444,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanControl");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -465,10 +465,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanGoNext");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -486,10 +486,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanGoPrevious");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -507,10 +507,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanPause");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -528,10 +528,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanPlay");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -549,10 +549,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "CanSeek");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -570,10 +570,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "LoopStatus");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -591,10 +591,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "MaximumRate");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -612,10 +612,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Metadata");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -633,10 +633,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "MinimumRate");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -654,10 +654,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "PlaybackStatus");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -675,10 +675,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Position");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -696,10 +696,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Rate");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -717,10 +717,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Shuffle");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -738,10 +738,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Volume");
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Get",
-                destination,
+                this.destination,
                 sendBody,
                 "ss"
             );
@@ -756,10 +756,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Next",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -774,10 +774,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, uri);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "OperUri",
-                destination,
+                this.destination,
                 sendBody,
                 "s"
             );
@@ -790,10 +790,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Pause",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -806,10 +806,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Play",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -822,10 +822,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "PlayPause",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -838,10 +838,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Previous",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -856,10 +856,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, offsetInUsec);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Seek",
-                destination,
+                this.destination,
                 sendBody,
                 "x"
             );
@@ -873,15 +873,16 @@ namespace Dbus.Sample
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "LoopStatus");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)"s");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, status);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Set",
-                destination,
+                this.destination,
                 sendBody,
-                "sss"
+                "ssv"
             );
             assertSignature(receivedMessage.Signature, "");
             return;
@@ -895,10 +896,10 @@ namespace Dbus.Sample
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, startPosition);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "SetPosition",
-                destination,
+                this.destination,
                 sendBody,
                 "ox"
             );
@@ -912,15 +913,16 @@ namespace Dbus.Sample
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Rate");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)"d");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, rate);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Set",
-                destination,
+                this.destination,
                 sendBody,
-                "ssd"
+                "ssv"
             );
             assertSignature(receivedMessage.Signature, "");
             return;
@@ -932,15 +934,16 @@ namespace Dbus.Sample
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Shuffle");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)"b");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, shuffle);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Set",
-                destination,
+                this.destination,
                 sendBody,
-                "ssb"
+                "ssv"
             );
             assertSignature(receivedMessage.Signature, "");
             return;
@@ -952,15 +955,16 @@ namespace Dbus.Sample
             var sendIndex = 0;
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "org.mpris.MediaPlayer2.Player");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, "Volume");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)"d");
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, volume);
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.freedesktop.DBus.Properties",
                 "Set",
-                destination,
+                this.destination,
                 sendBody,
-                "ssd"
+                "ssv"
             );
             assertSignature(receivedMessage.Signature, "");
             return;
@@ -971,10 +975,10 @@ namespace Dbus.Sample
             var sendBody = global::Dbus.Encoder.StartNew();
 
             var receivedMessage = await connection.SendMethodCall(
-                path,
+                this.path,
                 "org.mpris.MediaPlayer2.Player",
                 "Stop",
-                destination,
+                this.destination,
                 sendBody,
                 ""
             );
@@ -1017,7 +1021,7 @@ namespace Dbus.Sample
             registration = connection.RegisterObjectProxy(
                 path ?? "/org/dbuscore/sample",
                 "org.dbuscore.sample.interface",
-                handleMethodCall
+                this.handleMethodCall
             );
         }
 
