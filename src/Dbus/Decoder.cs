@@ -249,6 +249,7 @@ namespace Dbus
         {
             var result = new Dictionary<TKey, TValue>();
             var arrayLength = GetInt32(buffer, ref index); // Actually uint
+            Alignment.Advance(ref index, 8);
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
