@@ -57,7 +57,7 @@ namespace Dbus.CodeGenerator
                 if (genericType == typeof(IEnumerable<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var elementFunction = createMethod(elementType, name + "_e", indent + "    ");
+                    var elementFunction = createMethod(elementType, name + "_e", indent);
                     return Tuple.Create(
                         "a" + elementFunction.Item1,
                         "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.Item2 + ");"
@@ -67,8 +67,8 @@ namespace Dbus.CodeGenerator
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var keyFunction = createMethod(keyType, name + "_k", indent + "    ");
-                    var valueFunction = createMethod(valueType, name + "_v", indent + "    ");
+                    var keyFunction = createMethod(keyType, name + "_k", indent);
+                    var valueFunction = createMethod(valueType, name + "_v", indent);
 
                     return Tuple.Create(
                         "a{" + keyFunction.Item1 + valueFunction.Item1 + "}",
