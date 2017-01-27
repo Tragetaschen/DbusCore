@@ -107,7 +107,7 @@ namespace Dbus.CodeGenerator
             builder.Append(string.Join(", ", constructorParameters.Select(x => name + "_" + x.Name)));
             builder.Append(");");
 
-            return Tuple.Create(signature, string.Join("", builder));
+            return Tuple.Create(signature, builder.ToString());
         }
 
         private static Tuple<string, string> createMethod(Type type, string name, string indent)
