@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace Dbus.CodeGenerator
@@ -34,16 +36,21 @@ namespace Dbus.CodeGenerator
             var function = decoder(name, type, indent, body, index);
             signatureBuilder.Append(function.Item1);
             resultBuilder.Append(indent);
-            resultBuilder.AppendLine("var " + name + " = " + function.Item2 + ";");
+            resultBuilder.AppendLine(function.Item2);
         }
 
         private static Tuple<string, string> decoder(string name, Type type, string indent, string body, string index)
         {
             if (!type.IsConstructedGenericType)
-                return Tuple.Create(
-                    SignatureString.For[type],
-                    "global::Dbus.Decoder.Get" + type.Name + "(" + body + ", ref " + index + ")"
-                );
+            {
+                if (SignatureString.For.ContainsKey(type))
+                    return Tuple.Create(
+                        SignatureString.For[type],
+                        "var " + name + " = global::Dbus.Decoder.Get" + type.Name + "(" + body + ", ref " + index + ");"
+                    );
+                else
+                    return buildFromConstructor(name, type, indent, body, index);
+            }
             else
             {
                 var genericType = type.GetGenericTypeDefinition();
@@ -53,7 +60,7 @@ namespace Dbus.CodeGenerator
                     var elementFunction = createMethod(elementType, name + "_e", indent + "    ");
                     return Tuple.Create(
                         "a" + elementFunction.Item1,
-                        "global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.Item2 + ")"
+                        "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.Item2 + ");"
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
@@ -65,13 +72,42 @@ namespace Dbus.CodeGenerator
 
                     return Tuple.Create(
                         "a{" + keyFunction.Item1 + valueFunction.Item1 + "}",
-                        "global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyFunction.Item2 + ", " + valueFunction.Item2 + ")"
+                        "var " + name + " = global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyFunction.Item2 + ", " + valueFunction.Item2 + ");"
                     );
                 }
                 else
                     throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
             }
 
+        }
+
+        private static Tuple<string, string> buildFromConstructor(string name, Type type, string indent, string body, string index)
+        {
+            var constructorParameters = type.GetTypeInfo()
+                .GetConstructors()
+                .Select(x => x.GetParameters())
+                .OrderByDescending(x => x.Length)
+                .First()
+            ;
+            var builder = new StringBuilder();
+            builder.AppendLine("global::Dbus.Alignment.Advance(ref " + index + ", 8);");
+            var signature = "(";
+
+            foreach (var p in constructorParameters)
+            {
+                var decoder = new DecoderGenerator(body);
+                decoder.add(name + "_" + p.Name, p.ParameterType, indent, index);
+                signature += decoder.Signature;
+                builder.Append(decoder.Result);
+            }
+
+            signature += ")";
+            builder.Append(indent);
+            builder.Append("var " + name + " = new " + Generator.BuildTypeString(type) + "(");
+            builder.Append(string.Join(", ", constructorParameters.Select(x => name + "_" + x.Name)));
+            builder.Append(");");
+
+            return Tuple.Create(signature, string.Join("", builder));
         }
 
         private static Tuple<string, string> createMethod(Type type, string name, string indent)
