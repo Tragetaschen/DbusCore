@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Dbus.CodeGenerator
 {
@@ -20,6 +21,7 @@ namespace Dbus.CodeGenerator
             [typeof(long)] = "x",
             [typeof(ulong)] = "t",
             [typeof(double)] = "d",
+            [typeof(SafeHandle)] = "h",
         };
     }
 }

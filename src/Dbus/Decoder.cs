@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus
@@ -20,6 +22,7 @@ namespace Dbus
             ["x"] = box(GetInt64),
             ["t"] = box(GetUInt64),
             ["d"] = box(GetDouble),
+            ["h"] = GetSafeHandle,
             ["a{sv}"] = getPropertyList,
             ["as"] = getStringArray,
         };
@@ -198,6 +201,18 @@ namespace Dbus
             var result = BitConverter.ToDouble(buffer, index);
             index += 8;
             return result;
+        }
+
+        /// <summary>
+        /// Decodes a file descriptor from the buffer and advances the index
+        /// </summary>
+        /// <param name="buffer">Buffer to decode the file descriptor from</param>
+        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <returns>The decoded file descriptor</returns>
+        public static SafeHandle GetSafeHandle(byte[] buffer, ref int index)
+        {
+            var value = GetInt32(buffer, ref index);
+            return new SafeFileHandle(new IntPtr(value), true);
         }
 
         /// <summary>

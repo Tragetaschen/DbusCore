@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus
@@ -85,6 +86,12 @@ namespace Dbus
             EnsureAlignment(buffer, ref index, 8);
             buffer.AddRange(BitConverter.GetBytes(value));
             index += 8;
+        }
+
+        public static void Add(List<byte> buffer, ref int index, SafeHandle value)
+        {
+            var handle = value.DangerousGetHandle().ToInt32();
+            Add(buffer, ref index, handle);
         }
 
         public static void Add(List<byte> buffer, ref int index, byte value)
