@@ -86,6 +86,9 @@ namespace Dbus.CodeGenerator
 
         private static Tuple<string, string> generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
         {
+            if (!typeof(IDisposable).GetTypeInfo().IsAssignableFrom(type))
+                throw new InvalidOperationException("The interface " + type.Name + " is meant to be consumed, but does not extend IDisposable");
+
             var className = type.Name.Substring(1);
             var eventSubscriptions = new StringBuilder();
             var methodImplementations = new StringBuilder();
