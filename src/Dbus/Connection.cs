@@ -52,7 +52,7 @@ namespace Dbus
             {
                 var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>();
                 result.orgFreedesktopDbus = orgFreedesktopDbus;
-                await orgFreedesktopDbus.HelloAsync();
+                await orgFreedesktopDbus.HelloAsync().ConfigureAwait(false);
             }
             catch (KeyNotFoundException)
             {
@@ -99,14 +99,14 @@ namespace Dbus
             var match = $"type='signal',interface='{interfaceName}',member={member},path='{path}'";
             var canRegister = orgFreedesktopDbus != null;
             if (canRegister)
-                Task.Run(async () => await orgFreedesktopDbus.AddMatchAsync(match));
+                Task.Run(() => orgFreedesktopDbus.AddMatchAsync(match));
 
             return new deregistration
             {
                 Deregister = () =>
                 {
                     if (canRegister)
-                        Task.Run(async () => await orgFreedesktopDbus.RemoveMatchAsync(match));
+                        Task.Run(() => orgFreedesktopDbus.RemoveMatchAsync(match));
                     Action<MessageHeader, byte[]> current;
                     do
                     {
@@ -301,15 +301,15 @@ namespace Dbus
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
             Func<uint, MessageHeader, byte[], Task> proxy;
             if (objectProxies.TryGetValue(dictionaryEntry, out proxy))
-                Task.Run(async () =>
+                Task.Run(() =>
                 {
                     try
                     {
-                        await proxy(replySerial, header, body);
+                        return proxy(replySerial, header, body);
                     }
                     catch (DbusException dbusException)
                     {
-                        await sendMethodCallErrorAsync(
+                        return sendMethodCallErrorAsync(
                             replySerial,
                             header.Sender,
                             dbusException.ErrorName,
@@ -318,7 +318,7 @@ namespace Dbus
                     }
                     catch (Exception e)
                     {
-                        await sendMethodCallErrorAsync(
+                        return sendMethodCallErrorAsync(
                             replySerial,
                             header.Sender,
                             DbusException.CreateErrorName("General"),

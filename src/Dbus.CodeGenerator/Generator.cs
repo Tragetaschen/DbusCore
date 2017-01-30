@@ -74,7 +74,7 @@ namespace Dbus.CodeGenerator
             });" + string.Join("", services.Select(x => @"
             global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, async serviceProvider =>
             {
-                var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider);
+                var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider).ConfigureAwait(false);
                 return connection.Consume<" + x + @">();
             });")) + @"
         }
@@ -149,7 +149,7 @@ namespace Dbus.CodeGenerator
                 this.destination,
                 sendBody,
                 ""s""
-            );
+            ).ConfigureAwait(false);
             assertSignature(receivedMessage.Signature, ""a{sv}"");
             var index = 0;
             var properties = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);

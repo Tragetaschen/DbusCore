@@ -74,7 +74,7 @@ namespace Dbus
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             Console.Write($"ra[{offset} {count}] ");
-            var result = await baseStream.ReadAsync(buffer, offset, count, cancellationToken);
+            var result = await baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
             if (result >= 0)
                 dump(buffer, offset, result);
             return result;

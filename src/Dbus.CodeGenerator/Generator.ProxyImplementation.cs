@@ -63,13 +63,13 @@ namespace Dbus.CodeGenerator
                 methodImplementation.Append("var result = ");
             methodImplementation.Append("await target." + method.Name + "(");
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
-            methodImplementation.AppendLine(");");
+            methodImplementation.AppendLine(").ConfigureAwait(false);");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
             methodImplementation.Append(Indent);
-            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""");");
+            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""").ConfigureAwait(false);");
             methodImplementation.AppendLine(@"
         }");
 
