@@ -88,12 +88,6 @@ namespace Dbus
             index += 8;
         }
 
-        public static void Add(List<byte> buffer, ref int index, SafeHandle value)
-        {
-            var handle = value.DangerousGetHandle().ToInt32();
-            Add(buffer, ref index, handle);
-        }
-
         public static void Add(List<byte> buffer, ref int index, byte value)
         {
             buffer.Add(value);

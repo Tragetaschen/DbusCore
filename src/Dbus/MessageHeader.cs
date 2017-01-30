@@ -1,8 +1,10 @@
-﻿namespace Dbus
+﻿using System.Runtime.InteropServices;
+
+namespace Dbus
 {
     public class MessageHeader
     {
-        public MessageHeader(byte[] headerBytes)
+        public MessageHeader(byte[] headerBytes, int[] controlBytes)
         {
             BodySignature = "";
             var index = 0;
@@ -36,7 +38,16 @@
                     case 8:
                         BodySignature = (Signature)value;
                         break;
-                    case 9: /* UNIX_FDS: UINT32 */
+                    case 9:
+                        var numberOfFds = (uint)value;
+                        var receivedNumberOfFds = (controlBytes[0] - 12) / sizeof(int);
+                        System.Diagnostics.Debug.Assert(numberOfFds == receivedNumberOfFds);
+                        UnixFds = new SafeHandle[receivedNumberOfFds];
+                        for (var i = 0; i < receivedNumberOfFds; ++i)
+                        {
+                            var number = controlBytes[3 + i];
+                            UnixFds[i] = new ReceivedFileDescriptorSafeHandle(number);
+                        }
                         break;
                 }
                 Alignment.Advance(ref index, 8);
@@ -51,7 +62,7 @@
         public string Destination { get; }
         public string Sender { get; }
         public Signature BodySignature { get; }
-        //public uint UnixFds { get; }
+        public SafeHandle[] UnixFds { get; }
 
         public override string ToString()
         {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus.CodeGenerator
@@ -9,13 +10,15 @@ namespace Dbus.CodeGenerator
     public class DecoderGenerator
     {
         private readonly string body;
+        private readonly string header;
 
         private readonly StringBuilder resultBuilder = new StringBuilder();
         private readonly StringBuilder signatureBuilder = new StringBuilder();
 
-        public DecoderGenerator(string body)
+        public DecoderGenerator(string body, string header)
         {
             this.body = body;
+            this.header = header;
         }
 
         public string Result => resultBuilder.ToString();
@@ -39,7 +42,7 @@ namespace Dbus.CodeGenerator
             resultBuilder.AppendLine(function.Item2);
         }
 
-        private static Tuple<string, string> decoder(string name, Type type, string indent, string body, string index)
+        private Tuple<string, string> decoder(string name, Type type, string indent, string body, string index)
         {
             if (!type.IsConstructedGenericType)
             {
@@ -47,6 +50,12 @@ namespace Dbus.CodeGenerator
                     return Tuple.Create(
                         SignatureString.For[type],
                         "var " + name + " = global::Dbus.Decoder.Get" + type.Name + "(" + body + ", ref " + index + ");"
+                    );
+                else if (type == typeof(SafeHandle))
+                    return Tuple.Create(
+                        "h",
+                        @"var " + name + @"_index = global::Dbus.Decoder.GetInt32(" + body + ", ref " + index + @");
+" + indent + @"var " + name + @" = receivedMessage.Header.UnixFds[result_index];"
                     );
                 else
                     return buildFromConstructor(name, type, indent, body, index);
@@ -81,7 +90,7 @@ namespace Dbus.CodeGenerator
 
         }
 
-        private static Tuple<string, string> buildFromConstructor(string name, Type type, string indent, string body, string index)
+        private Tuple<string, string> buildFromConstructor(string name, Type type, string indent, string body, string index)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
@@ -95,7 +104,7 @@ namespace Dbus.CodeGenerator
 
             foreach (var p in constructorParameters)
             {
-                var decoder = new DecoderGenerator(body);
+                var decoder = new DecoderGenerator(body, header);
                 decoder.add(name + "_" + p.Name, p.ParameterType, indent, index);
                 signature += decoder.Signature;
                 builder.Append(decoder.Result);
@@ -110,7 +119,7 @@ namespace Dbus.CodeGenerator
             return Tuple.Create(signature, builder.ToString());
         }
 
-        private static Tuple<string, string> createMethod(Type type, string name, string indent)
+        private Tuple<string, string> createMethod(Type type, string name, string indent)
         {
             if (SignatureString.For.ContainsKey(type))
                 return Tuple.Create(
@@ -119,7 +128,7 @@ namespace Dbus.CodeGenerator
                 );
             else
             {
-                var decoder = new DecoderGenerator(name + "_b");
+                var decoder = new DecoderGenerator(name + "_b", header);
                 decoder.add(name + "_inner", type, indent + "    ", name + "_i");
                 //var function = decoder(name, type, indent, name + "_b", name + "_i");
                 return Tuple.Create(

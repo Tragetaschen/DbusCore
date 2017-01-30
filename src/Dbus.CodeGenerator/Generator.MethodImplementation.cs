@@ -70,7 +70,7 @@ namespace Dbus.CodeGenerator
             }
 
             string returnStatement;
-            var decoder = new DecoderGenerator("receivedMessage.Body");
+            var decoder = new DecoderGenerator("receivedMessage.Body", "receivedMessage.Header");
 
             if (returnType == typeof(Task))
                 returnStatement = "return;";

@@ -30,6 +30,12 @@ namespace Dbus
                 if (!response.StartsWith("OK "))
                     throw new InvalidOperationException("Authentication failed: " + response);
 
+                await writer.WriteLineAsync("NEGOTIATE_UNIX_FD").ConfigureAwait(false);
+                await writer.FlushAsync().ConfigureAwait(false);
+                response = await reader.ReadLineAsync().ConfigureAwait(false);
+                if (response != "AGREE_UNIX_FD")
+                    throw new InvalidOperationException("Missing support for unix file descriptors");
+
                 await writer.WriteLineAsync("BEGIN").ConfigureAwait(false);
                 await writer.FlushAsync().ConfigureAwait(false);
             }

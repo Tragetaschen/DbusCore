@@ -31,7 +31,7 @@ namespace Dbus.CodeGenerator
 
 
             var invocationParameters = new List<string>();
-            var decoder = new DecoderGenerator("body");
+            var decoder = new DecoderGenerator("body", "header");
 
             if (eventInfo.EventHandlerType.IsConstructedGenericType)
             {

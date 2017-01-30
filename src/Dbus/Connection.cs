@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,17 +14,20 @@ namespace Dbus
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
+        private readonly IntPtr socketHandle;
         private readonly Stream stream;
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
         private readonly ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>> objectProxies;
         private readonly CancellationTokenSource receiveCts;
+        private readonly Task receiveTask;
 
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
-        private Connection(Stream stream)
+        private Connection(IntPtr socketHandle, Stream stream)
         {
+            this.socketHandle = socketHandle;
             this.stream = stream;
 
             expectedMessages = new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
@@ -30,11 +35,12 @@ namespace Dbus
             objectProxies = new ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>>();
             receiveCts = new CancellationTokenSource();
 
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            // Ideally, there would be a DisposeAsync to properly await the receive task.
-            // It's stopped properly, though
-            Task.Run(receive);
-#pragma warning restore CS4014
+            receiveTask = Task.Factory.StartNew(
+                receive,
+                receiveCts.Token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default
+            );
         }
 
         public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
@@ -46,7 +52,8 @@ namespace Dbus
 
             await authenticate(stream).ConfigureAwait(false);
 
-            var result = new Connection(stream);
+            var socketHandle = getSocketHandle(socket);
+            var result = new Connection(socketHandle, stream);
 
             try
             {
@@ -60,6 +67,25 @@ namespace Dbus
             }
 
             return result;
+        }
+
+        // TODO: Only support netstandard 2.0 and beyond
+        private static IntPtr getSocketHandle(Socket socket)
+        {
+            // netstandard up until 1.6 doesn't provide the Handle property
+            // or any other way to get the raw socket handle.
+            // Use reflection...
+            var type = socket.GetType().GetTypeInfo();
+            var property = type.GetProperty("Handle");
+            if (property != null)
+                // ... to access the existing property on full framework...
+                return (IntPtr)property.GetValue(socket);
+            else
+            {
+                // ... or access the private(!) field of the .NET Core's implementation
+                var field = type.GetField("_handle", BindingFlags.Instance | BindingFlags.NonPublic);
+                return ((SafeHandle)field.GetValue(socket)).DangerousGetHandle();
+            }
         }
 
         public IDisposable RegisterObjectProxy(
@@ -244,14 +270,51 @@ namespace Dbus
             await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
         }
 
-        private async Task receive()
+        [DllImport("libc")]
+        private static extern int recvmsg(IntPtr sockfd, [In] ref msghdr buf, int flags);
+
+        private unsafe struct iovec
+        {
+            public byte* iov_base;
+            public int iov_len;
+        }
+
+        private unsafe struct msghdr
+        {
+            public IntPtr name;
+            public int namelen;
+            public iovec* iov;
+            public int iovlen;
+            public int[] control;
+            public int controllen;
+            public int flags;
+        }
+
+        private unsafe void receive()
         {
             var fixedLengthHeader = new byte[16]; // header up until the array length
             var token = receiveCts.Token;
+            var control = new int[16];
+
+            var hasValidFixedHeader = false;
+
             while (!token.IsCancellationRequested)
             {
-                await stream.ReadAsync(fixedLengthHeader, 0, fixedLengthHeader.Length, token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
+                if (!hasValidFixedHeader)
+                    fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
+                    {
+                        var iovecs = stackalloc iovec[1];
+                        iovecs[0].iov_base = fixedLengthHeaderP;
+                        iovecs[0].iov_len = 16;
+
+                        var msg = new msghdr();
+                        msg.iov = iovecs;
+                        msg.iovlen = 1;
+                        msg.controllen = control.Length * sizeof(int);
+                        msg.control = control;
+                        if (recvmsg(socketHandle, ref msg, 0) <= 0)
+                            return;
+                    }
 
                 var index = 0;
                 var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
@@ -267,30 +330,47 @@ namespace Dbus
                 var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index); // Actually uint
                 Alignment.Advance(ref receivedArrayLength, 8);
                 var headerBytes = new byte[receivedArrayLength];
-                await stream.ReadAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-                var header = new MessageHeader(headerBytes);
+                var bodyBytes = new byte[bodyLength];
 
-                var body = new byte[bodyLength];
-                if (bodyLength > 0)
+                fixed (byte* headerP = headerBytes)
+                fixed (byte* bodyP = bodyBytes)
+                fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
                 {
-                    await stream.ReadAsync(body, 0, body.Length, token).ConfigureAwait(false);
-                    token.ThrowIfCancellationRequested();
+                    var iovecs = stackalloc iovec[3];
+                    iovecs[0].iov_base = headerP;
+                    iovecs[0].iov_len = receivedArrayLength;
+                    iovecs[1].iov_base = bodyP;
+                    iovecs[1].iov_len = bodyLength;
+                    iovecs[2].iov_base = fixedLengthHeaderP;
+                    iovecs[2].iov_len = 16;
+                    var nextMsg = new msghdr
+                    {
+                        iov = iovecs,
+                        iovlen = 3,
+                        control = control,
+                        controllen = control.Length * sizeof(int),
+                    };
+                    var len = recvmsg(socketHandle, ref nextMsg, 0);
+                    if (len <= 0)
+                        return;
+                    hasValidFixedHeader = len == receivedArrayLength + bodyLength + fixedLengthHeader.Length;
                 }
+
+                var header = new MessageHeader(headerBytes, control);
 
                 switch (messageType)
                 {
                     case 1:
-                        handleMethodCall(receivedSerial, header, body);
+                        handleMethodCall(receivedSerial, header, bodyBytes);
                         break;
                     case 2:
-                        handleMethodReturn(header, body);
+                        handleMethodReturn(header, bodyBytes);
                         break;
                     case 3:
-                        handleError(header, body);
+                        handleError(header, bodyBytes);
                         break;
                     case 4:
-                        handleSignal(header, body);
+                        handleSignal(header, bodyBytes);
                         break;
                 }
             }
@@ -345,6 +425,7 @@ namespace Dbus
                 throw new InvalidOperationException("Couldn't find the method call for the method return");
             var receivedMessage = new ReceivedMethodReturn
             {
+                Header = header,
                 Body = body,
                 Signature = header.BodySignature,
             };
@@ -385,6 +466,7 @@ namespace Dbus
             orgFreedesktopDbus.Dispose();
             receiveCts.Cancel();
             stream.Dispose();
+            receiveTask.Wait();
         }
 
         private class deregistration : IDisposable

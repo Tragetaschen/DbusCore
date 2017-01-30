@@ -22,7 +22,7 @@ namespace Dbus.CodeGenerator
         private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
         {
 ");
-            var decoder = new DecoderGenerator("receivedBody");
+            var decoder = new DecoderGenerator("receivedBody", "header");
             var parameters = method.GetParameters();
             foreach (var parameter in method.GetParameters())
                 decoder.Add(parameter.Name, parameter.ParameterType);
