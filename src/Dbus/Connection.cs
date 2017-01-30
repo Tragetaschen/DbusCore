@@ -349,7 +349,7 @@ namespace Dbus
                 Signature = header.BodySignature,
             };
 
-            tcs.SetResult(receivedMessage);
+            Task.Run(() => tcs.SetResult(receivedMessage));
         }
 
         private void handleError(MessageHeader header, byte[] body)
@@ -366,7 +366,7 @@ namespace Dbus
             var index = 0;
             var message = Decoder.GetString(body, ref index);
             var exception = new DbusException(header.ErrorName, message);
-            tcs.SetException(exception);
+            Task.Run(() => tcs.SetException(exception));
         }
 
         private void handleSignal(
