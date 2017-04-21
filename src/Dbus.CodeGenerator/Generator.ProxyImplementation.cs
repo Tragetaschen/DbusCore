@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -46,6 +47,24 @@ namespace Dbus.CodeGenerator
                         encoders.Append(Indent);
                         encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
                     }
+                }
+                else if (returnType.IsConstructedGenericType)
+                {
+                    var genericType = returnType.GetGenericTypeDefinition();
+                    if (genericType == typeof(IEnumerable<>))
+                    {
+                        var elementType = returnType.GenericTypeArguments[0];
+                        sendSignature += "a";
+                        sendSignature += SignatureString.For[elementType];
+                        encoders.Append(Indent);
+                        encoders.AppendLine(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> b, ref int i) =>
+" + Indent + @"{
+" + Indent + @"        foreach(var e in result)
+" + Indent + @"            global::Dbus.Encoder.Add(b, ref i, e);
+" + Indent + @"});");
+                    }
+                    else
+                        throw new NotSupportedException("Only IEnumerable is supported as generic type when encoding");
                 }
                 else
                 {
