@@ -252,6 +252,7 @@ namespace Dbus.CodeGenerator
 
         private readonly global::Dbus.Connection connection;
         private readonly " + BuildTypeString(type) + @" target;
+        private readonly global::Dbus.ObjectPath path;
 
         private global::System.IDisposable registration;
 
@@ -259,19 +260,78 @@ namespace Dbus.CodeGenerator
         {
             this.connection = connection;
             this.target = target;
+            this.path = path;
             interfaceName = """ + provide.InterfaceName + @""";
             registration = connection.RegisterObjectProxy(
                 path ?? """ + provide.Path + @""",
                 interfaceName,
                 this
             );
-        }
+
+");
+
+            if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
+                proxyClass.Append(@"
+
+            target.PropertyChanged += HandlePropertyChangedEventAsync;");
+
+            proxyClass.Append(@"
+    }
 
         public static " + type.Name + @"_Proxy Factory(global::Dbus.Connection connection, " + type.FullName + @" target, global::Dbus.ObjectPath path)
         {
             return new " + type.Name + @"_Proxy(connection, target, path);
         }
+");
+            if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
+            {
+                proxyClass.Append(@"
+            private async void HandlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                var sendBody = global::Dbus.Encoder.StartNew();
+                var sendIndex = 0;
+                global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + provide.InterfaceName + @""");");
+                //Nur eine Property wird jeweils verändert: keine foreach-Schleife notwendig
+                proxyClass.Append(@"
+                global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
+                {
+                        global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
+                        global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, e.PropertyName);
+                        switch(e.PropertyName)
+                        {");
+                foreach (var property in type.GetTypeInfo().GetProperties())
+                {
+                    if (property.GetCustomAttribute<DbusPropertiesChanged>() != null)
+                    {
+                        proxyClass.Append(@"
+                            case """ + property.Name + @""":
+                                Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);
+                                break;
+");
+                    }
 
+                }
+                proxyClass.Append(@"
+                            default:
+                                throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
+                        }
+                }, true);");
+                //Eigentlich ein leeres Array, die Implementierung über einen Integer mit Wert 0 ist effizienter
+                proxyClass.Append(@"
+                global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
+
+                    await connection.SendSignal(
+                    path,
+                    ""org.freedesktop.DBus.Properties"",
+                    ""PropertiesChanged"",
+                    sendBody,
+                    ""sa{sv}as""
+                );
+            }
+
+            ");
+
+            }
             proxyClass.Append(@"
 "
             + generatePropertyEncodeImplementation(type) + @"
