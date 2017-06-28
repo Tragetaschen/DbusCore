@@ -13,7 +13,7 @@ namespace Dbus.CodeGenerator
             if (!method.Name.EndsWith("Async"))
                 throw new InvalidOperationException("Only method names ending in 'Async' are supported");
             if (method.ReturnType != typeof(Task) && method.ReturnType.GetGenericTypeDefinition() != typeof(Task<>))
-                throw new InvalidOperationException("Only methods returning a Tak type are supported");
+                throw new InvalidOperationException("Only methods returning a Task type are supported");
 
             var methodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
             var methodImplementation = new StringBuilder();
