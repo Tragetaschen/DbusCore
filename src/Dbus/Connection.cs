@@ -434,6 +434,11 @@ namespace Dbus
 
         private void handleMethodCall(uint replySerial, MessageHeader header, byte[] body, bool shouldSendReply)
         {
+            if (header.InterfaceName == "org.freedesktop.DBus.Properties")
+            {
+                Task.Run(() =>
+                    handlePropertyRequestAsync(replySerial, header, body));
+            }
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
                 Task.Run(() =>
@@ -468,6 +473,74 @@ namespace Dbus
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 ));
+        }
+
+        private Task handlePropertyRequestAsync(uint replySerial, MessageHeader header, byte[] body)
+        {
+            switch (header.Member)
+            {
+                case "GetAll":
+                    return handleGetAllAsync(replySerial, header, body);
+                case "Get":
+                    return handleGetAsync(replySerial, header, body);
+                default:
+                    throw new DbusException(
+                        DbusException.CreateErrorName("UnknownMethod"),
+                        "Method not supported"
+                    );
+            }
+        }
+        private async Task handleGetAllAsync(uint replySerial, MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "s");
+            var decoderIndex = 0;
+            var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
+            var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
+            if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
+            {
+
+                var sendBody = Encoder.StartNew();
+                var sendIndex = 0;
+                proxy.EncodeProperties(sendBody, ref sendIndex);
+                await SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{sv}").ConfigureAwait(false);
+
+            }
+            else
+            {
+                await sendMethodCallErrorAsync(
+                    replySerial,
+                    header.Sender,
+                    DbusException.CreateErrorName("MethodCallTargetNotFound"),
+                    "The requested method call isn't mapped to an actual object"
+                );
+            }
+
+        }
+        private async Task handleGetAsync(uint replySerial, MessageHeader header, byte[] body)
+        {
+            assertSignature(header.BodySignature, "ss");
+            var decoderIndex = 0;
+            var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
+            var requestedProperty = Decoder.GetString(body, ref decoderIndex);
+            var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
+            if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
+            {
+
+                var sendBody = Encoder.StartNew();
+                var sendIndex = 0;
+                proxy.EncodeProperty(sendBody, ref sendIndex, requestedProperty);
+                await SendMethodReturnAsync(replySerial, header.Sender, sendBody, "v").ConfigureAwait(false);
+
+            }
+            else
+            {
+                await sendMethodCallErrorAsync(
+                    replySerial,
+                    header.Sender,
+                    DbusException.CreateErrorName("MethodCallTargetNotFound"),
+                    "The requested method call isn't mapped to an actual object"
+                );
+            }
         }
 
         private void handleMethodReturn(
@@ -514,6 +587,15 @@ namespace Dbus
             Action<MessageHeader, byte[]> handler;
             if (signalHandlers.TryGetValue(dictionaryEntry, out handler))
                 Task.Run(() => handler(header, body));
+        }
+
+        private static void assertSignature(Signature actual, Signature expected)
+        {
+            if (actual != expected)
+                throw new DbusException(
+                    DbusException.CreateErrorName("InvalidSignature"),
+                    "Invalid signature"
+                );
         }
 
         public void Dispose()
