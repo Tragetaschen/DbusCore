@@ -145,6 +145,76 @@ namespace Dbus
             Add(buffer, ref index, signature);
         }
 
+        public static void AddVariant(List<byte> buffer, ref int index, object value)
+        {
+            switch (value)
+            {
+                case bool v:
+                    Add(buffer, ref index, (Signature)"b");
+                    Add(buffer, ref index, v);
+                    break;
+                case string v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case ObjectPath v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case uint v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case Signature v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case IEnumerable<ObjectPath> v:
+                    Add(buffer, ref index, (Signature)"ao");
+                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
+                    {
+                        foreach (var element in v)
+                        {
+                            Add(buffer_e, ref index_e, element);
+                        }
+                    });
+                    break;
+                case IEnumerable<string> v:
+                    Add(buffer, ref index, (Signature)"as");
+                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
+                    {
+                        foreach (var element in v)
+                        {
+                            Add(buffer_e, ref index_e, element);
+                        }
+                    });
+                    break;
+                case IEnumerable<byte> v:
+                    Add(buffer, ref index, (Signature)"ay");
+                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
+                    {
+                        foreach (var element in v)
+                        {
+                            Add(buffer_e, ref index_e, element);
+                        }
+                    });
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported Type for Variant");
+            }
+        }
+
+        public static void AddVariant(List<byte> buffer, ref int index, IDictionary<string, object> value)
+        {
+            System.Console.WriteLine("Encoding Dictionary");
+            Add(buffer, ref index, (Signature)"a{sv}");
+            AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
+            {
+                foreach (var element in value)
+                {
+                    EnsureAlignment(buffer_e, ref index_e, 8);
+                    Add(buffer_e, ref index_e, element.Key);
+                    AddVariant(buffer_e, ref index_e, element.Value);
+                }
+            }, true);
+        }
+
         public static void EnsureAlignment(List<byte> buffer, ref int index, int alignment)
         {
             var bytesToAdd = Alignment.Calculate(buffer.Count, alignment);
