@@ -18,7 +18,7 @@ namespace Dbus
         private readonly Stream stream;
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages;
         private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers;
-        private readonly ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>> objectProxies;
+        private readonly ConcurrentDictionary<string, IProxy> objectProxies;
         private readonly CancellationTokenSource receiveCts;
         private readonly Task receiveTask;
 
@@ -33,7 +33,7 @@ namespace Dbus
             semaphoreSend = new SemaphoreSlim(1);
             expectedMessages = new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
-            objectProxies = new ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>>();
+            objectProxies = new ConcurrentDictionary<string, IProxy>();
             receiveCts = new CancellationTokenSource();
 
             receiveTask = Task.Factory.StartNew(
@@ -92,7 +92,7 @@ namespace Dbus
         public IDisposable RegisterObjectProxy(
             ObjectPath path,
             string interfaceName,
-            Func<uint, MessageHeader, byte[], Task> proxy
+            IProxy proxy
         )
         {
             var dictionaryEntry = path + "\0" + interfaceName;
@@ -103,7 +103,7 @@ namespace Dbus
             {
                 Deregister = () =>
                 {
-                    Func<uint, MessageHeader, byte[], Task> _;
+                    IProxy _;
                     objectProxies.TryRemove(dictionaryEntry, out _);
                 }
             };
@@ -377,7 +377,7 @@ namespace Dbus
                 if (endianess != (byte)'l')
                     throw new InvalidDataException("Wrong endianess");
                 var messageType = Decoder.GetByte(fixedLengthHeader, ref index);
-                Decoder.GetByte(fixedLengthHeader, ref index);
+                var shouldSendReply = (Decoder.GetByte(fixedLengthHeader, ref index) & 0x1) == 0x0;
                 var protocolVersion = Decoder.GetByte(fixedLengthHeader, ref index);
                 if (protocolVersion != 1)
                     throw new InvalidDataException("Wrong protocol version");
@@ -417,7 +417,7 @@ namespace Dbus
                 switch (messageType)
                 {
                     case 1:
-                        handleMethodCall(receivedSerial, header, bodyBytes);
+                        handleMethodCall(receivedSerial, header, bodyBytes, shouldSendReply);
                         break;
                     case 2:
                         handleMethodReturn(header, bodyBytes);
@@ -432,16 +432,15 @@ namespace Dbus
             }
         }
 
-        private void handleMethodCall(uint replySerial, MessageHeader header, byte[] body)
+        private void handleMethodCall(uint replySerial, MessageHeader header, byte[] body, bool shouldSendReply)
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
-            Func<uint, MessageHeader, byte[], Task> proxy;
-            if (objectProxies.TryGetValue(dictionaryEntry, out proxy))
+            if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
                 Task.Run(() =>
                 {
                     try
                     {
-                        return proxy(replySerial, header, body);
+                        return proxy.HandleMethodCallAsync(replySerial, header, body, shouldSendReply);
                     }
                     catch (DbusException dbusException)
                     {
