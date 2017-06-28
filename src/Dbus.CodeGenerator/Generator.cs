@@ -244,9 +244,12 @@ namespace Dbus.CodeGenerator
             }
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
-            var proxyClass = @"
-    public sealed class " + type.Name + @"_Proxy : global::System.IDisposable
+            StringBuilder proxyClass = new StringBuilder(@"
+    public sealed class " + type.Name + @"_Proxy : global::System.IDisposable, global::Dbus.IProxy
     {
+
+        public string interfaceName { get; }
+
         private readonly global::Dbus.Connection connection;
         private readonly " + BuildTypeString(type) + @" target;
 
@@ -256,10 +259,11 @@ namespace Dbus.CodeGenerator
         {
             this.connection = connection;
             this.target = target;
+            interfaceName = """ + provide.InterfaceName + @""";
             registration = connection.RegisterObjectProxy(
                 path ?? """ + provide.Path + @""",
-                """ + provide.InterfaceName + @""",
-                this.handleMethodCall
+                interfaceName,
+                this
             );
         }
 
@@ -268,13 +272,18 @@ namespace Dbus.CodeGenerator
             return new " + type.Name + @"_Proxy(connection, target, path);
         }
 
-        private System.Threading.Tasks.Task handleMethodCall(uint replySerial, global::Dbus.MessageHeader header, byte[] body)
+            proxyClass.Append(@"
+"
+            + generatePropertyEncodeImplementation(type) + @"
+
+            public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] body, bool shouldSendReply)
         {
             switch (header.Member)
             {
                 " + string.Join(@"
                 ", knownMethods.Select(x => @"case """ + x + @""":
-                    return handle" + x + @"Async(replySerial, header, body);")) + @"
+                    return handle" + x + @"Async(replySerial, header, body, shouldSendReply);")) + @"");
+            proxyClass.Append(@"
                 default:
                     throw new global::Dbus.DbusException(
                         global::Dbus.DbusException.CreateErrorName(""UnknownMethod""),
@@ -298,9 +307,9 @@ namespace Dbus.CodeGenerator
             registration.Dispose();
         }
     }
-";
+");
 
-            return Tuple.Create(proxyClass, proxyRegistration);
+            return Tuple.Create(proxyClass.ToString(), proxyRegistration);
         }
 
         public static string BuildTypeString(Type type)

@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
             var methodImplementation = new StringBuilder();
 
             methodImplementation.Append(@"
-        private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody)
+        private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody, bool shouldSendReply)
         {
 ");
             var decoder = new DecoderGenerator("receivedBody", "header");
@@ -53,7 +53,6 @@ namespace Dbus.CodeGenerator
                     sendSignature += EncoderGenerator.buildSignature(returnType, encoders);
                 }
             }
-
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
             methodImplementation.Append(decoder.Result);
@@ -62,13 +61,19 @@ namespace Dbus.CodeGenerator
                 methodImplementation.Append("var result = ");
             methodImplementation.Append("await target." + method.Name + "(");
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
-            methodImplementation.AppendLine(").ConfigureAwait(false);");
+            methodImplementation.AppendLine(@").ConfigureAwait(false);
+");
+            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine(@" if (shouldSendReply)
+            {");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (sendSignature != "")
                 methodImplementation.Append(encoders);
             methodImplementation.Append(Indent);
             methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""").ConfigureAwait(false);");
+            methodImplementation.AppendLine(@"
+        }");
             methodImplementation.AppendLine(@"
         }");
 
