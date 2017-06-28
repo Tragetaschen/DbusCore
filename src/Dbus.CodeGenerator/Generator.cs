@@ -89,7 +89,7 @@ namespace Dbus.CodeGenerator
             if (!typeof(IDisposable).GetTypeInfo().IsAssignableFrom(type))
                 throw new InvalidOperationException("The interface " + type.Name + " is meant to be consumed, but does not extend IDisposable");
 
-            var className = type.Name.Substring(1);
+            var className = type.Name + "_Implementation";
             var eventSubscriptions = new StringBuilder();
             var methodImplementations = new StringBuilder();
             var eventImplementations = new StringBuilder();
