@@ -212,6 +212,48 @@ namespace Dbus
             return await tcs.Task.ConfigureAwait(false);
         }
 
+        public async Task SendSignal(
+            ObjectPath path,
+            string interfaceName,
+            string methodName,
+            List<byte> body,
+            Signature signature
+            )
+        {
+            if (path.ToString() == "" || interfaceName == "" || methodName == "")
+            {
+                throw new InvalidOperationException("Signal path, interface and member must not be empty!");
+            }
+
+            var serial = Interlocked.Increment(ref serialCounter);
+            var message = Encoder.StartNew();
+            var index = 0;
+            Encoder.Add(message, ref index, (byte)'l'); // little endian
+            Encoder.Add(message, ref index, (byte)4); // signal
+            Encoder.Add(message, ref index, (byte)0); // flags
+            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, body.Count); // Actually uint
+            Encoder.Add(message, ref index, serial); // Actually uint
+
+            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            {
+                AddHeader(buffer, ref localIndex, path);
+                AddHeader(buffer, ref localIndex, 2, interfaceName);
+                AddHeader(buffer, ref localIndex, 3, methodName);
+                if (body.Count > 0)
+                    AddHeader(buffer, ref localIndex, signature);
+            });
+            Encoder.EnsureAlignment(message, ref index, 8);
+            message.AddRange(body);
+
+            //var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
+            //expectedMessages[(uint)serial] = tcs;
+
+            var messageArray = message.ToArray();
+            await SerializedWriteToStream(messageArray);
+            //return await tcs.Task.ConfigureAwait(false);
+        }
+
         public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
         {
             var serial = Interlocked.Increment(ref serialCounter);
