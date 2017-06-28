@@ -22,6 +22,7 @@ namespace Dbus
         private readonly CancellationTokenSource receiveCts;
         private readonly Task receiveTask;
 
+        private SemaphoreSlim semaphoreSend;
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
@@ -29,7 +30,7 @@ namespace Dbus
         {
             this.socketHandle = socketHandle;
             this.stream = stream;
-
+            semaphoreSend = new SemaphoreSlim(1);
             expectedMessages = new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
             signalHandlers = new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
             objectProxies = new ConcurrentDictionary<string, Func<uint, MessageHeader, byte[], Task>>();
@@ -206,7 +207,7 @@ namespace Dbus
             expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
-            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+            await SerializedWriteToStream(messageArray);
 
             return await tcs.Task.ConfigureAwait(false);
         }
@@ -235,7 +236,20 @@ namespace Dbus
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+            await SerializedWriteToStream(messageArray);
+        }
+
+        private async Task SerializedWriteToStream(byte[] messageArray)
+        {
+            await semaphoreSend.WaitAsync();
+            try
+            {
+                await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+            }
+            finally
+            {
+                semaphoreSend.Release();
+            }
         }
 
         private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
@@ -267,7 +281,7 @@ namespace Dbus
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+            await SerializedWriteToStream(messageArray);
         }
 
         [DllImport("libc")]
