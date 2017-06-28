@@ -49,9 +49,8 @@ namespace Dbus.CodeGenerator
                 }
                 else
                 {
-                    sendSignature += SignatureString.For[returnType];
                     encoders.Append(Indent);
-                    encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result);");
+                    sendSignature += EncoderGenerator.buildSignature(returnType, encoders);
                 }
             }
 
