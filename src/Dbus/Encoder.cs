@@ -99,16 +99,27 @@ namespace Dbus
             Add(buffer, ref index, value ? 1 : 0);
         }
 
-        public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer)
+  
+        public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, Boolean alignment_8 = false)
         {
+            int alignment;
+            if (alignment_8)
+                alignment = 8;
+            else
+                alignment = 4;
+            EnsureAlignment(buffer, ref index, 4);
             var lengthPosition = index;
             Add(buffer, ref index, 0); // Actually uint
+            EnsureAlignment(buffer, ref index, alignment);
+            var arrayStart = index;
             writer(buffer, ref index);
-            var arrayLength = index - (lengthPosition + 4);
+            var arrayLength = index - arrayStart;
             var lengthBytes = BitConverter.GetBytes(arrayLength);
             for (var i = 0; i < 4; ++i)
                 buffer[lengthPosition + i] = lengthBytes[i];
+            
         }
+        
 
         public static void AddVariant(List<byte> buffer, ref int index, string value)
         {
