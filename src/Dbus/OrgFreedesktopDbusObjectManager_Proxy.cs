@@ -7,7 +7,7 @@ namespace Dbus
     public sealed class OrgFreedesktopDbusObjectManager_Proxy : IDisposable, IProxy
     {
 
-        public string interfaceName { get; }
+        public string InterfaceName { get; }
 
         private readonly Connection connection;
         private readonly IOrgFreedesktopDbusObjectManagerProvide target;
@@ -20,10 +20,10 @@ namespace Dbus
             this.connection = connection;
             this.target = target;
             this.path = path;
-            interfaceName = "org.freedesktop.DBus.ObjectManager";
+            InterfaceName = "org.freedesktop.DBus.ObjectManager";
             registration = connection.RegisterObjectProxy(
                 path ?? "",
-                interfaceName,
+                InterfaceName,
                 this
             );
         }
@@ -74,7 +74,7 @@ namespace Dbus
                             foreach (var interfaceInstance in managedObject.Value)
                             {
                                 Encoder.EnsureAlignment(sendBody_e_e, ref sendIndex_e_e, 8);
-                                Encoder.Add(sendBody_e, ref sendIndex_e_e, interfaceInstance.interfaceName);
+                                Encoder.Add(sendBody_e, ref sendIndex_e_e, interfaceInstance.InterfaceName);
                                 interfaceInstance.EncodeProperties(sendBody_e_e, ref sendIndex);
                             }
                             Encoder.EnsureAlignment(sendBody_e_e, ref sendIndex_e_e, 8);

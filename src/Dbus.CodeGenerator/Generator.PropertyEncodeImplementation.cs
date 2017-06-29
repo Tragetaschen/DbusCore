@@ -29,11 +29,10 @@ namespace Dbus.CodeGenerator
             }, true);
         }
 
-        public void EncodeProperty (global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex, string requestedProperty)
+        public void EncodeProperty (global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex, string propertyName)
         {
-            switch(requestedProperty)
-            {
-                ");
+            switch(propertyName)
+            {");
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
@@ -45,7 +44,7 @@ namespace Dbus.CodeGenerator
                 default:
                     throw new global::Dbus.DbusException(
                         global::Dbus.DbusException.CreateErrorName(""UnknownProperty""),
-                        ""No such Property: "" + requestedProperty
+                        ""No such Property: "" + propertyName
                     );
             }
         }");

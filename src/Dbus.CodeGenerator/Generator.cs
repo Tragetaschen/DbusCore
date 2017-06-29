@@ -248,7 +248,7 @@ namespace Dbus.CodeGenerator
     public sealed class " + type.Name + @"_Proxy : global::System.IDisposable, global::Dbus.IProxy
     {
 
-        public string interfaceName { get; }
+        public string InterfaceName { get; }
 
         private readonly global::Dbus.Connection connection;
         private readonly " + BuildTypeString(type) + @" target;
@@ -261,10 +261,10 @@ namespace Dbus.CodeGenerator
             this.connection = connection;
             this.target = target;
             this.path = path;
-            interfaceName = """ + provide.InterfaceName + @""";
+            InterfaceName = """ + provide.InterfaceName + @""";
             registration = connection.RegisterObjectProxy(
                 path ?? """ + provide.Path + @""",
-                interfaceName,
+                InterfaceName,
                 this
             );");
 
