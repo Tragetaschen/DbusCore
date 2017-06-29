@@ -103,8 +103,7 @@ namespace Dbus
             {
                 Deregister = () =>
                 {
-                    IProxy _;
-                    objectProxies.TryRemove(dictionaryEntry, out _);
+                    objectProxies.TryRemove(dictionaryEntry, out var _);
                 }
             };
         }
@@ -221,9 +220,7 @@ namespace Dbus
             )
         {
             if (path.ToString() == "" || interfaceName == "" || methodName == "")
-            {
                 throw new InvalidOperationException("Signal path, interface and member must not be empty!");
-            }
 
             var serial = Interlocked.Increment(ref serialCounter);
             var message = Encoder.StartNew();
