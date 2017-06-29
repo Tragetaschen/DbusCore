@@ -80,10 +80,6 @@ namespace Dbus.CodeGenerator
                 }
             });");
                 }
-                //else if (property.GetType() == typeof(object))
-                //{
-                //    propertyEncoder.Append(@"global::Dbus.Encoder.AddVariant(sendBody_e, ref sendIndex_e," + property.Name + " );");
-                //}
                 else
                 {
                     propertyEncoder.Append(@"
@@ -93,25 +89,6 @@ namespace Dbus.CodeGenerator
         }");
             }
             return propertyEncoder.ToString();
-        }
-
-
-        //Wird nicht mehr verwendet
-        private static string createParameterDefinition(Type type)
-        {
-            if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-            {
-                return "global::System.Collections.Generic.IEnumerable<" + createParameterDefinition(type.GenericTypeArguments[0]) + ">";
-            }
-            else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-            {
-                return "global::System.Collections.Generic.IDictionary<" + createParameterDefinition(type.GenericTypeArguments[0]) + "," +
-                              createParameterDefinition(type.GenericTypeArguments[1]) + ">";
-            }
-            else
-            {
-                return type.FullName;
-            }
         }
 
         private static string createVariantSignature(Type type)
@@ -156,10 +133,6 @@ namespace Dbus.CodeGenerator
                 propertyEncoder.Append(@"}});
 ");
             }
-            //else if (property.GetType() == typeof(object))
-            //{
-            //    propertyEncoder.Append(@"global::Dbus.Encoder.AddVariant(sendBody_e, ref sendIndex_e," + property.Name + " );");
-            //}
             else
             {
                 propertyEncoder.Append(@"
@@ -193,10 +166,6 @@ namespace Dbus.CodeGenerator
                 propertyEncoder.Append(@"}});
 ");
             }
-            //else if (property.GetType() == typeof(object))
-            //{
-            //    propertyEncoder.Append(@"global::Dbus.Encoder.AddVariant(sendBody_e, ref sendIndex_e," + property.Name + " );");
-            //}
             else
             {
                 propertyEncoder.Append(@"
@@ -230,10 +199,6 @@ namespace Dbus.CodeGenerator
                 propertyEncoder.Append(@"}});
 ");
             }
-            //else if (property.GetType() == typeof(object))
-            //{
-            //    propertyEncoder.Append(@"global::Dbus.Encoder.AddVariant(sendBody_e, ref sendIndex_e," + property.Name + " );");
-            //}
             else
             {
                 propertyEncoder.Append(@"
