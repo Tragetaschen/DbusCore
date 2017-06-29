@@ -54,7 +54,7 @@ namespace Dbus.CodeGenerator
     {
         static partial void DoInit()
         {
-            global::Dbus.Connection.AddPublishProxy<Dbus.IOrgFreedesktopDbusObjectManagerProvide>(Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);
+            global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);
             " + string.Join(@"
             ", registrations) + @"
         }
