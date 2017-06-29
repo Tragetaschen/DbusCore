@@ -288,7 +288,7 @@ namespace Dbus.CodeGenerator
                 var sendBody = global::Dbus.Encoder.StartNew();
                 var sendIndex = 0;
                 global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + provide.InterfaceName + @""");");
-                //Nur eine Property wird jeweils verändert: keine foreach-Schleife notwendig
+                //Only one property is changed at a time, so no foreach loop is necessary
                 proxyClass.Append(@"
                 global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
                 {
@@ -312,7 +312,7 @@ namespace Dbus.CodeGenerator
                                 throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
                         }
                 }, true);");
-                //Eigentlich ein leeres Array, die Implementierung über einen Integer mit Wert 0 ist effizienter
+                //This is actually an empty array, but the encoding per 0-integer is more efficient
                 proxyClass.Append(@"
                 global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
 
