@@ -171,7 +171,6 @@ namespace Dbus
 
         public static void AddVariant(List<byte> buffer, ref int index, IDictionary<string, object> value)
         {
-            System.Console.WriteLine("Encoding Dictionary");
             Add(buffer, ref index, (Signature)"a{sv}");
             AddArray(buffer, ref index, (List<byte> buffer_e, ref int index_e) =>
             {
