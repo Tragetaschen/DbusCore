@@ -206,12 +206,12 @@ namespace Dbus
             expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
-            await SerializedWriteToStream(messageArray);
+            await SerializedWriteToStream(messageArray).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        public async Task SendSignal(
+        public Task SendSignalAsync(
             ObjectPath path,
             string interfaceName,
             string methodName,
@@ -247,10 +247,10 @@ namespace Dbus
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
             var messageArray = message.ToArray();
-            await SerializedWriteToStream(messageArray);
+            return SerializedWriteToStream(messageArray);
         }
 
-        public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
+        public Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
         {
             var serial = Interlocked.Increment(ref serialCounter);
 
@@ -274,12 +274,12 @@ namespace Dbus
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            await SerializedWriteToStream(messageArray);
+            return SerializedWriteToStream(messageArray);
         }
 
         private async Task SerializedWriteToStream(byte[] messageArray)
         {
-            await semaphoreSend.WaitAsync();
+            await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
             {
                 await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
@@ -290,7 +290,7 @@ namespace Dbus
             }
         }
 
-        private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
+        private Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
         {
             var serial = Interlocked.Increment(ref serialCounter);
 
@@ -319,7 +319,7 @@ namespace Dbus
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            await SerializedWriteToStream(messageArray);
+            return SerializedWriteToStream(messageArray);
         }
 
         [DllImport("libc")]
@@ -487,7 +487,7 @@ namespace Dbus
                     );
             }
         }
-        private async Task handleGetAllAsync(uint replySerial, MessageHeader header, byte[] body)
+        private Task handleGetAllAsync(uint replySerial, MessageHeader header, byte[] body)
         {
             assertSignature(header.BodySignature, "s");
             var decoderIndex = 0;
@@ -499,12 +499,12 @@ namespace Dbus
                 var sendBody = Encoder.StartNew();
                 var sendIndex = 0;
                 proxy.EncodeProperties(sendBody, ref sendIndex);
-                await SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{sv}").ConfigureAwait(false);
+                return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{sv}");
 
             }
             else
             {
-                await sendMethodCallErrorAsync(
+                return sendMethodCallErrorAsync(
                     replySerial,
                     header.Sender,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
@@ -513,7 +513,7 @@ namespace Dbus
             }
 
         }
-        private async Task handleGetAsync(uint replySerial, MessageHeader header, byte[] body)
+        private Task handleGetAsync(uint replySerial, MessageHeader header, byte[] body)
         {
             assertSignature(header.BodySignature, "ss");
             var decoderIndex = 0;
@@ -526,12 +526,12 @@ namespace Dbus
                 var sendBody = Encoder.StartNew();
                 var sendIndex = 0;
                 proxy.EncodeProperty(sendBody, ref sendIndex, requestedProperty);
-                await SendMethodReturnAsync(replySerial, header.Sender, sendBody, "v").ConfigureAwait(false);
+                return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "v");
 
             }
             else
             {
-                await sendMethodCallErrorAsync(
+                return sendMethodCallErrorAsync(
                     replySerial,
                     header.Sender,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
