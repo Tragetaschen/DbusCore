@@ -64,7 +64,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.AppendLine(@").ConfigureAwait(false);
 ");
             methodImplementation.Append(Indent);
-            methodImplementation.AppendLine(@" if (shouldSendReply)
+            methodImplementation.AppendLine(@"if (shouldSendReply)
             {");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
@@ -73,7 +73,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.Append(Indent);
             methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""").ConfigureAwait(false);");
             methodImplementation.AppendLine(@"
-        }");
+            }");
             methodImplementation.AppendLine(@"
         }");
 

@@ -81,7 +81,6 @@ namespace Dbus.CodeGenerator
         }
     }
 ";
-
             return initClass + result.ToString();
         }
 
@@ -267,9 +266,7 @@ namespace Dbus.CodeGenerator
                 path ?? """ + provide.Path + @""",
                 interfaceName,
                 this
-            );
-
-");
+            );");
 
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
                 proxyClass.Append(@"
@@ -277,13 +274,12 @@ namespace Dbus.CodeGenerator
             target.PropertyChanged += HandlePropertyChangedEventAsync;");
 
             proxyClass.Append(@"
-    }
+        }
 
         public static " + type.Name + @"_Proxy Factory(global::Dbus.Connection connection, " + type.FullName + @" target, global::Dbus.ObjectPath path)
         {
             return new " + type.Name + @"_Proxy(connection, target, path);
-        }
-");
+        }");
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
             {
                 proxyClass.Append(@"
@@ -310,7 +306,6 @@ namespace Dbus.CodeGenerator
                                 break;
 ");
                     }
-
                 }
                 proxyClass.Append(@"
                             default:
@@ -328,10 +323,7 @@ namespace Dbus.CodeGenerator
                     sendBody,
                     ""sa{sv}as""
                 );
-            }
-
-            ");
-
+            }");
             }
             proxyClass.Append(@"
 "
@@ -369,7 +361,6 @@ namespace Dbus.CodeGenerator
         }
     }
 ");
-
             return Tuple.Create(proxyClass.ToString(), proxyRegistration);
         }
 

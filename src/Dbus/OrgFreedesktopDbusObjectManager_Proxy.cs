@@ -13,7 +13,6 @@ namespace Dbus
         private readonly IOrgFreedesktopDbusObjectManagerProvide target;
         private readonly ObjectPath path;
 
-
         private IDisposable registration;
 
         private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
@@ -87,7 +86,6 @@ namespace Dbus
                 }, true);
                 await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{oa{sa{sv}}}").ConfigureAwait(false);
             }
-
         }
 
         public void EncodeProperties(List<byte> sendBody, ref int index)
@@ -120,7 +118,5 @@ namespace Dbus
         {
             registration.Dispose();
         }
-
-
     }
 }

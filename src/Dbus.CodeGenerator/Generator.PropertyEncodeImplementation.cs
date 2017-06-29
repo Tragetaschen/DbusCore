@@ -16,16 +16,14 @@ namespace Dbus.CodeGenerator
         public void EncodeProperties (global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
         {
             global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
-            {
-                ");
+            {");
 
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
-                propertyEncoder.Append(@"   global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
+                propertyEncoder.Append(@"
+                global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
                 global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, """ + property.Name + @""" );
-                Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);
-            ");
-
+                Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);");
             }
             propertyEncoder.Append(@"
             }, true);
@@ -38,10 +36,10 @@ namespace Dbus.CodeGenerator
                 ");
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
-                propertyEncoder.Append(@"case """ + property.Name + @""":
+                propertyEncoder.Append(@"
+                case """ + property.Name + @""":
                     Encode" + property.Name + @"(sendBody, ref sendIndex);
-                    break;
-                ");
+                    break;");
             }
             propertyEncoder.Append(@"
                 default:
@@ -50,18 +48,17 @@ namespace Dbus.CodeGenerator
                         ""No such Property: "" + requestedProperty
                     );
             }
-        }
-");
+        }");
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
         private void Encode" + property.Name + @"(global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
         {
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)""" + createVariantSignature(property.PropertyType) + @""" );
-            ");
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)""" + createVariantSignature(property.PropertyType) + @""" );");
                 if (property.PropertyType.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
                 {
-                    propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
+                    propertyEncoder.Append(@"
+            global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
             {
                 foreach(var " + property.Name + @"_e in target." + property.Name + @")
                 {");
@@ -90,7 +87,8 @@ namespace Dbus.CodeGenerator
                 //}
                 else
                 {
-                    propertyEncoder.Append(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, target." + property.Name + @" );");
+                    propertyEncoder.Append(@"
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, target." + property.Name + @" );");
                 }
                 propertyEncoder.Append(@"
         }");
@@ -139,7 +137,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @")
                       {");
                 generateEnumerableEncoding(propertyEncoder, type.GenericTypeArguments[0], parameter + "_e", property, propertyParameter + "_e");
@@ -149,7 +147,7 @@ namespace Dbus.CodeGenerator
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @")
                       {{" +
                   "global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);
@@ -176,7 +174,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @".Key)
                       {");
                 generateEnumerableEncoding(propertyEncoder, type.GenericTypeArguments[0], parameter + "_e", property, propertyParameter + "_e");
@@ -186,7 +184,7 @@ namespace Dbus.CodeGenerator
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @".Key)
                       {{" +
                   "global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);
@@ -213,7 +211,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @".Value)
                       {");
                 generateEnumerableEncoding(propertyEncoder, type.GenericTypeArguments[0], parameter + "_e", property, propertyParameter + "_e");
@@ -223,7 +221,7 @@ namespace Dbus.CodeGenerator
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 propertyEncoder.Append(@"global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + @", ref int sendIndex_e" + parameter + @") =>
-                    {\n
+                    {
                     foreach(var " + property.Name + "_e" + parameter + @" in " + property.Name + parameter + @".Value)
                       {{" +
                   "global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);
