@@ -20,8 +20,8 @@ namespace Dbus
             managedObjects = new Dictionary<ObjectPath, List<IProxy>>();
         }
 
-        public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded;
-        public event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved;
+        public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
+        public event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved { add { } remove { } }
 
         public void AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
         {
