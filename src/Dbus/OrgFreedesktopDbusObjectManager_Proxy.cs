@@ -106,7 +106,7 @@ namespace Dbus
         }
 
 
-        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
+        private static void assertSignature(Signature actual, Signature expected)
         {
             if (actual != expected)
                 throw new DbusException(

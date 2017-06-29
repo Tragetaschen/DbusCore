@@ -173,7 +173,7 @@ namespace Dbus
         {
             System.Console.WriteLine("Encoding Dictionary");
             Add(buffer, ref index, (Signature)"a{sv}");
-            AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
+            AddArray(buffer, ref index, (List<byte> buffer_e, ref int index_e) =>
             {
                 foreach (var element in value)
                 {
