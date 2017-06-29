@@ -316,13 +316,13 @@ namespace Dbus.CodeGenerator
                 proxyClass.Append(@"
                 global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
 
-                    await connection.SendSignal(
+                await connection.SendSignalAsync(
                     path,
                     ""org.freedesktop.DBus.Properties"",
                     ""PropertiesChanged"",
                     sendBody,
                     ""sa{sv}as""
-                );
+                ).ConfigureAwait(false);
             }");
             }
             proxyClass.Append(@"
