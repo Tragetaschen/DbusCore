@@ -102,15 +102,10 @@ namespace Dbus
   
         public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, Boolean alignment_8 = false)
         {
-            int alignment;
-            if (alignment_8)
-                alignment = 8;
-            else
-                alignment = 4;
             EnsureAlignment(buffer, ref index, 4);
             var lengthPosition = index;
             Add(buffer, ref index, 0); // Actually uint
-            EnsureAlignment(buffer, ref index, alignment);
+            EnsureAlignment(buffer, ref index, alignment_8?8:4);
             var arrayStart = index;
             writer(buffer, ref index);
             var arrayLength = index - arrayStart;
