@@ -430,6 +430,7 @@ namespace Dbus
             {
                 Task.Run(() =>
                     handlePropertyRequestAsync(replySerial, header, body));
+                    return;
             }
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
