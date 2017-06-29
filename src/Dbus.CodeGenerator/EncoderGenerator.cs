@@ -12,7 +12,7 @@ namespace Dbus.CodeGenerator
             {
                 encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
-                foreach (var "+parameterName+"_e" + resultParameter + " in " + parameterName + resultParameter + @")  
+                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
                 {");
                 signature += "a" + buildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1);
                 encoders.Append(@"
@@ -25,7 +25,7 @@ namespace Dbus.CodeGenerator
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @") 
                 {
-                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);") ;
+                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
                 signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
                                       + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
                                       + "}";
@@ -70,7 +70,7 @@ namespace Dbus.CodeGenerator
             return signature;
         }
 
-        private static string dictionaryKeyStep(Type type, StringBuilder encoders, string parameterName ,string parameter = "", string resultParameter = "", int level = 0)
+        private static string dictionaryKeyStep(Type type, StringBuilder encoders, string parameterName, string parameter = "", string resultParameter = "", int level = 0)
         {
             string signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
@@ -79,7 +79,7 @@ namespace Dbus.CodeGenerator
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
                 {");
-                signature += "a" + buildSignature(type.GenericTypeArguments[0], encoders, parameterName , parameter + "_e", resultParameter + "_e", level + 1);
+                signature += "a" + buildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1);
                 encoders.Append(@"
                 }
             });");

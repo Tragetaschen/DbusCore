@@ -219,8 +219,12 @@ namespace Dbus
             Signature signature
             )
         {
-            if (path.ToString() == "" || interfaceName == "" || methodName == "")
-                throw new InvalidOperationException("Signal path, interface and member must not be empty!");
+            if (path.ToString() == "")
+                throw new ArgumentException("Signal path must not be empty", nameof(path));
+            if (interfaceName == "")
+                throw new ArgumentException("Signal interface must not be empty", nameof(interfaceName));
+            if (methodName == "")
+                throw new ArgumentException("Signal member must not be empty", nameof(methodName));
 
             var serial = Interlocked.Increment(ref serialCounter);
             var message = Encoder.StartNew();
@@ -430,7 +434,7 @@ namespace Dbus
             {
                 Task.Run(() =>
                     handlePropertyRequestAsync(replySerial, header, body));
-                    return;
+                return;
             }
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))

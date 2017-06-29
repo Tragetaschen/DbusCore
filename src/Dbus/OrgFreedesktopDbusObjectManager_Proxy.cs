@@ -17,11 +17,9 @@ namespace Dbus
 
         private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
         {
-            if (path == null)
-                throw new ArgumentNullException("An ObjectManager needs a path!");
             this.connection = connection;
             this.target = target;
-            this.path = path;
+            this.path = path ?? throw new ArgumentNullException(nameof(path));
             InterfaceName = "org.freedesktop.DBus.ObjectManager";
             registration = connection.RegisterObjectProxy(
                 path,
