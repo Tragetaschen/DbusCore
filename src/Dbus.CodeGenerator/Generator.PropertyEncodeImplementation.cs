@@ -11,7 +11,7 @@ namespace Dbus.CodeGenerator
     {
         private static string generatePropertyEncodeImplementation(Type type)
         {
-            StringBuilder propertyEncoder = new StringBuilder();
+            var propertyEncoder = new StringBuilder();
             propertyEncoder.Append(@"
         public void EncodeProperties (global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
         {
@@ -51,6 +51,7 @@ namespace Dbus.CodeGenerator
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
+
         private void Encode" + property.Name + @"(global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
         {
             global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)""" + createVariantSignature(property.PropertyType) + @""" );");
