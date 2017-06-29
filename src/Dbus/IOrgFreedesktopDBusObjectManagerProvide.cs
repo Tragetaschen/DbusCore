@@ -5,7 +5,7 @@ namespace Dbus
 {
     public interface IOrgFreedesktopDbusObjectManagerProvide
     {
-        ObjectPath root { get; }
+        ObjectPath Root { get; }
         Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync();
     }
 }
