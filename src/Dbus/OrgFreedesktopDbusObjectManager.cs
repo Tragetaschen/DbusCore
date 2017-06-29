@@ -7,7 +7,7 @@ namespace Dbus
     public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
     {
 
-        public ObjectPath root { get; }
+        public ObjectPath Root { get; }
 
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
@@ -16,8 +16,8 @@ namespace Dbus
         public OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
             this.connection = connection;
-            this.root = root;
             managedObjects = new Dictionary<ObjectPath, List<IProxy>>() { };
+            Root = root;
         }
 
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded;
@@ -25,19 +25,35 @@ namespace Dbus
 
         public void AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
         {
-            string editedPath;
-            if (path.ToString() == "/")
-                editedPath = "";
-            else
-                editedPath = path.ToString();
-            var proxy = (IProxy)connection.Publish<TInterface>(instance, root.ToString() + editedPath);
-            if (managedObjects.ContainsKey(root.ToString() + editedPath))
+            var fullPath = buildFullPath(path);
+            var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
+            if (managedObjects.ContainsKey(fullPath))
             {
-                managedObjects[root.ToString() + editedPath].Add((proxy));
+                managedObjects[fullPath].Add((proxy));
             }
             else
             {
-                managedObjects.Add(root.ToString() + editedPath, new List<IProxy>() { (proxy) });
+                managedObjects.Add(fullPath, new List<IProxy>() { (proxy) });
+            }
+        }
+
+        private string buildFullPath(ObjectPath path)
+        {
+            if (!path.ToString().StartsWith("./"))
+                throw new ArgumentException("A partial path has to start with ./");
+            else
+            {
+                if (Root == "/")
+                {
+                    return path.ToString().Substring(1);
+                }
+                else
+                {
+                    if (path.ToString() == "./")
+                        return Root.ToString();
+                    else
+                        return Root + path.ToString().Substring(1);
+                }
             }
         }
 
