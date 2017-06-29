@@ -139,13 +139,18 @@ namespace Dbus
             Add(buffer, ref index, signature);
         }
 
+        public static void AddVariant(List<byte> buffer, ref int index, bool value)
+        {
+            Add(buffer, ref index, (Signature)"b");
+            Add(buffer, ref index, value);
+        }
+
         public static void AddVariant(List<byte> buffer, ref int index, object value)
         {
             switch (value)
             {
                 case bool v:
-                    Add(buffer, ref index, (Signature)"b");
-                    Add(buffer, ref index, v);
+                    AddVariant(buffer, ref index, v);
                     break;
                 case string v:
                     AddVariant(buffer, ref index, v);
