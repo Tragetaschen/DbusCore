@@ -17,12 +17,14 @@ namespace Dbus
 
         private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
         {
+            if (path == null)
+                throw new ArgumentNullException("An ObjectManager needs a path!");
             this.connection = connection;
             this.target = target;
             this.path = path;
             InterfaceName = "org.freedesktop.DBus.ObjectManager";
             registration = connection.RegisterObjectProxy(
-                path ?? "",
+                path,
                 InterfaceName,
                 this
             );
@@ -34,7 +36,6 @@ namespace Dbus
         }
 
         public void Encode(List<byte> sendBody, ref int sendIndex)
-
         {
             Encoder.AddArray(sendBody, ref sendIndex, (List<byte> sendBody_e, ref int sendIndex_e) =>
             {
