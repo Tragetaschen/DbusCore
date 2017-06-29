@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public sealed class OrgFreedesktopDbusObjectManager_Proxy : IDisposable, IProxy
+    public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
     {
 
         public string InterfaceName { get; }

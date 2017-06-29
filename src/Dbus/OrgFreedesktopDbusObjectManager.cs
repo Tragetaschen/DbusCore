@@ -47,7 +47,15 @@ namespace Dbus
             return managedObjects;
         }
 
-        public void Dispose() =>
-            throw new NotImplementedException();
+        public void Dispose()
+        {
+            foreach (var proxies in managedObjects)
+            {
+                foreach (var proxy in proxies.Value)
+                {
+                    proxy.Dispose();
+                }
+            }
+        }
     }
 }

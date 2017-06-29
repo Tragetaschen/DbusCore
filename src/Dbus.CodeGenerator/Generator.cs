@@ -245,7 +245,7 @@ namespace Dbus.CodeGenerator
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
             StringBuilder proxyClass = new StringBuilder(@"
-    public sealed class " + type.Name + @"_Proxy : global::System.IDisposable, global::Dbus.IProxy
+    public sealed class " + type.Name + @"_Proxy : global::Dbus.IProxy
     {
 
         public string InterfaceName { get; }
