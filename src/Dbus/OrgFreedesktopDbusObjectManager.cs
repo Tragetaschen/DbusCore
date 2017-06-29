@@ -16,8 +16,8 @@ namespace Dbus
         public OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
             this.connection = connection;
-            managedObjects = new Dictionary<ObjectPath, List<IProxy>>() { };
             Root = root;
+            managedObjects = new Dictionary<ObjectPath, List<IProxy>>();
         }
 
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded;
