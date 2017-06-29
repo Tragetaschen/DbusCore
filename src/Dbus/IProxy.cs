@@ -8,9 +8,9 @@ namespace Dbus
 {
     public interface IProxy
     {
-        string interfaceName { get; }
+        string InterfaceName { get; }
         void EncodeProperties(List<byte> sendBody, ref int index);
         Task HandleMethodCallAsync(uint replySerial, MessageHeader header, byte[] body, bool shouldSendReply);
-        void EncodeProperty(List<byte> sendBody, ref int index, string requestedProperty);
+        void EncodeProperty(List<byte> sendBody, ref int index, string propertyName);
     }
 }
