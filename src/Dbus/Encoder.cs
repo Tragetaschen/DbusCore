@@ -117,7 +117,6 @@ namespace Dbus
             var lengthBytes = BitConverter.GetBytes(arrayLength);
             for (var i = 0; i < 4; ++i)
                 buffer[lengthPosition + i] = lengthBytes[i];
-            
         }
         
 
