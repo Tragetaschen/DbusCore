@@ -164,36 +164,6 @@ namespace Dbus
                 case Signature v:
                     AddVariant(buffer, ref index, v);
                     break;
-                case IEnumerable<ObjectPath> v:
-                    Add(buffer, ref index, (Signature)"ao");
-                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
-                    {
-                        foreach (var element in v)
-                        {
-                            Add(buffer_e, ref index_e, element);
-                        }
-                    });
-                    break;
-                case IEnumerable<string> v:
-                    Add(buffer, ref index, (Signature)"as");
-                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
-                    {
-                        foreach (var element in v)
-                        {
-                            Add(buffer_e, ref index_e, element);
-                        }
-                    });
-                    break;
-                case IEnumerable<byte> v:
-                    Add(buffer, ref index, (Signature)"ay");
-                    AddArray(buffer, ref index, (global::System.Collections.Generic.List<byte> buffer_e, ref int index_e) =>
-                    {
-                        foreach (var element in v)
-                        {
-                            Add(buffer_e, ref index_e, element);
-                        }
-                    });
-                    break;
                 default:
                     throw new InvalidOperationException("Unsupported Type for Variant");
             }

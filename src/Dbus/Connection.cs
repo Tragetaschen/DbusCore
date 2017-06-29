@@ -245,13 +245,8 @@ namespace Dbus
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
-
-            //var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
-            //expectedMessages[(uint)serial] = tcs;
-
             var messageArray = message.ToArray();
             await SerializedWriteToStream(messageArray);
-            //return await tcs.Task.ConfigureAwait(false);
         }
 
         public async Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
