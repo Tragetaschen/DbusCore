@@ -41,20 +41,14 @@ namespace Dbus
         {
             if (!path.ToString().StartsWith("./"))
                 throw new ArgumentException("A partial path has to start with ./");
-            else
-            {
-                if (Root == "/")
-                {
-                    return path.ToString().Substring(1);
-                }
-                else
-                {
-                    if (path.ToString() == "./")
-                        return Root.ToString();
-                    else
-                        return Root + path.ToString().Substring(1);
-                }
-            }
+
+            if (Root == "/")
+                return path.ToString().Substring(1);
+
+            if (path.ToString() == "./")
+                return Root.ToString();
+            return Root + path.ToString().Substring(1);
+
         }
 
         public async Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
