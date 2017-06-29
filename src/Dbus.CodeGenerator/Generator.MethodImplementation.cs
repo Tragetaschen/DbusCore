@@ -54,14 +54,7 @@ namespace Dbus.CodeGenerator
                 if (!isProperty)
                     foreach (var parameter in parameters)
                     {
-                        encoder.Append(Indent);
-                        if (parameter.ParameterType.FullName.StartsWith("System.Collections.Generic.IEnumerable") || parameter.ParameterType.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-                            encoderSignature += EncoderGenerator.buildSignature(parameter.ParameterType, encoder, parameterName: parameter.Name);
-                        else
-                        {
-                            encoderSignature += SignatureString.For[parameter.ParameterType];
-                            encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
-                        }
+                        encoderSignature += EncoderGenerator.buildSignature(parameter.ParameterType, encoder, parameterName: parameter.Name);
                     }
                 else
                     foreach (var parameter in parameters)
