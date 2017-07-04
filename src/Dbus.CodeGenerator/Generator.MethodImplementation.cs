@@ -97,7 +97,7 @@ namespace Dbus.CodeGenerator
                 sendBody,
                 """ + encoderSignature + @"""
             ).ConfigureAwait(false);
-            assertSignature(receivedMessage.Signature, """ + decoder.Signature + @""");
+            receivedMessage.Signature.AssertEqual(""" + decoder.Signature + @""");
 " + decoder.Result + @"            " + returnStatement + @"
         }
 ";

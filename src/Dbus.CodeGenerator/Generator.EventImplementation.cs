@@ -58,7 +58,7 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.AppendLine("{");
             implementation.Append(Indent);
-            implementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
+            implementation.AppendLine(@"header.BodySignature.AssertEqual(""" + decoder.Signature + @""");");
             implementation.Append(decoder.Result);
             implementation.Append(Indent);
             implementation.AppendLine(eventInfo.Name + "?.Invoke(" + string.Join(", ", invocationParameters) + ");");

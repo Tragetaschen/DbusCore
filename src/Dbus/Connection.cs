@@ -491,7 +491,7 @@ namespace Dbus
         }
         private Task handleGetAllAsync(uint replySerial, MessageHeader header, byte[] body)
         {
-            assertSignature(header.BodySignature, "s");
+            header.BodySignature.AssertEqual("s");
             var decoderIndex = 0;
             var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
             var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
@@ -517,7 +517,7 @@ namespace Dbus
         }
         private Task handleGetAsync(uint replySerial, MessageHeader header, byte[] body)
         {
-            assertSignature(header.BodySignature, "ss");
+            header.BodySignature.AssertEqual("ss");
             var decoderIndex = 0;
             var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
             var requestedProperty = Decoder.GetString(body, ref decoderIndex);
@@ -583,15 +583,6 @@ namespace Dbus
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
                 Task.Run(() => handler(header, body));
-        }
-
-        private static void assertSignature(Signature actual, Signature expected)
-        {
-            if (actual != expected)
-                throw new DbusException(
-                    DbusException.CreateErrorName("InvalidSignature"),
-                    "Invalid signature"
-                );
         }
 
         public void Dispose()

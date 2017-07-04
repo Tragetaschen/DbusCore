@@ -128,7 +128,7 @@ namespace Dbus.CodeGenerator
                 propertyImplementations.Append(@"
         private void handleProperties(global::Dbus.MessageHeader header, byte[] body)
         {
-            assertSignature(header.BodySignature, ""sa{sv}as"");
+            header.BodySignature.AssertEqual(""sa{sv}as"");
             var index = 0;
             var interfaceName = global::Dbus.Decoder.GetString(body, ref index);
             var changed = global::Dbus.Decoder.GetDictionary(body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
@@ -150,7 +150,7 @@ namespace Dbus.CodeGenerator
                 sendBody,
                 ""s""
             ).ConfigureAwait(false);
-            assertSignature(receivedMessage.Signature, ""a{sv}"");
+            receivedMessage.Signature.AssertEqual(""a{sv}"");
             var index = 0;
             var properties = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
             applyProperties(properties);
@@ -209,12 +209,6 @@ namespace Dbus.CodeGenerator
 
 " + propertyImplementations + methodImplementations + @"
 " + eventImplementations + @"
-        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
-        {
-            if (actual != expected)
-                throw new System.InvalidOperationException($""Unexpected signature. Got '{actual}', but expected '{expected}'"");
-        }
-
         public void Dispose()
         {
             eventSubscriptions.ForEach(x => x.Dispose());
@@ -345,15 +339,6 @@ namespace Dbus.CodeGenerator
             }
         }
 " + proxies.ToString() + @"
-
-        private static void assertSignature(global::Dbus.Signature actual, global::Dbus.Signature expected)
-        {
-            if (actual != expected)
-                throw new global::Dbus.DbusException(
-                    global::Dbus.DbusException.CreateErrorName(""InvalidSignature""),
-                    ""Invalid signature""
-                );
-        }
 
         public void Dispose()
         {

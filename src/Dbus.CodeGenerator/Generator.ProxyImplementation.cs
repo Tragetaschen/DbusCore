@@ -54,7 +54,7 @@ namespace Dbus.CodeGenerator
                 }
             }
             methodImplementation.Append(Indent);
-            methodImplementation.AppendLine(@"assertSignature(header.BodySignature, """ + decoder.Signature + @""");");
+            methodImplementation.AppendLine(@"header.BodySignature.AssertEqual(""" + decoder.Signature + @""");");
             methodImplementation.Append(decoder.Result);
             methodImplementation.Append(Indent);
             if (sendSignature != "")

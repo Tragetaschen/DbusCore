@@ -32,5 +32,14 @@ namespace Dbus
             return lhs.signature == rhs.signature;
         }
         public static bool operator !=(Signature lhs, Signature rhs) => !(lhs == rhs);
+
+        public void AssertEqual(Signature expected)
+        {
+            if (this != expected)
+                throw new DbusException(
+                    DbusException.CreateErrorName("InvalidSignature"),
+                    $"Invalid signature: Expected '{expected}', got '{this}'"
+                );
+        }
     }
 }

@@ -53,7 +53,7 @@ namespace Dbus
 
         private async Task handleGetManagedObjectsAsync(uint replySerial, MessageHeader header, byte[] receivedBody, bool shouldSendReply)
         {
-            assertSignature(header.BodySignature, "");
+            header.BodySignature.AssertEqual("");
             var managedObjects = await target.GetManagedObjectsAsync().ConfigureAwait(false);
             var sendBody = Encoder.StartNew();
             var sendIndex = 0;
@@ -95,15 +95,6 @@ namespace Dbus
                 DbusException.CreateErrorName("InvalidCall"),
                 "ObjectManager has no Properties"
             );
-
-        private static void assertSignature(Signature actual, Signature expected)
-        {
-            if (actual != expected)
-                throw new DbusException(
-                    DbusException.CreateErrorName("InvalidSignature"),
-                    "Invalid signature"
-                );
-        }
 
         public void Dispose() => registration.Dispose();
     }
