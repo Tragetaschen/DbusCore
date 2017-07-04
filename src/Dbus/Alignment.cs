@@ -12,8 +12,6 @@
         }
 
         public static void Advance(ref int position, int alignment)
-        {
-            position += Calculate(position, alignment);
-        }
+            => position += Calculate(position, alignment);
     }
 }

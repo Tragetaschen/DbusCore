@@ -12,10 +12,7 @@ namespace Dbus
         /// Constructor
         /// </summary>
         /// <param name="interfaceName">Name of the interface</param>
-        public DbusProvideAttribute(string interfaceName)
-        {
-            InterfaceName = interfaceName;
-        }
+        public DbusProvideAttribute(string interfaceName) => InterfaceName = interfaceName;
 
         /// <summary>
         /// Name of the interface

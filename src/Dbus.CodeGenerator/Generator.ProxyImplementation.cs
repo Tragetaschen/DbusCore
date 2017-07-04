@@ -8,7 +8,7 @@ namespace Dbus.CodeGenerator
 {
     public static partial class Generator
     {
-        public static Tuple<string, string> generateMethodProxy(MethodInfo method)
+        public static Tuple<string, string> GenerateMethodProxy(MethodInfo method)
         {
             if (!method.Name.EndsWith("Async"))
                 throw new InvalidOperationException("Only method names ending in 'Async' are supported");
@@ -50,7 +50,7 @@ namespace Dbus.CodeGenerator
                 else
                 {
                     encoders.Append(Indent);
-                    sendSignature += EncoderGenerator.buildSignature(returnType, encoders);
+                    sendSignature += EncoderGenerator.BuildSignature(returnType, encoders);
                 }
             }
             methodImplementation.Append(Indent);

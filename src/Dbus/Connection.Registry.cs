@@ -9,25 +9,17 @@ namespace Dbus
         private static Dictionary<Type, Func<Connection, ObjectPath, string, object>> consumeFactories = new Dictionary<Type, Func<Connection, ObjectPath, string, object>>();
 
         public static void AddPublishProxy<T>(Func<Connection, T, ObjectPath, IDisposable> factory)
-        {
-            publishFactories.Add(typeof(T), (Connection connection, object target, ObjectPath path) =>
+            => publishFactories.Add(typeof(T), (Connection connection, object target, ObjectPath path) =>
                 factory(connection, (T)target, path)
             );
-        }
 
         public IDisposable Publish<T>(T target, ObjectPath path = null)
-        {
-            return publishFactories[typeof(T)](this, target, path);
-        }
+            => publishFactories[typeof(T)](this, target, path);
 
         public static void AddConsumeImplementation<T>(Func<Connection, ObjectPath, string, object> factory)
-        {
-            consumeFactories.Add(typeof(T), factory);
-        }
+            => consumeFactories.Add(typeof(T), factory);
 
         public T Consume<T>(ObjectPath path = null, string destination = null)
-        {
-            return (T)consumeFactories[typeof(T)](this, path, destination);
-        }
+            => (T)consumeFactories[typeof(T)](this, path, destination);
     }
 }

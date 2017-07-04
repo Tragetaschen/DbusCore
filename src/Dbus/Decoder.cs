@@ -1,7 +1,5 @@
-﻿using Microsoft.Win32.SafeHandles;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus
@@ -27,19 +25,13 @@ namespace Dbus
         };
 
         private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
-        {
-            return (byte[] buffer, ref int index) => orig(buffer, ref index);
-        }
+            => (byte[] buffer, ref int index) => orig(buffer, ref index);
 
         private static IDictionary<string, object> getPropertyList(byte[] buffer, ref int index)
-        {
-            return GetDictionary(buffer, ref index, GetString, GetObject);
-        }
+            => GetDictionary(buffer, ref index, GetString, GetObject);
 
         private static List<string> getStringArray(byte[] buffer, ref int index)
-        {
-            return GetArray(buffer, ref index, GetString);
-        }
+            => GetArray(buffer, ref index, GetString);
 
         /// <summary>
         /// Decodes a string from the buffer and advances the index
@@ -62,9 +54,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded object path</returns>
         public static ObjectPath GetObjectPath(byte[] buffer, ref int index)
-        {
-            return GetString(buffer, ref index);
-        }
+            => GetString(buffer, ref index);
 
         /// <summary>
         /// Decodes a signature from the buffer and advances the index
@@ -100,9 +90,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Boolean</returns>
         public static bool GetBoolean(byte[] buffer, ref int index)
-        {
-            return GetInt32(buffer, ref index) != 0;
-        }
+            => GetInt32(buffer, ref index) != 0;
 
         /// <summary>
         /// Decodes an Int16 from the buffer and advances the index
@@ -269,8 +257,7 @@ namespace Dbus
         {
             var signature = GetSignature(buffer, ref index);
             var stringSignature = signature.ToString();
-            ElementDecoder<object> elementDecoder;
-            if (typeDecoders.TryGetValue(stringSignature, out elementDecoder))
+            if (typeDecoders.TryGetValue(stringSignature, out var elementDecoder))
                 return elementDecoder(buffer, ref index);
             else if (stringSignature.StartsWith("a"))
             {

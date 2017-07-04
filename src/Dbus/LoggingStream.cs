@@ -9,10 +9,7 @@ namespace Dbus
     {
         private readonly Stream baseStream;
 
-        public LoggingStream(Stream baseStream)
-        {
-            this.baseStream = baseStream;
-        }
+        public LoggingStream(Stream baseStream) => this.baseStream = baseStream;
 
         public override bool CanRead => baseStream.CanRead;
         public override bool CanSeek => baseStream.CanSeek;
@@ -20,40 +17,28 @@ namespace Dbus
         public override long Length => baseStream.Length;
         public override long Position
         {
-            get { return baseStream.Position; }
-            set { baseStream.Position = value; }
+            get => baseStream.Position;
+            set => baseStream.Position = value;
         }
 
         public override void Flush()
-        {
             // Called e.g. from StreamWriter's Dispose
-            baseStream.Flush();
-        }
+            => baseStream.Flush();
 
         public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new InvalidOperationException("Don't do synchronous reads");
-        }
+            => throw new InvalidOperationException("Don't do synchronous reads");
 
         public override long Seek(long offset, SeekOrigin origin)
-        {
-            return baseStream.Seek(offset, origin);
-        }
+            => baseStream.Seek(offset, origin);
 
         public override void SetLength(long value)
-        {
-            baseStream.SetLength(value);
-        }
+            => baseStream.SetLength(value);
 
         public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new InvalidOperationException("Don't do synchronous writes");
-        }
+            => throw new InvalidOperationException("Don't do synchronous writes");
 
         public override void WriteByte(byte value)
-        {
-            throw new InvalidOperationException("Don't synchronously write bytes");
-        }
+            => throw new InvalidOperationException("Don't synchronously write bytes");
 
         private void dump(byte[] buffer, int offset, int length)
         {

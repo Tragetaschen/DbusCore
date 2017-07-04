@@ -7,16 +7,11 @@ namespace Dbus
     {
         public ReceivedFileDescriptorSafeHandle(int handle)
             : base(IntPtr.Zero, true)
-        {
-            SetHandle(new IntPtr(handle));
-        }
+            => SetHandle(new IntPtr(handle));
 
         public override bool IsInvalid => handle == IntPtr.Zero;
 
-        protected override bool ReleaseHandle()
-        {
-            return close(handle) == 0;
-        }
+        protected override bool ReleaseHandle() => close(handle) == 0;
 
         [DllImport("libc")]
         private static extern int close(IntPtr handle);

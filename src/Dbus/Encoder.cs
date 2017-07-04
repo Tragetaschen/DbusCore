@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus
@@ -9,10 +8,7 @@ namespace Dbus
     {
         public delegate void ElementWriter(List<byte> buffer, ref int index);
 
-        public static List<byte> StartNew()
-        {
-            return new List<byte>();
-        }
+        public static List<byte> StartNew() => new List<byte>();
 
         public static void Add(List<byte> buffer, ref int index, string value)
         {
@@ -35,9 +31,7 @@ namespace Dbus
         }
 
         public static void Add(List<byte> buffer, ref int index, ObjectPath value)
-        {
-            Add(buffer, ref index, value.ToString());
-        }
+            => Add(buffer, ref index, value.ToString());
 
         public static void Add(List<byte> buffer, ref int index, short value)
         {
@@ -95,12 +89,9 @@ namespace Dbus
         }
 
         public static void Add(List<byte> buffer, ref int index, bool value)
-        {
-            Add(buffer, ref index, value ? 1 : 0);
-        }
+            => Add(buffer, ref index, value ? 1 : 0);
 
-
-        public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, Boolean alignment_8 = false)
+        public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, bool alignment_8 = false)
         {
             EnsureAlignment(buffer, ref index, 4);
             var lengthPosition = index;

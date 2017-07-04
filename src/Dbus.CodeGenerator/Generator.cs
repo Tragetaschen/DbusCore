@@ -98,7 +98,7 @@ namespace Dbus.CodeGenerator
 
             foreach (var eventInfo in typeInfo.GetEvents().OrderBy(x => x.Name))
             {
-                var result = generateEventImplementation(eventInfo, consume.InterfaceName);
+                var result = GenerateEventImplementation(eventInfo, consume.InterfaceName);
                 eventSubscriptions.Append(result.Item1);
                 eventImplementations.Append(result.Item2);
             }
@@ -237,14 +237,14 @@ namespace Dbus.CodeGenerator
                 if (method.DeclaringType == typeof(object))
                     continue;
 
-                var result = generateMethodProxy(method);
+                var result = GenerateMethodProxy(method);
 
                 knownMethods.Add(result.Item1);
                 proxies.Append(result.Item2);
             }
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
-            StringBuilder proxyClass = new StringBuilder(@"
+            var proxyClass = new StringBuilder(@"
     public sealed class " + type.Name + @"_Proxy : global::Dbus.IProxy
     {
 

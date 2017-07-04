@@ -7,11 +7,7 @@ namespace Dbus
         private readonly string signature = "";
 
         private Signature(string signature)
-        {
-            if (signature == null)
-                throw new ArgumentNullException(nameof(signature));
-            this.signature = signature;
-        }
+            => this.signature = signature ?? throw new ArgumentNullException(nameof(signature));
 
         public static implicit operator Signature(string signature) =>
             new Signature(signature);

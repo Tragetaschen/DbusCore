@@ -14,9 +14,6 @@ namespace Dbus
         public string ErrorName { get; }
         public string ErrorMessage { get; }
 
-        public static string CreateErrorName(string name)
-        {
-            return "org.dbuscore.Error." + name;
-        }
+        public static string CreateErrorName(string name) => "org.dbuscore.Error." + name;
     }
 }

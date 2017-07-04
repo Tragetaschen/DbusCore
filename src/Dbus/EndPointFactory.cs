@@ -44,15 +44,9 @@ namespace Dbus
         {
             private readonly SocketAddress address;
 
-            public systemBusEndPoint(SocketAddress address)
-            {
-                this.address = address;
-            }
+            public systemBusEndPoint(SocketAddress address) => this.address = address;
 
-            public override SocketAddress Serialize()
-            {
-                return address;
-            }
+            public override SocketAddress Serialize() => address;
         }
     }
 }

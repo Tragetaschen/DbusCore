@@ -142,28 +142,28 @@ namespace Dbus
             };
         }
 
-        private static void AddHeader(List<byte> buffer, ref int index, ObjectPath path)
+        private static void addHeader(List<byte> buffer, ref int index, ObjectPath path)
         {
             Encoder.EnsureAlignment(buffer, ref index, 8);
             Encoder.Add(buffer, ref index, (byte)1);
             Encoder.AddVariant(buffer, ref index, path);
         }
 
-        private static void AddHeader(List<byte> buffer, ref int index, uint replySerial)
+        private static void addHeader(List<byte> buffer, ref int index, uint replySerial)
         {
             Encoder.EnsureAlignment(buffer, ref index, 8);
             Encoder.Add(buffer, ref index, (byte)5);
             Encoder.AddVariant(buffer, ref index, replySerial);
         }
 
-        private static void AddHeader(List<byte> buffer, ref int index, Signature signature)
+        private static void addHeader(List<byte> buffer, ref int index, Signature signature)
         {
             Encoder.EnsureAlignment(buffer, ref index, 8);
             Encoder.Add(buffer, ref index, (byte)8);
             Encoder.AddVariant(buffer, ref index, signature);
         }
 
-        private static void AddHeader(List<byte> buffer, ref int index, byte type, string value)
+        private static void addHeader(List<byte> buffer, ref int index, byte type, string value)
         {
             Encoder.EnsureAlignment(buffer, ref index, 8);
             Encoder.Add(buffer, ref index, type);
@@ -192,12 +192,12 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                AddHeader(buffer, ref localIndex, path);
-                AddHeader(buffer, ref localIndex, 2, interfaceName);
-                AddHeader(buffer, ref localIndex, 3, methodName);
-                AddHeader(buffer, ref localIndex, 6, destination);
+                addHeader(buffer, ref localIndex, path);
+                addHeader(buffer, ref localIndex, 2, interfaceName);
+                addHeader(buffer, ref localIndex, 3, methodName);
+                addHeader(buffer, ref localIndex, 6, destination);
                 if (body.Count > 0)
-                    AddHeader(buffer, ref localIndex, signature);
+                    addHeader(buffer, ref localIndex, signature);
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
@@ -206,7 +206,7 @@ namespace Dbus
             expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
-            await SerializedWriteToStream(messageArray).ConfigureAwait(false);
+            await serializedWriteToStream(messageArray).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }
@@ -238,16 +238,16 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                AddHeader(buffer, ref localIndex, path);
-                AddHeader(buffer, ref localIndex, 2, interfaceName);
-                AddHeader(buffer, ref localIndex, 3, methodName);
+                addHeader(buffer, ref localIndex, path);
+                addHeader(buffer, ref localIndex, 2, interfaceName);
+                addHeader(buffer, ref localIndex, 3, methodName);
                 if (body.Count > 0)
-                    AddHeader(buffer, ref localIndex, signature);
+                    addHeader(buffer, ref localIndex, signature);
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
             var messageArray = message.ToArray();
-            return SerializedWriteToStream(messageArray);
+            return serializedWriteToStream(messageArray);
         }
 
         public Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
@@ -265,19 +265,19 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                AddHeader(buffer, ref localIndex, 6, destination);
-                AddHeader(buffer, ref localIndex, replySerial);
+                addHeader(buffer, ref localIndex, 6, destination);
+                addHeader(buffer, ref localIndex, replySerial);
                 if (body.Count > 0)
-                    AddHeader(buffer, ref localIndex, signature);
+                    addHeader(buffer, ref localIndex, signature);
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            return SerializedWriteToStream(messageArray);
+            return serializedWriteToStream(messageArray);
         }
 
-        private async Task SerializedWriteToStream(byte[] messageArray)
+        private async Task serializedWriteToStream(byte[] messageArray)
         {
             await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
@@ -309,17 +309,17 @@ namespace Dbus
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
-                AddHeader(buffer, ref localIndex, 6, destination);
-                AddHeader(buffer, ref localIndex, 4, error);
-                AddHeader(buffer, ref localIndex, replySerial);
+                addHeader(buffer, ref localIndex, 6, destination);
+                addHeader(buffer, ref localIndex, 4, error);
+                addHeader(buffer, ref localIndex, replySerial);
                 if (body.Count > 0)
-                    AddHeader(buffer, ref localIndex, (Signature)"s");
+                    addHeader(buffer, ref localIndex, (Signature)"s");
             });
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
 
             var messageArray = message.ToArray();
-            return SerializedWriteToStream(messageArray);
+            return serializedWriteToStream(messageArray);
         }
 
         [DllImport("libc")]
@@ -359,11 +359,13 @@ namespace Dbus
                         iovecs[0].iov_base = fixedLengthHeaderP;
                         iovecs[0].iov_len = 16;
 
-                        var msg = new msghdr();
-                        msg.iov = iovecs;
-                        msg.iovlen = 1;
-                        msg.controllen = control.Length * sizeof(int);
-                        msg.control = control;
+                        var msg = new msghdr
+                        {
+                            iov = iovecs,
+                            iovlen = 1,
+                            controllen = control.Length * sizeof(int),
+                            control = control
+                        };
                         if (recvmsg(socketHandle, ref msg, 0) <= 0)
                             return;
                     }
@@ -545,8 +547,7 @@ namespace Dbus
             byte[] body
         )
         {
-            TaskCompletionSource<ReceivedMethodReturn> tcs;
-            if (!expectedMessages.TryRemove(header.ReplySerial, out tcs))
+            if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
                 throw new InvalidOperationException("Couldn't find the method call for the method return");
             var receivedMessage = new ReceivedMethodReturn
             {
@@ -565,8 +566,7 @@ namespace Dbus
             if (!header.BodySignature.ToString().StartsWith("s"))
                 throw new InvalidOperationException("Errors are expected to start their body with a string");
 
-            TaskCompletionSource<ReceivedMethodReturn> tcs;
-            if (!expectedMessages.TryRemove(header.ReplySerial, out tcs))
+            if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
                 throw new InvalidOperationException("Couldn't find the method call for the error");
 
             var index = 0;
@@ -581,8 +581,7 @@ namespace Dbus
         )
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
-            Action<MessageHeader, byte[]> handler;
-            if (signalHandlers.TryGetValue(dictionaryEntry, out handler))
+            if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
                 Task.Run(() => handler(header, body));
         }
 
@@ -607,10 +606,7 @@ namespace Dbus
         {
             public Action Deregister;
 
-            public void Dispose()
-            {
-                Deregister();
-            }
+            public void Dispose() => Deregister();
         }
     }
 }

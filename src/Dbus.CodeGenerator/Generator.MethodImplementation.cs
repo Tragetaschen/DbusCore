@@ -54,7 +54,7 @@ namespace Dbus.CodeGenerator
                 if (!isProperty)
                     foreach (var parameter in parameters)
                     {
-                        encoderSignature += EncoderGenerator.buildSignature(parameter.ParameterType, encoder, parameterName: parameter.Name);
+                        encoderSignature += EncoderGenerator.BuildSignature(parameter.ParameterType, encoder, parameterName: parameter.Name);
                     }
                 else
                     foreach (var parameter in parameters)

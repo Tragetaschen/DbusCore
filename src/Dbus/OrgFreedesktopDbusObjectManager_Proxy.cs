@@ -6,7 +6,6 @@ namespace Dbus
 {
     public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
     {
-
         public string InterfaceName { get; }
 
         private readonly Connection connection;
@@ -29,16 +28,14 @@ namespace Dbus
         }
 
         public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
-        {
-            return new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
-        }
+            => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
 
         public void Encode(List<byte> sendBody, ref int sendIndex)
-        {
-            Encoder.AddArray(sendBody, ref sendIndex, (List<byte> sendBody_e, ref int sendIndex_e) =>
-            {
-            });
-        }
+            => Encoder.AddArray(
+                sendBody,
+                ref sendIndex,
+                (List<byte> sendBody_e, ref int sendIndex_e) => { }
+            );
 
         public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, byte[] body, bool doNotReply)
         {
@@ -88,21 +85,16 @@ namespace Dbus
         }
 
         public void EncodeProperties(List<byte> sendBody, ref int index)
-        {
-            throw new DbusException(
-                    DbusException.CreateErrorName("InvalidCall"),
-                    "ObjectManager has no Properties"
-                );
-        }
+            => throw new DbusException(
+                DbusException.CreateErrorName("InvalidCall"),
+                "ObjectManager has no Properties"
+            );
 
         public void EncodeProperty(List<byte> sendBody, ref int index, string requestedProperty)
-        {
-            throw new DbusException(
-                    DbusException.CreateErrorName("InvalidCall"),
-                    "ObjectManager has no Properties"
-                );
-        }
-
+            => throw new DbusException(
+                DbusException.CreateErrorName("InvalidCall"),
+                "ObjectManager has no Properties"
+            );
 
         private static void assertSignature(Signature actual, Signature expected)
         {
@@ -113,9 +105,6 @@ namespace Dbus
                 );
         }
 
-        public void Dispose()
-        {
-            registration.Dispose();
-        }
+        public void Dispose() => registration.Dispose();
     }
 }

@@ -7,11 +7,7 @@ namespace Dbus
         private readonly string objectPath = "";
 
         private ObjectPath(string objectPath)
-        {
-            if (objectPath == null)
-                throw new ArgumentNullException(nameof(objectPath));
-            this.objectPath = objectPath;
-        }
+            => this.objectPath = objectPath ?? throw new ArgumentNullException(nameof(objectPath));
 
         public static implicit operator ObjectPath(string objectPath) =>
             new ObjectPath(objectPath);

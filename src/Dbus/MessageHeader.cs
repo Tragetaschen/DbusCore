@@ -65,8 +65,6 @@ namespace Dbus
         public SafeHandle[] UnixFds { get; }
 
         public override string ToString()
-        {
-            return $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
-        }
+            => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
     }
 }

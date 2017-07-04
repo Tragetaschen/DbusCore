@@ -9,7 +9,7 @@ namespace Dbus.CodeGenerator
 {
     public static partial class Generator
     {
-        public static Tuple<string, string> generateEventImplementation(EventInfo eventInfo, string interfaceName)
+        public static Tuple<string, string> GenerateEventImplementation(EventInfo eventInfo, string interfaceName)
         {
             var subscription = new StringBuilder();
             subscription.Append(Indent);
