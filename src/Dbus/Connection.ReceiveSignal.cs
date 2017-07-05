@@ -28,19 +28,18 @@ namespace Dbus
             if (canRegister)
                 Task.Run(() => orgFreedesktopDbus.AddMatchAsync(match));
 
-            return new deregistration
+            return deregisterVia(deregister);
+
+            void deregister()
             {
-                Deregister = () =>
+                if (canRegister)
+                    Task.Run(() => orgFreedesktopDbus.RemoveMatchAsync(match));
+                Action<MessageHeader, byte[]> current;
+                do
                 {
-                    if (canRegister)
-                        Task.Run(() => orgFreedesktopDbus.RemoveMatchAsync(match));
-                    Action<MessageHeader, byte[]> current;
-                    do
-                    {
-                        signalHandlers.TryGetValue(dictionaryEntry, out current);
-                    } while (!signalHandlers.TryUpdate(dictionaryEntry, current - handler, current));
-                }
-            };
+                    signalHandlers.TryGetValue(dictionaryEntry, out current);
+                } while (!signalHandlers.TryUpdate(dictionaryEntry, current - handler, current));
+            }
         }
 
         private void handleSignal(

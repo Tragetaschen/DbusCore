@@ -112,6 +112,12 @@ namespace Dbus
 
         private int getSerial() => Interlocked.Increment(ref serialCounter);
 
+        private static IDisposable deregisterVia(Action work)
+            => new deregistration
+            {
+                Deregister = work,
+            };
+
         private async Task serializedWriteToStream(byte[] messageArray)
         {
             await semaphoreSend.WaitAsync().ConfigureAwait(false);

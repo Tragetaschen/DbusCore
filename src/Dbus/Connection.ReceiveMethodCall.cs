@@ -20,13 +20,12 @@ namespace Dbus
             if (!objectProxies.TryAdd(dictionaryEntry, proxy))
                 throw new InvalidOperationException("Attempted to register an object proxy twice");
 
-            return new deregistration
+            return deregisterVia(deregister);
+
+            void deregister()
             {
-                Deregister = () =>
-                {
-                    objectProxies.TryRemove(dictionaryEntry, out var _);
-                }
-            };
+                objectProxies.TryRemove(dictionaryEntry, out var _);
+            }
         }
 
         public Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
