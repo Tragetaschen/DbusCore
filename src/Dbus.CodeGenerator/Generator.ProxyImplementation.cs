@@ -50,7 +50,7 @@ namespace Dbus.CodeGenerator
                 else
                 {
                     encoders.Append(Indent);
-                    sendSignature += EncoderGenerator.BuildSignature(returnType, encoders);
+                    sendSignature += EncoderGenerator.BuildSignature(returnType, encoders, "result", "", "", 0);
                 }
             }
             methodImplementation.Append(Indent);

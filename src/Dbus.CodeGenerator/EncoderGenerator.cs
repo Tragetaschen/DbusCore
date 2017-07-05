@@ -5,7 +5,14 @@ namespace Dbus.CodeGenerator
 {
     public static class EncoderGenerator
     {
-        public static string BuildSignature(Type type, StringBuilder encoders, string parameterName = "result", string parameter = "", string resultParameter = "", int level = 0)
+        public static string BuildSignature(
+            Type type,
+            StringBuilder encoders,
+            string parameterName,
+            string parameter,
+            string resultParameter,
+            int level
+        )
         {
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
@@ -70,7 +77,14 @@ namespace Dbus.CodeGenerator
             return signature;
         }
 
-        private static string dictionaryKeyStep(Type type, StringBuilder encoders, string parameterName, string parameter = "", string resultParameter = "", int level = 0)
+        private static string dictionaryKeyStep(
+            Type type,
+            StringBuilder encoders,
+            string parameterName,
+            string parameter,
+            string resultParameter,
+            int level
+        )
         {
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
@@ -122,7 +136,14 @@ namespace Dbus.CodeGenerator
             return signature;
         }
 
-        private static string dictionaryValueStep(Type type, StringBuilder encoders, string parameterName, string parameter = "", string resultParameter = "", int level = 0)
+        private static string dictionaryValueStep(
+            Type type,
+            StringBuilder encoders,
+            string parameterName,
+            string parameter,
+            string resultParameter,
+            int level
+        )
         {
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
