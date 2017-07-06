@@ -60,12 +60,13 @@ namespace Dbus.CodeGenerator
                     }
                 }
                 else
+                {
+                    var encoderGenerator = new EncoderGenerator();
                     foreach (var parameter in parameters)
-                    {
-                        var encoded = EncoderGenerator.CreateFor(parameter.ParameterType, parameter.Name, "", "");
-                        encoder.Append(encoded.code);
-                        encoderSignature += encoded.signature;
-                    }
+                        encoderGenerator.CreateFor(parameter.ParameterType, parameter.Name, "", "");
+                    encoder.Append(encoderGenerator.Code);
+                    encoderSignature += encoderGenerator.Signature;
+                }
             }
 
             string returnStatement;

@@ -50,9 +50,10 @@ namespace Dbus.CodeGenerator
                 else
                 {
                     encoders.Append(Indent);
-                    var encoded = EncoderGenerator.CreateFor(returnType, "result", "", "");
-                    encoders.Append(encoded.code);
-                    sendSignature += encoded.signature;
+                    var encoderGenerator = new EncoderGenerator();
+                    encoderGenerator.CreateFor(returnType, "result", "", "");
+                    encoders.Append(encoderGenerator.Code);
+                    sendSignature += encoderGenerator.Signature;
                 }
             }
             methodImplementation.Append(Indent);
