@@ -62,7 +62,9 @@ namespace Dbus.CodeGenerator
                 else
                     foreach (var parameter in parameters)
                     {
-                        encoderSignature += EncoderGenerator.BuildSignature(parameter.ParameterType, encoder, parameter.Name, "", "");
+                        var encoded = EncoderGenerator.CreateFor(parameter.ParameterType, parameter.Name, "", "");
+                        encoder.Append(encoded.code);
+                        encoderSignature += encoded.signature;
                     }
             }
 

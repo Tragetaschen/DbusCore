@@ -5,53 +5,57 @@ namespace Dbus.CodeGenerator
 {
     public static class EncoderGenerator
     {
-        public static string BuildSignature(
+        public static (StringBuilder code, string signature) CreateFor(
             Type type,
-            StringBuilder encoders,
             string parameterName,
             string parameter,
             string resultParameter
         )
         {
+            var code = new StringBuilder();
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
-                encoders.Append(@"
+                var innerResult = CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(innerResult.code);
+                signature += "a" + innerResult.signature;
+                code.Append(@"
                 }
             });");
             }
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") => 
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @") 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + "}";
-                encoders.AppendLine(@"
+                var keyStep = dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                var valueStep = dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(keyStep.code);
+                code.Append(valueStep.code);
+                signature += "a{" + keyStep.signature + valueStep.signature + "}";
+                code.AppendLine(@"
                 }
             }, true);");
             }
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                encoders.Append(@"
+                code.Append(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
             }
             else
             {
                 signature += SignatureString.For[type];
-                encoders.Append(@"
+                code.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
             }
-            return signature;
+            return (code, signature);
         }
 
         public static string BuildSignature(Type type)
@@ -68,103 +72,111 @@ namespace Dbus.CodeGenerator
             return signature;
         }
 
-        private static string dictionaryKeyStep(
+        private static (StringBuilder code, string signature) dictionaryKeyStep(
             Type type,
-            StringBuilder encoders,
             string parameterName,
             string parameter,
             string resultParameter
         )
         {
+            var code = new StringBuilder();
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") => 
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
-                encoders.Append(@"
+                var innerResult = CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(innerResult.code);
+                signature += "a" + innerResult.signature;
+                code.Append(@"
                 }
             });");
             }
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") => 
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + "}";
-                encoders.Append(@"
+                var keyStep = dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                var valueStep = dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(keyStep.code);
+                code.Append(valueStep.code);
+                signature += "a{" + keyStep.signature + valueStep.signature + "}";
+                code.Append(@"
                 }
             }, true);");
             }
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                encoders.Append(@"
+                code.Append(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Key);");
             }
             else
             {
                 signature += SignatureString.For[type];
-                encoders.Append(@"
+                code.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Key);");
             }
 
-            return signature;
+            return (code, signature);
         }
 
-        private static string dictionaryValueStep(
+        private static (StringBuilder code, string signature) dictionaryValueStep(
             Type type,
-            StringBuilder encoders,
             string parameterName,
             string parameter,
             string resultParameter
         )
         {
+            var code = new StringBuilder();
             var signature = "";
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") => 
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
-                encoders.Append(@"
+                var innerResult = CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(innerResult.code);
+                signature += "a" + innerResult.signature;
+                code.Append(@"
                 }
             });");
             }
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
-                encoders.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") => 
+                code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
-                                      + "}";
-                encoders.Append(@"
+                var keyStep = dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+                var valueStep = dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
+                code.Append(keyStep.code);
+                code.Append(valueStep.code);
+                signature += "a{" + keyStep.signature + valueStep.signature + "}";
+                code.Append(@"
                 }
             }, true);");
             }
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                encoders.AppendLine(@"
+                code.AppendLine(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Value);");
             }
             else
             {
                 signature += SignatureString.For[type];
-                encoders.Append(@"
+                code.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Value);");
             }
-            return signature;
+            return (code, signature);
         }
     }
 }
