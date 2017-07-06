@@ -16,17 +16,7 @@ namespace Dbus.CodeGenerator
         )
         {
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
-                {");
-                Signature += "a";
-                CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                Code.Append(@"
-                }
-            });");
-            }
+                encodeArray(type, parameterName, parameter, resultParameter);
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
@@ -56,17 +46,7 @@ namespace Dbus.CodeGenerator
         )
         {
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
-                {");
-                Signature += "a";
-                CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                Code.Append(@"
-                }
-            });");
-            }
+                encodeArray(type, parameterName, parameter, resultParameter + ".Key");
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
@@ -96,17 +76,7 @@ namespace Dbus.CodeGenerator
         )
         {
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
-                {");
-                Signature += "a";
-                CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                Code.Append(@"
-                }
-            });");
-            }
+                encodeArray(type, parameterName, parameter, resultParameter + ".Value");
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
             {
                 Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
@@ -126,6 +96,19 @@ namespace Dbus.CodeGenerator
                 encodeVariant(type, parameterName, parameter, resultParameter + ".Value");
             else
                 encodeSimpleType(type, parameterName, parameter, resultParameter + ".Value");
+        }
+
+        private void encodeArray(Type type, string parameterName, string parameter, string resultParameter)
+        {
+            Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
+            {
+                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
+                {");
+            Signature += "a";
+            CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+            Code.Append(@"
+                }
+            });");
         }
 
         private void encodeVariant(Type type, string parameterName, string parameter, string resultParameter)
