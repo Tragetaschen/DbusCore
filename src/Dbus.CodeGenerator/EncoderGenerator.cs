@@ -45,11 +45,7 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter);
             else
-            {
-                Signature += SignatureString.For[type];
-                Code.Append(@"
-                    global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
-            }
+                encodeSimpleType(type, parameterName, parameter, resultParameter);
         }
 
         private void dictionaryKeyStep(
@@ -89,11 +85,7 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter + ".Key");
             else
-            {
-                Signature += SignatureString.For[type];
-                Code.Append(@"
-                    global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Key);");
-            }
+                encodeSimpleType(type, parameterName, parameter, resultParameter + ".Key");
         }
 
         private void dictionaryValueStep(
@@ -133,18 +125,21 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter + ".Value");
             else
-            {
-                Signature += SignatureString.For[type];
-                Code.Append(@"
-                    global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Value);");
-            }
+                encodeSimpleType(type, parameterName, parameter, resultParameter + ".Value");
         }
 
         private void encodeVariant(Type type, string parameterName, string parameter, string resultParameter)
         {
             Signature += SignatureString.For[type];
             Code.AppendLine(@"
-                    global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter+");");
+                    global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
+        }
+
+        private void encodeSimpleType(Type type, string parameterName, string parameter, string resultParameter)
+        {
+            Signature += SignatureString.For[type];
+            Code.Append(@"
+                    global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
         }
     }
 }
