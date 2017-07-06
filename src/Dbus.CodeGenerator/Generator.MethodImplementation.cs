@@ -50,13 +50,6 @@ namespace Dbus.CodeGenerator
                     encoderSignature += "ss";
                     interfaceName = "org.freedesktop.DBus.Properties";
                     callName = callName.Substring(0, 3); // "Get" or "Set"
-                }
-                if (!isProperty)
-                    foreach (var parameter in parameters)
-                    {
-                        encoderSignature += EncoderGenerator.BuildSignature(parameter.ParameterType, encoder, parameter.Name, "", "");
-                    }
-                else
                     foreach (var parameter in parameters)
                     {
                         encoder.Append(Indent);
@@ -64,6 +57,12 @@ namespace Dbus.CodeGenerator
                         encoder.Append(Indent);
                         encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
                         encoderSignature += "v";
+                    }
+                }
+                else
+                    foreach (var parameter in parameters)
+                    {
+                        encoderSignature += EncoderGenerator.BuildSignature(parameter.ParameterType, encoder, parameter.Name, "", "");
                     }
             }
 
