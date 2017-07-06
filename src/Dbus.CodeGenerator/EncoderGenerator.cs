@@ -18,20 +18,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
                 encodeArray(type, parameterName, parameter, resultParameter);
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @") 
-                {
-                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                Signature += "a{";
-                dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
-                Signature += "}";
-                Code.AppendLine(@"
-                }
-            }, true);");
-            }
+                encodeDictionary(type, parameterName, parameter, resultParameter);
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter);
             else
@@ -48,20 +35,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
                 encodeArray(type, parameterName, parameter, resultParameter + ".Key");
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
-                {
-                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                Signature += "a{";
-                dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
-                Signature += "}";
-                Code.Append(@"
-                }
-            }, true);");
-            }
+                encodeDictionary(type, parameterName, parameter, resultParameter + ".Key");
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter + ".Key");
             else
@@ -78,20 +52,7 @@ namespace Dbus.CodeGenerator
             if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
                 encodeArray(type, parameterName, parameter, resultParameter + ".Value");
             else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-            {
-                Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
-            {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
-                {
-                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                Signature += "a{";
-                dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-                dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
-                Signature += "}";
-                Code.Append(@"
-                }
-            }, true);");
-            }
+                encodeDictionary(type, parameterName, parameter, resultParameter + ".Value");
             else if (type == typeof(object))
                 encodeVariant(type, parameterName, parameter, resultParameter + ".Value");
             else
@@ -109,6 +70,22 @@ namespace Dbus.CodeGenerator
             Code.Append(@"
                 }
             });");
+        }
+
+        private void encodeDictionary(Type type, string parameterName, string parameter, string resultParameter)
+        {
+            Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
+            {
+                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
+                {
+                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
+            Signature += "a{";
+            dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
+            dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
+            Signature += "}";
+            Code.AppendLine(@"
+                }
+            }, true);");
         }
 
         private void encodeVariant(Type type, string parameterName, string parameter, string resultParameter)
