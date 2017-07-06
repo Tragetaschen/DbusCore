@@ -58,20 +58,6 @@ namespace Dbus.CodeGenerator
             return (code, signature);
         }
 
-        public static string BuildSignature(Type type)
-        {
-            var signature = "";
-            if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0]);
-            else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-                signature += "a{" + BuildSignature(type.GenericTypeArguments[0]) +
-                    BuildSignature(type.GenericTypeArguments[1]) +
-                    "}";
-            else
-                signature += SignatureString.For[type];
-            return signature;
-        }
-
         private static (StringBuilder code, string signature) dictionaryKeyStep(
             Type type,
             string parameterName,
