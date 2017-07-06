@@ -10,8 +10,7 @@ namespace Dbus.CodeGenerator
             StringBuilder encoders,
             string parameterName,
             string parameter,
-            string resultParameter,
-            int level
+            string resultParameter
         )
         {
             var signature = "";
@@ -21,7 +20,7 @@ namespace Dbus.CodeGenerator
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1);
+                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
                 encoders.Append(@"
                 }
             });");
@@ -33,8 +32,8 @@ namespace Dbus.CodeGenerator
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @") 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
+                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
+                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
                                       + "}";
                 encoders.AppendLine(@"
                 }
@@ -43,22 +42,14 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.Append(@"
+                encoders.Append(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
-                else
-                    encoders.Append(@"
-            global::Dbus.Encoder.AddVariant(sendBody, ref sendIndex, " + parameterName + ");");
             }
             else
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.Append(@"
+                encoders.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
-                else
-                    encoders.Append(@"
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameterName + ");");
             }
             return signature;
         }
@@ -82,8 +73,7 @@ namespace Dbus.CodeGenerator
             StringBuilder encoders,
             string parameterName,
             string parameter,
-            string resultParameter,
-            int level
+            string resultParameter
         )
         {
             var signature = "";
@@ -93,7 +83,7 @@ namespace Dbus.CodeGenerator
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1);
+                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
                 encoders.Append(@"
                 }
             });");
@@ -105,8 +95,8 @@ namespace Dbus.CodeGenerator
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Key) 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
+                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
+                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
                                       + "}";
                 encoders.Append(@"
                 }
@@ -115,22 +105,14 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.Append(@"
+                encoders.Append(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Key);");
-                else
-                    encoders.Append(@"
-            global::Dbus.Encoder.AddVariant(sendBody, ref sendIndex, " + parameterName + ");");
             }
             else
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.Append(@"
+                encoders.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Key);");
-                else
-                    encoders.Append(@"
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameterName + ");");
             }
 
             return signature;
@@ -141,8 +123,7 @@ namespace Dbus.CodeGenerator
             StringBuilder encoders,
             string parameterName,
             string parameter,
-            string resultParameter,
-            int level
+            string resultParameter
         )
         {
             var signature = "";
@@ -152,7 +133,7 @@ namespace Dbus.CodeGenerator
             {
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
                 {");
-                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1);
+                signature += "a" + BuildSignature(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e");
                 encoders.Append(@"
                 }
             });");
@@ -164,8 +145,8 @@ namespace Dbus.CodeGenerator
                 foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @".Value) 
                 {
                     global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
-                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e", level + 1)
+                signature += "a{" + dictionaryKeyStep(type.GenericTypeArguments[0], encoders, parameterName, parameter + "_e", resultParameter + "_e")
+                                      + dictionaryValueStep(type.GenericTypeArguments[1], encoders, parameterName, parameter + "_e", resultParameter + "_e")
                                       + "}";
                 encoders.Append(@"
                 }
@@ -174,22 +155,14 @@ namespace Dbus.CodeGenerator
             else if (type == typeof(object))
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.AppendLine(@"
+                encoders.AppendLine(@"
                     global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Value);");
-                else
-                    encoders.AppendLine(@"
-            global::Dbus.Encoder.AddVariant(sendBody, ref sendIndex, " + parameterName + ");");
             }
             else
             {
                 signature += SignatureString.For[type];
-                if (level > 0)
-                    encoders.Append(@"
+                encoders.Append(@"
                     global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ".Value);");
-                else
-                    encoders.Append(@"
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameterName + ");");
             }
             return signature;
         }
