@@ -45,16 +45,14 @@ namespace Dbus.CodeGenerator
             methodImplementation.AppendLine(@").ConfigureAwait(false);
 ");
             methodImplementation.Append(Indent);
-            methodImplementation.AppendLine(@"if (shouldSendReply)
-            {");
+            methodImplementation.AppendLine(@"if (!shouldSendReply)
+                return;");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (encoder.Signature != "")
                 methodImplementation.Append(encoder.Result);
             methodImplementation.Append(Indent);
             methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + encoder.Signature + @""").ConfigureAwait(false);");
-            methodImplementation.AppendLine(@"
-            }");
             methodImplementation.AppendLine(@"
         }");
 
