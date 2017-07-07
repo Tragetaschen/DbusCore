@@ -20,6 +20,8 @@ namespace Dbus.CodeGenerator
 
         public void AddVariant(string name, Type type)
         {
+            ensureSendIndex();
+
             var variantInfo = encoder(name, name, type, Generator.Indent, body, "sendIndex");
 
             var innerGenerator = new EncoderGenerator(body);
