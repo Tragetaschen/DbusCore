@@ -277,53 +277,53 @@ namespace Dbus.CodeGenerator
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
             {
                 proxyClass.Append(@"
-            private async void HandlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-            {
-                var sendBody = global::Dbus.Encoder.StartNew();
-                var sendIndex = 0;
-                global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + provide.InterfaceName + @""");");
+        private async void HandlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendIndex = 0;
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + provide.InterfaceName + @""");");
                 //Only one property is changed at a time, so no foreach loop is necessary
                 proxyClass.Append(@"
-                global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
-                {
-                        global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
-                        global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, e.PropertyName);
-                        switch(e.PropertyName)
-                        {");
+            global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
+            {
+                global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
+                global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, e.PropertyName);
+                switch (e.PropertyName)
+                {");
                 foreach (var property in type.GetTypeInfo().GetProperties())
                 {
                     if (property.GetCustomAttribute<DbusPropertiesChanged>() != null)
                     {
                         proxyClass.Append(@"
-                            case """ + property.Name + @""":
-                                Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);
-                                break;
+                    case """ + property.Name + @""":
+                        Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);
+                        break;
 ");
                     }
                 }
                 proxyClass.Append(@"
-                            default:
-                                throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
-                        }
-                }, true);");
+                    default:
+                        throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
+                }
+            }, true);");
                 //This is actually an empty array, but the encoding per 0-integer is more efficient
                 proxyClass.Append(@"
-                global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
+            global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
 
-                await connection.SendSignalAsync(
-                    path,
-                    ""org.freedesktop.DBus.Properties"",
-                    ""PropertiesChanged"",
-                    sendBody,
-                    ""sa{sv}as""
-                ).ConfigureAwait(false);
-            }");
+            await connection.SendSignalAsync(
+                path,
+                ""org.freedesktop.DBus.Properties"",
+                ""PropertiesChanged"",
+                sendBody,
+                ""sa{sv}as""
+            ).ConfigureAwait(false);
+        }");
             }
             proxyClass.Append(@"
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-            public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] body, bool shouldSendReply)
+        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] body, bool shouldSendReply)
         {
             switch (header.Member)
             {
