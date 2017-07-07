@@ -47,7 +47,7 @@ namespace Dbus.CodeGenerator
         }");
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
-                var encoder = new EncoderGenerator("sendBody");
+                var encoder = new EncoderGenerator("sendBody", "sendIndex");
                 encoder.AddVariant("value", property.PropertyType);
                 propertyEncoder.Append(@"
 

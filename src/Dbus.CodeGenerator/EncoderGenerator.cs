@@ -9,11 +9,19 @@ namespace Dbus.CodeGenerator
     public class EncoderGenerator
     {
         private readonly string body;
-
+        private string index;
         private readonly StringBuilder resultBuilder = new StringBuilder();
         private readonly StringBuilder signatureBuilder = new StringBuilder();
 
-        public EncoderGenerator(string body) => this.body = body;
+        public EncoderGenerator(string body)
+            : this(body, "")
+        { }
+
+        public EncoderGenerator(string body, string index)
+        {
+            this.body = body;
+            this.index = index;
+        }
 
         public string Result => resultBuilder.ToString();
         public string Signature => signatureBuilder.ToString();
@@ -22,10 +30,10 @@ namespace Dbus.CodeGenerator
         {
             ensureSendIndex();
 
-            var variantInfo = encoder(name, name, type, Generator.Indent, body, "sendIndex");
+            var variantInfo = encoder(name, name, type, Generator.Indent, body);
 
-            var innerGenerator = new EncoderGenerator(body);
-            innerGenerator.add($@"(global::Dbus.Signature)""{variantInfo.signature}""", name, typeof(Signature), Generator.Indent, "sendIndex");
+            var innerGenerator = new EncoderGenerator(body, index);
+            innerGenerator.add($@"(global::Dbus.Signature)""{variantInfo.signature}""", name, typeof(Signature), Generator.Indent);
             signatureBuilder.Append("v");
             resultBuilder.Append(innerGenerator.Result);
             resultBuilder.AppendLine(Generator.Indent + variantInfo.code);
@@ -34,27 +42,27 @@ namespace Dbus.CodeGenerator
         public void Add(string name, Type type)
         {
             ensureSendIndex();
-            add(name, name, type, Generator.Indent, "sendIndex");
+            add(name, name, type, Generator.Indent);
         }
 
         private void ensureSendIndex()
         {
-            if (resultBuilder.Length == 0)
-            {
-                resultBuilder.Append(Generator.Indent);
-                resultBuilder.AppendLine("var sendIndex = 0;");
-            }
+            if (index != "")
+                return;
+            resultBuilder.Append(Generator.Indent);
+            resultBuilder.AppendLine("var sendIndex = 0;");
+            index = "sendIndex";
         }
 
-        private void add(string value, string name, Type type, string indent, string index)
+        private void add(string value, string name, Type type, string indent)
         {
-            var function = encoder(value, name, type, indent, body, index);
+            var function = encoder(value, name, type, indent, body);
             signatureBuilder.Append(function.signature);
             resultBuilder.Append(indent);
             resultBuilder.AppendLine(function.code);
         }
 
-        private static (string signature, string code) encoder(string value, string name, Type type, string indent, string body, string index)
+        private (string signature, string code) encoder(string value, string name, Type type, string indent, string body)
         {
             if (type == typeof(object))
                 return (
@@ -69,7 +77,7 @@ namespace Dbus.CodeGenerator
                         "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ");"
                     );
                 else
-                    return buildFromConstructor(value, name, type, indent, body, index);
+                    return buildFromConstructor(value, name, type, indent, body);
             }
             else
             {
@@ -101,7 +109,7 @@ namespace Dbus.CodeGenerator
 
         }
 
-        private static (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent, string body, string index)
+        private (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent, string body)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
@@ -117,8 +125,8 @@ namespace Dbus.CodeGenerator
             {
                 var parameterName = p.Name;
                 var propertyName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
-                var encoder = new EncoderGenerator(body);
-                encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent, index);
+                var encoder = new EncoderGenerator(body, index);
+                encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent);
                 signature += encoder.Signature;
                 builder.Append(encoder.Result);
             }
@@ -142,8 +150,8 @@ namespace Dbus.CodeGenerator
                 );
             else
             {
-                var encoder = new EncoderGenerator(name + "_b");
-                encoder.add(value, name, type, indent + "    ", name + "_i");
+                var encoder = new EncoderGenerator(name + "_b", name + "_i");
+                encoder.add(value, name, type, indent + "    ");
                 return (
                     encoder.Signature,
                     "(global::System.Collections.Generic.List<byte> " + name + "_b, ref int " + name + @"_i, " + Generator.BuildTypeString(type) + " " + name + @") =>
