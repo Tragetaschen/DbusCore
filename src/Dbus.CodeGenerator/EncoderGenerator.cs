@@ -30,7 +30,7 @@ namespace Dbus.CodeGenerator
         {
             ensureSendIndex();
 
-            var variantInfo = encoder(name, name, type, Generator.Indent, body);
+            var variantInfo = encoder(name, name, type, Generator.Indent);
 
             var innerGenerator = new EncoderGenerator(body, index);
             innerGenerator.add($@"(global::Dbus.Signature)""{variantInfo.signature}""", name, typeof(Signature), Generator.Indent);
@@ -56,13 +56,13 @@ namespace Dbus.CodeGenerator
 
         private void add(string value, string name, Type type, string indent)
         {
-            var function = encoder(value, name, type, indent, body);
+            var function = encoder(value, name, type, indent);
             signatureBuilder.Append(function.signature);
             resultBuilder.Append(indent);
             resultBuilder.AppendLine(function.code);
         }
 
-        private (string signature, string code) encoder(string value, string name, Type type, string indent, string body)
+        private (string signature, string code) encoder(string value, string name, Type type, string indent)
         {
             if (type == typeof(object))
                 return (
@@ -77,7 +77,7 @@ namespace Dbus.CodeGenerator
                         "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ");"
                     );
                 else
-                    return buildFromConstructor(value, name, type, indent, body);
+                    return buildFromConstructor(value, name, type, indent);
             }
             else
             {
@@ -109,7 +109,7 @@ namespace Dbus.CodeGenerator
 
         }
 
-        private (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent, string body)
+        private (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
