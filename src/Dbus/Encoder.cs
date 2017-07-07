@@ -6,6 +6,7 @@ namespace Dbus
 {
     public static class Encoder
     {
+        public delegate void ElementWriter<T>(List<byte> buffer, ref int index, T value);
         public delegate void ElementWriter(List<byte> buffer, ref int index);
 
         public static List<byte> StartNew() => new List<byte>();
@@ -91,6 +92,40 @@ namespace Dbus
         public static void Add(List<byte> buffer, ref int index, bool value)
             => Add(buffer, ref index, value ? 1 : 0);
 
+        public static void Add<T>(List<byte> buffer, ref int index, IEnumerable<T> values, ElementWriter<T> writer)
+        {
+            EnsureAlignment(buffer, ref index, 4);
+            var lengthPosition = index;
+            Add(buffer, ref index, 0); // Actually uint
+            EnsureAlignment(buffer, ref index, 4);
+            var arrayStart = index;
+            foreach (var value in values)
+                writer(buffer, ref index, value);
+            var arrayLength = index - arrayStart;
+            var lengthBytes = BitConverter.GetBytes(arrayLength);
+            for (var i = 0; i < 4; ++i)
+                buffer[lengthPosition + i] = lengthBytes[i];
+        }
+
+        public static void Add<TKey, TValue>(List<byte> buffer, ref int index, IDictionary<TKey, TValue> values, ElementWriter<TKey> keyWriter, ElementWriter<TValue> valueWriter)
+        {
+            EnsureAlignment(buffer, ref index, 4);
+            var lengthPosition = index;
+            Add(buffer, ref index, 0); // Actually uint
+            EnsureAlignment(buffer, ref index, 8);
+            var arrayStart = index;
+            foreach (var value in values)
+            {
+                EnsureAlignment(buffer, ref index, 8);
+                keyWriter(buffer, ref index, value.Key);
+                valueWriter(buffer, ref index, value.Value);
+            }
+            var arrayLength = index - arrayStart;
+            var lengthBytes = BitConverter.GetBytes(arrayLength);
+            for (var i = 0; i < 4; ++i)
+                buffer[lengthPosition + i] = lengthBytes[i];
+        }
+
         public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, bool alignment_8 = false)
         {
             EnsureAlignment(buffer, ref index, 4);
@@ -104,7 +139,6 @@ namespace Dbus
             for (var i = 0; i < 4; ++i)
                 buffer[lengthPosition + i] = lengthBytes[i];
         }
-
 
         public static void AddVariant(List<byte> buffer, ref int index, string value)
         {
@@ -163,15 +197,7 @@ namespace Dbus
         public static void AddVariant(List<byte> buffer, ref int index, IDictionary<string, object> value)
         {
             Add(buffer, ref index, (Signature)"a{sv}");
-            AddArray(buffer, ref index, (List<byte> buffer_e, ref int index_e) =>
-            {
-                foreach (var element in value)
-                {
-                    EnsureAlignment(buffer_e, ref index_e, 8);
-                    Add(buffer_e, ref index_e, element.Key);
-                    AddVariant(buffer_e, ref index_e, element.Value);
-                }
-            }, true);
+            Add(buffer, ref index, value, Add, AddVariant);
         }
 
         public static void EnsureAlignment(List<byte> buffer, ref int index, int alignment)

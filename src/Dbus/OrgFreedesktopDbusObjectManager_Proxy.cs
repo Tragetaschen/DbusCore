@@ -75,7 +75,8 @@ namespace Dbus
                             }
                             Encoder.EnsureAlignment(sendBody_e_e, ref sendIndex_e_e, 8);
                             Encoder.Add(sendBody_e, ref sendIndex_e_e, "org.freedesktop.DBus.Properties");
-                            Encoder.AddArray(sendBody_e_e, ref sendIndex_e_e, (List<byte> sendBody_e_e_e, ref int sendIndex_e_e_e) => { }, true);
+                            Encoder.Add(sendBody_e, ref sendIndex_e_e, 0); // empty properties for the properties interface
+                            Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e_e, 8);
                         }, true);
 
                     }

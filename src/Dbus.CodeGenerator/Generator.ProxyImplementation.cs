@@ -27,40 +27,18 @@ namespace Dbus.CodeGenerator
             foreach (var parameter in method.GetParameters())
                 decoder.Add(parameter.Name, parameter.ParameterType);
 
-            var sendSignature = "";
-            var encoders = new StringBuilder();
+            var encoder = new EncoderGenerator("sendBody");
             if (method.ReturnType != typeof(Task)) // Task<T>
             {
-                encoders.Append(Indent);
-                encoders.AppendLine("var sendIndex = 0;");
-
                 var returnType = method.ReturnType.GenericTypeArguments[0];
-                if (returnType.FullName.StartsWith("System.Tuple"))
-                {
-                    var tupleParameters = returnType.GenericTypeArguments;
-                    var counter = 0;
-                    foreach (var p in tupleParameters)
-                    {
-                        ++counter;
-                        sendSignature += SignatureString.For[p];
-                        encoders.Append(Indent);
-                        encoders.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, result.Item" + counter + ");");
-                    }
-                }
-                else
-                {
-                    encoders.Append(Indent);
-                    var encoderGenerator = new EncoderGenerator();
-                    encoderGenerator.CreateFor(returnType, "result", "", "");
-                    encoders.Append(encoderGenerator.Code);
-                    sendSignature += encoderGenerator.Signature;
-                }
+                encoder.Add("result", returnType);
             }
+
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine(@"header.BodySignature.AssertEqual(""" + decoder.Signature + @""");");
             methodImplementation.Append(decoder.Result);
             methodImplementation.Append(Indent);
-            if (sendSignature != "")
+            if (encoder.Signature != "")
                 methodImplementation.Append("var result = ");
             methodImplementation.Append("await target." + method.Name + "(");
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
@@ -71,10 +49,10 @@ namespace Dbus.CodeGenerator
             {");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
-            if (sendSignature != "")
-                methodImplementation.Append(encoders);
+            if (encoder.Signature != "")
+                methodImplementation.Append(encoder.Result);
             methodImplementation.Append(Indent);
-            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + sendSignature + @""").ConfigureAwait(false);");
+            methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + encoder.Signature + @""").ConfigureAwait(false);");
             methodImplementation.AppendLine(@"
             }");
             methodImplementation.AppendLine(@"

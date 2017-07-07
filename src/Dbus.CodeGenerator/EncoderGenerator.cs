@@ -1,105 +1,154 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace Dbus.CodeGenerator
 {
     public class EncoderGenerator
     {
-        public StringBuilder Code { get; } = new StringBuilder();
-        public string Signature { get; private set; } = "";
+        private readonly string body;
 
-        public void CreateFor(
-            Type type,
-            string parameterName,
-            string parameter,
-            string resultParameter
-        )
+        private readonly StringBuilder resultBuilder = new StringBuilder();
+        private readonly StringBuilder signatureBuilder = new StringBuilder();
+
+        public EncoderGenerator(string body) => this.body = body;
+
+        public string Result => resultBuilder.ToString();
+        public string Signature => signatureBuilder.ToString();
+
+        public void AddVariant(string name, Type type)
         {
-            if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-                encodeArray(type, parameterName, parameter, resultParameter);
-            else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-                encodeDictionary(type, parameterName, parameter, resultParameter);
-            else if (type == typeof(object))
-                encodeVariant(type, parameterName, parameter, resultParameter);
-            else
-                encodeSimpleType(type, parameterName, parameter, resultParameter);
+            var variantInfo = encoder(name, name, type, Generator.Indent, body, "sendIndex");
+
+            var innerGenerator = new EncoderGenerator(body);
+            innerGenerator.add($@"(global::Dbus.Signature)""{variantInfo.signature}""", name, typeof(Signature), Generator.Indent, "sendIndex");
+            signatureBuilder.Append("v");
+            resultBuilder.Append(innerGenerator.Result);
+            resultBuilder.AppendLine(Generator.Indent + variantInfo.code);
         }
 
-        private void dictionaryKeyStep(
-            Type type,
-            string parameterName,
-            string parameter,
-            string resultParameter
-        )
+        public void Add(string name, Type type)
         {
-            if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-                encodeArray(type, parameterName, parameter, resultParameter + ".Key");
-            else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-                encodeDictionary(type, parameterName, parameter, resultParameter + ".Key");
-            else if (type == typeof(object))
-                encodeVariant(type, parameterName, parameter, resultParameter + ".Key");
-            else
-                encodeSimpleType(type, parameterName, parameter, resultParameter + ".Key");
+            ensureSendIndex();
+            add(name, name, type, Generator.Indent, "sendIndex");
         }
 
-        private void dictionaryValueStep(
-            Type type,
-            string parameterName,
-            string parameter,
-            string resultParameter
-        )
+        private void ensureSendIndex()
         {
-            if (type.FullName.StartsWith("System.Collections.Generic.IEnumerable"))
-                encodeArray(type, parameterName, parameter, resultParameter + ".Value");
-            else if (type.FullName.StartsWith("System.Collections.Generic.IDictionary"))
-                encodeDictionary(type, parameterName, parameter, resultParameter + ".Value");
-            else if (type == typeof(object))
-                encodeVariant(type, parameterName, parameter, resultParameter + ".Value");
-            else
-                encodeSimpleType(type, parameterName, parameter, resultParameter + ".Value");
-        }
-
-        private void encodeArray(Type type, string parameterName, string parameter, string resultParameter)
-        {
-            Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
+            if (resultBuilder.Length == 0)
             {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
-                {");
-            Signature += "a";
-            CreateFor(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-            Code.Append(@"
-                }
-            });");
+                resultBuilder.Append(Generator.Indent);
+                resultBuilder.AppendLine("var sendIndex = 0;");
+            }
         }
 
-        private void encodeDictionary(Type type, string parameterName, string parameter, string resultParameter)
+        private void add(string value, string name, Type type, string indent, string index)
         {
-            Code.AppendLine("global::Dbus.Encoder.AddArray(sendBody" + parameter + ", ref sendIndex" + parameter + ", (global::System.Collections.Generic.List<byte> sendBody_e" + parameter + ", ref int sendIndex_e" + parameter + @") =>
+            var function = encoder(value, name, type, indent, body, index);
+            signatureBuilder.Append(function.signature);
+            resultBuilder.Append(indent);
+            resultBuilder.AppendLine(function.code);
+        }
+
+        private static (string signature, string code) encoder(string value, string name, Type type, string indent, string body, string index)
+        {
+            if (type == typeof(object))
+                return (
+                    SignatureString.For[type],
+                    "global::Dbus.Encoder.AddVariant(" + body + ", ref " + index + ", " + value + ");"
+                );
+            else if (!type.IsConstructedGenericType)
             {
-                foreach (var " + parameterName + "_e" + resultParameter + " in " + parameterName + resultParameter + @")
+                if (SignatureString.For.ContainsKey(type))
+                    return (
+                        SignatureString.For[type],
+                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ");"
+                    );
+                else
+                    return buildFromConstructor(value, name, type, indent, body, index);
+            }
+            else
+            {
+                var genericType = type.GetGenericTypeDefinition();
+                if (genericType == typeof(IEnumerable<>))
                 {
-                    global::Dbus.Encoder.EnsureAlignment(sendBody_e" + parameter + ", ref sendIndex_e" + parameter + @", 8);");
-            Signature += "a{";
-            dictionaryKeyStep(type.GenericTypeArguments[0], parameterName, parameter + "_e", resultParameter + "_e");
-            dictionaryValueStep(type.GenericTypeArguments[1], parameterName, parameter + "_e", resultParameter + "_e");
-            Signature += "}";
-            Code.AppendLine(@"
+                    var elementType = type.GenericTypeArguments[0];
+                    var elementFunction = createMethod(elementType, name + "_e", name + "_e", indent);
+                    return (
+                        "a" + elementFunction.signature,
+                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + elementFunction.code + ");"
+                    );
                 }
-            }, true);");
+                else if (genericType == typeof(IDictionary<,>))
+                {
+                    var keyType = type.GenericTypeArguments[0];
+                    var valueType = type.GenericTypeArguments[1];
+                    var keyFunction = createMethod(keyType, name + "_k", name + "_k", indent);
+                    var valueFunction = createMethod(valueType, name + "_v", name + "_v", indent);
+
+                    return (
+                        "a{" + keyFunction.signature + valueFunction.signature + "}",
+                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + keyFunction.code + ", " + valueFunction.code + ");"
+                    );
+                }
+                else
+                    throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
+            }
+
         }
 
-        private void encodeVariant(Type type, string parameterName, string parameter, string resultParameter)
+        private static (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent, string body, string index)
         {
-            Signature += SignatureString.For[type];
-            Code.AppendLine(@"
-                    global::Dbus.Encoder.AddVariant(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
+            var constructorParameters = type.GetTypeInfo()
+                .GetConstructors()
+                .Select(x => x.GetParameters())
+                .OrderByDescending(x => x.Length)
+                .First()
+            ;
+            var builder = new StringBuilder();
+            builder.AppendLine("global::Dbus.Alignment.Advance(ref " + index + ", 8);");
+            var signature = "(";
+
+            foreach (var p in constructorParameters)
+            {
+                var parameterName = p.Name;
+                var propertyName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
+                var encoder = new EncoderGenerator(body);
+                encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent, index);
+                signature += encoder.Signature;
+                builder.Append(encoder.Result);
+            }
+
+            signature += ")";
+
+            return (signature, builder.ToString());
         }
 
-        private void encodeSimpleType(Type type, string parameterName, string parameter, string resultParameter)
+        private static (string signature, string code) createMethod(Type type, string value, string name, string indent)
         {
-            Signature += SignatureString.For[type];
-            Code.Append(@"
-                    global::Dbus.Encoder.Add(sendBody" + parameter + ", ref sendIndex" + parameter + ", " + parameterName + resultParameter + ");");
+            if (type == typeof(object))
+                return (
+                    SignatureString.For[type],
+                    "global::Dbus.Encoder.AddVariant"
+                );
+            else if (SignatureString.For.ContainsKey(type))
+                return (
+                    SignatureString.For[type],
+                    "global::Dbus.Encoder.Add"
+                );
+            else
+            {
+                var encoder = new EncoderGenerator(name + "_b");
+                encoder.add(value, name, type, indent + "    ", name + "_i");
+                return (
+                    encoder.Signature,
+                    "(global::System.Collections.Generic.List<byte> " + name + "_b, ref int " + name + @"_i, " + Generator.BuildTypeString(type) + " " + name + @") =>
+" + indent + @"{
+" + encoder.Result + indent + "}"
+                );
+            }
         }
     }
 }

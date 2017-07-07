@@ -27,8 +27,6 @@ namespace Dbus.CodeGenerator
             var isProperty = propertyName.IsMatch(callName);
             isProperty &= methodInfo.GetCustomAttribute<DbusMethodAttribute>() == null;
 
-            var encoder = new StringBuilder();
-            var encoderSignature = string.Empty;
             var parameters = methodInfo.GetParameters();
 
             if (isProperty)
@@ -37,36 +35,22 @@ namespace Dbus.CodeGenerator
                 else if (callName.StartsWith("Set"))
                     isProperty &= parameters.Length == 1;
 
+            var encoder = new EncoderGenerator("sendBody");
+
             if (parameters.Length > 0 || isProperty)
             {
-                encoder.Append(Indent);
-                encoder.AppendLine("var sendIndex = 0;");
                 if (isProperty)
                 {
-                    encoder.Append(Indent);
-                    encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + interfaceName + @""");");
-                    encoder.Append(Indent);
-                    encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + callName.Substring(3 /* "Get" or "Set" */) + @""");");
-                    encoderSignature += "ss";
+                    encoder.Add($@"""{interfaceName}""", typeof(string));
+                    encoder.Add($@"""{callName.Substring(3 /* "Get" or "Set" */)}""", typeof(string));
                     interfaceName = "org.freedesktop.DBus.Properties";
                     callName = callName.Substring(0, 3); // "Get" or "Set"
                     foreach (var parameter in parameters)
-                    {
-                        encoder.Append(Indent);
-                        encoder.AppendLine(@"global::Dbus.Encoder.Add(sendBody, ref sendIndex, (global::Dbus.Signature)""" + SignatureString.For[parameter.ParameterType] + @""");");
-                        encoder.Append(Indent);
-                        encoder.AppendLine("global::Dbus.Encoder.Add(sendBody, ref sendIndex, " + parameter.Name + ");");
-                        encoderSignature += "v";
-                    }
+                        encoder.AddVariant(parameter.Name, parameter.ParameterType);
                 }
                 else
-                {
-                    var encoderGenerator = new EncoderGenerator();
                     foreach (var parameter in parameters)
-                        encoderGenerator.CreateFor(parameter.ParameterType, parameter.Name, "", "");
-                    encoder.Append(encoderGenerator.Code);
-                    encoderSignature += encoderGenerator.Signature;
-                }
+                        encoder.Add(parameter.Name, parameter.ParameterType);
             }
 
             string returnStatement;
@@ -90,14 +74,14 @@ namespace Dbus.CodeGenerator
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
             var sendBody = global::Dbus.Encoder.StartNew();
-" + encoder + @"
+" + encoder.Result + @"
             var receivedMessage = await connection.SendMethodCall(
                 this.path,
                 """ + interfaceName + @""",
                 """ + callName + @""",
                 this.destination,
                 sendBody,
-                """ + encoderSignature + @"""
+                """ + encoder.Signature + @"""
             ).ConfigureAwait(false);
             receivedMessage.Signature.AssertEqual(""" + decoder.Signature + @""");
 " + decoder.Result + @"            " + returnStatement + @"
