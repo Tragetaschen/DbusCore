@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Dbus.CodeGenerator
 {
     public static partial class Generator
     {
-        public static Tuple<string, string> GenerateEventImplementation(EventInfo eventInfo, string interfaceName)
+        public static (string subscription, string implementation) GenerateEventImplementation(EventInfo eventInfo, string interfaceName)
         {
             var subscription = new StringBuilder();
             subscription.Append(Indent);
@@ -65,7 +62,7 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.AppendLine("}");
 
-            return Tuple.Create(subscription.ToString(), implementation.ToString());
+            return (subscription.ToString(), implementation.ToString());
         }
     }
 }

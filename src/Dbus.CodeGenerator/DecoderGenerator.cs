@@ -37,22 +37,22 @@ namespace Dbus.CodeGenerator
         private void add(string name, Type type, string indent, string index)
         {
             var function = decoder(name, type, indent, body, index);
-            signatureBuilder.Append(function.Item1);
+            signatureBuilder.Append(function.signature);
             resultBuilder.Append(indent);
-            resultBuilder.AppendLine(function.Item2);
+            resultBuilder.AppendLine(function.code);
         }
 
-        private Tuple<string, string> decoder(string name, Type type, string indent, string body, string index)
+        private (string signature, string code) decoder(string name, Type type, string indent, string body, string index)
         {
             if (!type.IsConstructedGenericType)
             {
                 if (SignatureString.For.ContainsKey(type))
-                    return Tuple.Create(
+                    return (
                         SignatureString.For[type],
                         "var " + name + " = global::Dbus.Decoder.Get" + type.Name + "(" + body + ", ref " + index + ");"
                     );
                 else if (type == typeof(SafeHandle))
-                    return Tuple.Create(
+                    return (
                         "h",
                         @"var " + name + @"_index = global::Dbus.Decoder.GetInt32(" + body + ", ref " + index + @");
 " + indent + @"var " + name + @" = receivedMessage.Header.UnixFds[result_index];"
@@ -67,9 +67,9 @@ namespace Dbus.CodeGenerator
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var elementFunction = createMethod(elementType, name + "_e", indent);
-                    return Tuple.Create(
-                        "a" + elementFunction.Item1,
-                        "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.Item2 + ");"
+                    return (
+                        "a" + elementFunction.signature,
+                        "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.code + ");"
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
@@ -79,9 +79,9 @@ namespace Dbus.CodeGenerator
                     var keyFunction = createMethod(keyType, name + "_k", indent);
                     var valueFunction = createMethod(valueType, name + "_v", indent);
 
-                    return Tuple.Create(
-                        "a{" + keyFunction.Item1 + valueFunction.Item1 + "}",
-                        "var " + name + " = global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyFunction.Item2 + ", " + valueFunction.Item2 + ");"
+                    return (
+                        "a{" + keyFunction.signature + valueFunction.signature + "}",
+                        "var " + name + " = global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyFunction.code + ", " + valueFunction.code + ");"
                     );
                 }
                 else
@@ -90,7 +90,7 @@ namespace Dbus.CodeGenerator
 
         }
 
-        private Tuple<string, string> buildFromConstructor(string name, Type type, string indent, string body, string index)
+        private (string signature, string code) buildFromConstructor(string name, Type type, string indent, string body, string index)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
@@ -116,13 +116,13 @@ namespace Dbus.CodeGenerator
             builder.Append(string.Join(", ", constructorParameters.Select(x => name + "_" + x.Name)));
             builder.Append(");");
 
-            return Tuple.Create(signature, builder.ToString());
+            return (signature, builder.ToString());
         }
 
-        private Tuple<string, string> createMethod(Type type, string name, string indent)
+        private (string signature, string code) createMethod(Type type, string name, string indent)
         {
             if (SignatureString.For.ContainsKey(type))
-                return Tuple.Create(
+                return (
                     SignatureString.For[type],
                     "global::Dbus.Decoder.Get" + type.Name
                 );
@@ -131,7 +131,7 @@ namespace Dbus.CodeGenerator
                 var decoder = new DecoderGenerator(name + "_b", header);
                 decoder.add(name + "_inner", type, indent + "    ", name + "_i");
                 //var function = decoder(name, type, indent, name + "_b", name + "_i");
-                return Tuple.Create(
+                return (
                     decoder.Signature,
                     "(byte[] " + name + "_b, ref int " + name + @"_i) =>
 " + indent + @"{

@@ -33,8 +33,8 @@ namespace Dbus.CodeGenerator
                 if (consume != null)
                 {
                     var consumeImplementation = generateConsumeImplementation(type, consume);
-                    result.Append(consumeImplementation.Item1);
-                    registrations.Add(consumeImplementation.Item2);
+                    result.Append(consumeImplementation.implementation);
+                    registrations.Add(consumeImplementation.registration);
                     services.Add(BuildTypeString(type));
                 }
 
@@ -42,8 +42,8 @@ namespace Dbus.CodeGenerator
                 if (provide != null)
                 {
                     var provideImplementation = generateProvideImplementation(type, provide);
-                    result.Append(provideImplementation.Item1);
-                    registrations.Add(provideImplementation.Item2);
+                    result.Append(provideImplementation.implementation);
+                    registrations.Add(provideImplementation.registration);
                 }
             }
 
@@ -84,7 +84,7 @@ namespace Dbus.CodeGenerator
             return initClass + result.ToString();
         }
 
-        private static Tuple<string, string> generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
+        private static (string implementation, string registration) generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
         {
             if (!typeof(IDisposable).GetTypeInfo().IsAssignableFrom(type))
                 throw new InvalidOperationException("The interface " + type.Name + " is meant to be consumed, but does not extend IDisposable");
@@ -99,8 +99,8 @@ namespace Dbus.CodeGenerator
             foreach (var eventInfo in typeInfo.GetEvents().OrderBy(x => x.Name))
             {
                 var result = GenerateEventImplementation(eventInfo, consume.InterfaceName);
-                eventSubscriptions.Append(result.Item1);
-                eventImplementations.Append(result.Item2);
+                eventSubscriptions.Append(result.subscription);
+                eventImplementations.Append(result.implementation);
             }
             foreach (var methodInfo in typeInfo.GetMethods().OrderBy(x => x.Name))
             {
@@ -215,10 +215,10 @@ namespace Dbus.CodeGenerator
         }
     }
 ";
-            return Tuple.Create(implementationClass, registration);
+            return (implementationClass, registration);
         }
 
-        private static Tuple<string, string> generateProvideImplementation(Type type, DbusProvideAttribute provide)
+        private static (string implementation, string registration) generateProvideImplementation(Type type, DbusProvideAttribute provide)
         {
             var knownMethods = new List<string>();
             var proxies = new StringBuilder();
@@ -233,8 +233,8 @@ namespace Dbus.CodeGenerator
 
                 var result = GenerateMethodProxy(method);
 
-                knownMethods.Add(result.Item1);
-                proxies.Append(result.Item2);
+                knownMethods.Add(result.name);
+                proxies.Append(result.implementation);
             }
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
@@ -346,7 +346,7 @@ namespace Dbus.CodeGenerator
         }
     }
 ");
-            return Tuple.Create(proxyClass.ToString(), proxyRegistration);
+            return (proxyClass.ToString(), proxyRegistration);
         }
 
         public static string BuildTypeString(Type type)
