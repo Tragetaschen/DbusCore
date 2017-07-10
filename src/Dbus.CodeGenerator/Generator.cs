@@ -66,6 +66,7 @@ namespace Dbus.CodeGenerator
     {
         static partial void DoAddDbus(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
+            global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);
             " + string.Join(@"
             ", registrations) + @"
             global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, serviceProvider =>
