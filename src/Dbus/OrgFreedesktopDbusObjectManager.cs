@@ -4,20 +4,20 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
+    public abstract class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
     {
 
         public ObjectPath Root { get; }
 
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
-        //        private Dictionary<ObjectPath, IDictionary<string, IDictionary<string, object>>> managedObjects;
 
-        public OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
+        protected OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
             this.connection = connection;
             Root = root;
             managedObjects = new Dictionary<ObjectPath, List<IProxy>>();
+            connection.Publish<IOrgFreedesktopDbusObjectManagerProvide>(this, Root);
         }
 
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
