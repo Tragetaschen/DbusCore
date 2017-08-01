@@ -23,7 +23,7 @@ namespace Dbus
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
         public event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved { add { } remove { } }
 
-        public void AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
+        public string AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
         {
             var fullPath = buildFullPath(path);
             var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
@@ -35,20 +35,20 @@ namespace Dbus
             {
                 managedObjects.Add(fullPath, new List<IProxy>() { (proxy) });
             }
+            return fullPath;
         }
 
         private string buildFullPath(ObjectPath path)
         {
+            if (path.ToString().StartsWith(Root.ToString()))
+                return path.ToString();
             if (!path.ToString().StartsWith("./"))
                 throw new ArgumentException("A partial path has to start with ./");
-
             if (Root == "/")
                 return path.ToString().Substring(1);
-
             if (path.ToString() == "./")
                 return Root.ToString();
             return Root + path.ToString().Substring(1);
-
         }
 
         public async Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
