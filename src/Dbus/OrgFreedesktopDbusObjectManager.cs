@@ -22,7 +22,7 @@ namespace Dbus
 
         public ObjectPath Root { get; }
 
-        public string AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
+        public ObjectPath AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
         {
             var fullPath = buildFullPath(path);
             var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
@@ -33,17 +33,19 @@ namespace Dbus
             return fullPath;
         }
 
-        private string buildFullPath(ObjectPath path)
+        private ObjectPath buildFullPath(ObjectPath path)
         {
-            if (path.ToString().StartsWith(Root.ToString()))
-                return path.ToString();
-            if (!path.ToString().StartsWith("./"))
+            var rootString = Root.ToString();
+            var pathString = path.ToString();
+            if (pathString.StartsWith(rootString))
+                return path;
+            if (!pathString.StartsWith("./"))
                 throw new ArgumentException("A partial path has to start with ./");
-            if (Root == "/")
-                return path.ToString().Substring(1);
-            if (path.ToString() == "./")
-                return Root.ToString();
-            return Root + path.ToString().Substring(1);
+            if (rootString == "/")
+                return pathString.Substring(1);
+            if (pathString == "./")
+                return rootString;
+            return rootString + pathString.Substring(1);
         }
 
         public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
