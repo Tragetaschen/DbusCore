@@ -48,11 +48,8 @@ namespace Dbus
             return rootString + pathString.Substring(1);
         }
 
-        public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
-        {
-            await Task.Delay(1000);
-            return managedObjects;
-        }
+        public virtual Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
+            => Task.FromResult<IDictionary<ObjectPath, List<IProxy>>>(managedObjects);
 
         public void Dispose()
         {
