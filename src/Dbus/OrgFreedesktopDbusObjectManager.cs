@@ -6,9 +6,6 @@ namespace Dbus
 {
     public abstract class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
     {
-
-        public ObjectPath Root { get; }
-
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
 
@@ -23,18 +20,16 @@ namespace Dbus
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
         public event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved { add { } remove { } }
 
+        public ObjectPath Root { get; }
+
         public string AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
         {
             var fullPath = buildFullPath(path);
             var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
             if (managedObjects.ContainsKey(fullPath))
-            {
-                managedObjects[fullPath].Add((proxy));
-            }
+                managedObjects[fullPath].Add(proxy);
             else
-            {
-                managedObjects.Add(fullPath, new List<IProxy>() { (proxy) });
-            }
+                managedObjects.Add(fullPath, new List<IProxy>() { proxy });
             return fullPath;
         }
 
@@ -51,7 +46,7 @@ namespace Dbus
             return Root + path.ToString().Substring(1);
         }
 
-        public async Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
+        public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
         {
             await Task.Delay(1000);
             return managedObjects;
@@ -60,12 +55,8 @@ namespace Dbus
         public void Dispose()
         {
             foreach (var proxies in managedObjects)
-            {
                 foreach (var proxy in proxies.Value)
-                {
                     proxy.Dispose();
-                }
-            }
         }
     }
 }
