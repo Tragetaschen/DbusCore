@@ -4,7 +4,7 @@ namespace Dbus
 {
     public class MessageHeader
     {
-        public MessageHeader(byte[] headerBytes, int[] controlBytes)
+        public unsafe MessageHeader(byte[] headerBytes, int* controlBytes)
         {
             BodySignature = "";
             var index = 0;

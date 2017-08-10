@@ -1,18 +1,17 @@
 ﻿using System;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
 namespace Dbus
 {
-    public static class EndPointFactory
+    public partial class Connection
     {
-        private const string unix = "unix:";
-        private const string pathKey = "path=";
-        private const string abstractKey = "abstract=";
-
-        public static EndPoint Create(string address)
+        private static byte[] createSockaddr(string address)
         {
+            const string unix = "unix:";
+            const string pathKey = "path=";
+            const string abstractKey = "abstract=";
+
             if (!address.StartsWith(unix))
                 throw new InvalidOperationException("Only unix sockets are supported");
 
@@ -33,20 +32,13 @@ namespace Dbus
                 throw new InvalidOperationException("Unsupported address format");
 
             var pathBytes = Encoding.ASCII.GetBytes(address);
-            var result = new SocketAddress(AddressFamily.Unix, startIndex + pathBytes.Length);
+            var result = new byte[startIndex + pathBytes.Length];
+
+            result[0] = (byte)AddressFamily.Unix;
             for (var i = 0; i < pathBytes.Length; ++i)
                 result[startIndex + i] = pathBytes[i];
 
-            return new systemBusEndPoint(result);
-        }
-
-        private class systemBusEndPoint : EndPoint
-        {
-            private readonly SocketAddress address;
-
-            public systemBusEndPoint(SocketAddress address) => this.address = address;
-
-            public override SocketAddress Serialize() => address;
+            return result;
         }
     }
 }

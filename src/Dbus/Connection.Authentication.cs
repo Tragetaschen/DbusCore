@@ -1,47 +1,60 @@
 ﻿using System;
-using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Dbus
 {
     public partial class Connection
     {
-        private static async Task authenticate(Stream stream)
+        private const string newline = "\r\n";
+
+        private static void authenticate(int socketHandle)
         {
-            using (var writer = new StreamWriter(stream, Encoding.ASCII, 32, true))
-            using (var reader = new StreamReader(stream, Encoding.ASCII, false, 32, true))
-            {
-                writer.NewLine = "\r\n";
+            var authExternal = "\0AUTH EXTERNAL ";
 
-                await writer.WriteAsync("\0AUTH EXTERNAL ").ConfigureAwait(false);
+            var uid = UnsafeNativeMethods.getuid();
+            var stringUid = $"{uid}";
+            var uidBytes = Encoding.ASCII.GetBytes(stringUid);
+            foreach (var b in uidBytes)
+                authExternal += $"{b:X}";
+            writeLine(socketHandle, authExternal);
 
-                var uid = getuid();
-                var stringUid = $"{uid}";
-                var uidBytes = Encoding.ASCII.GetBytes(stringUid);
-                foreach (var b in uidBytes)
-                    await writer.WriteAsync($"{b:X}").ConfigureAwait(false);
+            var line = readLine(socketHandle);
+            if (!line.StartsWith("OK "))
+                throw new InvalidOperationException("Authentication failed: " + line);
 
-                await writer.WriteLineAsync().ConfigureAwait(false);
-                await writer.FlushAsync().ConfigureAwait(false);
+            writeLine(socketHandle, "NEGOTIATE_UNIX_FD");
 
-                var response = await reader.ReadLineAsync().ConfigureAwait(false);
-                if (!response.StartsWith("OK "))
-                    throw new InvalidOperationException("Authentication failed: " + response);
+            line = readLine(socketHandle);
+            if (line != "AGREE_UNIX_FD")
+                throw new InvalidOperationException("Missing support for unix file descriptors");
 
-                await writer.WriteLineAsync("NEGOTIATE_UNIX_FD").ConfigureAwait(false);
-                await writer.FlushAsync().ConfigureAwait(false);
-                response = await reader.ReadLineAsync().ConfigureAwait(false);
-                if (response != "AGREE_UNIX_FD")
-                    throw new InvalidOperationException("Missing support for unix file descriptors");
-
-                await writer.WriteLineAsync("BEGIN").ConfigureAwait(false);
-                await writer.FlushAsync().ConfigureAwait(false);
-            }
+            writeLine(socketHandle, "BEGIN");
         }
 
-        [DllImport("libc")]
-        private static extern int getuid();
+
+        private static void writeLine(int socketHandle, string contents)
+        {
+            contents += newline;
+            var sendBytes = Encoding.ASCII.GetBytes(contents);
+            var sendResult = UnsafeNativeMethods.send(socketHandle, sendBytes, sendBytes.Length, 0);
+            if (sendResult <= 0)
+                throw new InvalidOperationException("Could not send");
+        }
+
+        private static string readLine(int socketHandle)
+        {
+            var line = "";
+            var receiveByte = new byte[1];
+            while (!line.EndsWith(newline))
+            {
+                var result = UnsafeNativeMethods.recv(socketHandle, receiveByte, 1, 0);
+                if (result != 1)
+                    throw new InvalidOperationException("recv failed: " + result);
+                line += Encoding.ASCII.GetString(receiveByte);
+            }
+
+            var toReturn = line.Substring(0, line.Length - newline.Length);
+            return toReturn;
+        }
     }
 }

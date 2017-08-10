@@ -1,57 +1,42 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace Dbus
 {
     public partial class Connection
     {
-        [DllImport("libc")]
-        private static extern int recvmsg(IntPtr sockfd, [In] ref msghdr buf, int flags);
-
-        private unsafe struct iovec
-        {
-            public byte* iov_base;
-            public int iov_len;
-        }
-
-        private unsafe struct msghdr
-        {
-            public IntPtr name;
-            public int namelen;
-            public iovec* iov;
-            public int iovlen;
-            public int[] control;
-            public int controllen;
-            public int flags;
-        }
-
         private unsafe void receive()
         {
-            var fixedLengthHeader = new byte[16]; // header up until the array length
-            var token = receiveCts.Token;
-            var control = new int[16];
+            const int fixedLengthHeaderLength = 16;
+            const int controlLength = 16;
+            const int iovecsLength = 3;
+
+            var fixedLengthHeader = new byte[fixedLengthHeaderLength]; // header up until the array length
+            var control = stackalloc int[controlLength];
+            var iovecs = stackalloc UnsafeNativeMethods.iovec[iovecsLength];
 
             var hasValidFixedHeader = false;
 
-            while (!token.IsCancellationRequested)
+            while (true)
             {
                 if (!hasValidFixedHeader)
                     fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
                     {
-                        var iovecs = stackalloc iovec[1];
                         iovecs[0].iov_base = fixedLengthHeaderP;
-                        iovecs[0].iov_len = 16;
+                        iovecs[0].iov_len = fixedLengthHeaderLength;
 
-                        var msg = new msghdr
+                        var msg = new UnsafeNativeMethods.msghdr
                         {
                             iov = iovecs,
                             iovlen = 1,
-                            controllen = control.Length * sizeof(int),
+                            controllen = controlLength * sizeof(int),
                             control = control
                         };
-                        if (recvmsg(socketHandle, ref msg, 0) <= 0)
+                        var length = UnsafeNativeMethods.recvmsg(socketHandle, ref msg, 0);
+                        if (length == 0) // socket shutdown
                             return;
+                        if (length < 0) // read error
+                            throw new InvalidOperationException("recvmsg failed with " + length);
                     }
 
                 var index = 0;
@@ -74,24 +59,25 @@ namespace Dbus
                 fixed (byte* bodyP = bodyBytes)
                 fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
                 {
-                    var iovecs = stackalloc iovec[3];
                     iovecs[0].iov_base = headerP;
                     iovecs[0].iov_len = receivedArrayLength;
                     iovecs[1].iov_base = bodyP;
                     iovecs[1].iov_len = bodyLength;
                     iovecs[2].iov_base = fixedLengthHeaderP;
-                    iovecs[2].iov_len = 16;
-                    var nextMsg = new msghdr
+                    iovecs[2].iov_len = fixedLengthHeaderLength;
+                    var nextMsg = new UnsafeNativeMethods.msghdr
                     {
                         iov = iovecs,
-                        iovlen = 3,
+                        iovlen = iovecsLength,
                         control = control,
-                        controllen = control.Length * sizeof(int),
+                        controllen = controlLength * sizeof(int),
                     };
-                    var len = recvmsg(socketHandle, ref nextMsg, 0);
-                    if (len <= 0)
+                    var length = UnsafeNativeMethods.recvmsg(socketHandle, ref nextMsg, 0);
+                    if (length == 0) // socket shutdown
                         return;
-                    hasValidFixedHeader = len == receivedArrayLength + bodyLength + fixedLengthHeader.Length;
+                    if (length < 0) // read error
+                        throw new InvalidOperationException("recvmsg failed with " + length);
+                    hasValidFixedHeader = length == receivedArrayLength + bodyLength + fixedLengthHeader.Length;
                 }
 
                 var header = new MessageHeader(headerBytes, control);

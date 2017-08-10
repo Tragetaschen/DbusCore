@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,8 +10,7 @@ namespace Dbus
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
-        private readonly IntPtr socketHandle;
-        private readonly Stream stream;
+        private readonly int socketHandle;
         private readonly CancellationTokenSource receiveCts;
         private readonly Task receiveTask;
 
@@ -22,10 +18,9 @@ namespace Dbus
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
-        private Connection(IntPtr socketHandle, Stream stream)
+        private Connection(int socketHandle)
         {
             this.socketHandle = socketHandle;
-            this.stream = stream;
             semaphoreSend = new SemaphoreSlim(1);
             receiveCts = new CancellationTokenSource();
 
@@ -39,15 +34,17 @@ namespace Dbus
 
         public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
         {
-            var endPoint = EndPointFactory.Create(options.Address);
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, 0);
-            await socket.ConnectAsync(endPoint).ConfigureAwait(false);
-            var stream = new NetworkStream(socket, ownsSocket: true);
+            var sockaddr = createSockaddr(options.Address);
+            var socketHandle = UnsafeNativeMethods.socket((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
+            if (socketHandle < 0)
+                throw new InvalidOperationException("Opening the socket failed");
+            var connectResult = UnsafeNativeMethods.connect(socketHandle, sockaddr, sockaddr.Length);
+            if (connectResult < 0)
+                throw new InvalidOperationException("Connecting the socket failed");
 
-            await authenticate(stream).ConfigureAwait(false);
+            await Task.Run(() => authenticate(socketHandle)).ConfigureAwait(false);
 
-            var socketHandle = getSocketHandle(socket);
-            var result = new Connection(socketHandle, stream);
+            var result = new Connection(socketHandle);
 
             try
             {
@@ -61,25 +58,6 @@ namespace Dbus
             }
 
             return result;
-        }
-
-        // TODO: Only support netstandard 2.0 and beyond
-        private static IntPtr getSocketHandle(Socket socket)
-        {
-            // netstandard up until 1.6 doesn't provide the Handle property
-            // or any other way to get the raw socket handle.
-            // Use reflection...
-            var type = socket.GetType().GetTypeInfo();
-            var property = type.GetProperty("Handle");
-            if (property != null)
-                // ... to access the existing property on full framework...
-                return (IntPtr)property.GetValue(socket);
-            else
-            {
-                // ... or access the private(!) field of the .NET Core's implementation
-                var field = type.GetField("_handle", BindingFlags.Instance | BindingFlags.NonPublic);
-                return ((SafeHandle)field.GetValue(socket)).DangerousGetHandle();
-            }
         }
 
         private static void addHeader(List<byte> buffer, ref int index, ObjectPath path)
@@ -123,7 +101,9 @@ namespace Dbus
             await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
             {
-                await stream.WriteAsync(messageArray, 0, messageArray.Length).ConfigureAwait(false);
+                var sendResult = UnsafeNativeMethods.send(socketHandle, messageArray, messageArray.Length, 0);
+                if (sendResult < 0)
+                    throw new InvalidOperationException("Send failed");
             }
             finally
             {
@@ -135,8 +115,9 @@ namespace Dbus
         {
             orgFreedesktopDbus.Dispose();
             receiveCts.Cancel();
-            stream.Dispose();
+            UnsafeNativeMethods.shutdown(socketHandle, 2);
             receiveTask.Wait();
+            UnsafeNativeMethods.close(socketHandle);
         }
 
         private class deregistration : IDisposable
