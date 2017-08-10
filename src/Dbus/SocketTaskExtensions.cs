@@ -1,7 +1,7 @@
 ﻿#if FULL_FRAMEWORK
 /*
  cf. ("copied from" ;-))
- https://github.com/dotnet/corefx/blob/bffef76f6af208e2042a2f27bc081ee908bb390b/src/System.Net.Sockets/tests/FunctionalTests/ConnectAsync.cs
+ https://github.com/dotnet/corefx/blob/release/1.1.0/src/System.Net.Sockets/src/System/Net/Sockets/SocketTaskExtensions.cs#L31
  */
 
 using System;
@@ -13,21 +13,12 @@ namespace Dbus
 {
     internal static class SocketTaskExtensions
     {
-        public static Task ConnectAsync(this Socket socket, EndPoint remoteEP)
-        {
-            var tcs = new TaskCompletionSource<bool>(socket);
-            socket.BeginConnect(remoteEP, iar =>
-            {
-                var innerTcs = (TaskCompletionSource<bool>)iar.AsyncState;
-                try
-                {
-                    ((Socket)innerTcs.Task.AsyncState).EndConnect(iar);
-                    innerTcs.TrySetResult(true);
-                }
-                catch (Exception e) { innerTcs.TrySetException(e); }
-            }, tcs);
-            return tcs.Task;
-        }
+        public static Task ConnectAsync(this Socket socket, EndPoint remoteEndPoint)
+            => Task.Factory.FromAsync(
+                (targetEndPoint, callback, state) => ((Socket)state).BeginConnect(targetEndPoint, callback, state),
+                asyncResult => ((Socket)asyncResult.AsyncState).EndConnect(asyncResult),
+                remoteEndPoint,
+                state: socket);
     }
 }
 #endif
