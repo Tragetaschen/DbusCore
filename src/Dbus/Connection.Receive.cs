@@ -9,11 +9,9 @@ namespace Dbus
         {
             const int fixedLengthHeaderLength = 16;
             const int controlLength = 16;
-            const int iovecsLength = 3;
 
             var fixedLengthHeader = new byte[fixedLengthHeaderLength]; // header up until the array length
             var control = stackalloc int[controlLength];
-            var iovecs = stackalloc UnsafeNativeMethods.iovec[iovecsLength];
 
             var hasValidFixedHeader = false;
 
@@ -21,23 +19,10 @@ namespace Dbus
             {
                 if (!hasValidFixedHeader)
                     fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
-                    {
-                        iovecs[0].iov_base = fixedLengthHeaderP;
-                        iovecs[0].iov_len = fixedLengthHeaderLength;
-
-                        var msg = new UnsafeNativeMethods.msghdr
-                        {
-                            iov = iovecs,
-                            iovlen = 1,
-                            controllen = controlLength * sizeof(int),
-                            control = control
-                        };
-                        var length = UnsafeNativeMethods.recvmsg(socketHandle, ref msg, 0);
-                        if (length == 0) // socket shutdown
-                            return;
-                        if (length < 0) // read error
-                            throw new InvalidOperationException("recvmsg failed with " + length);
-                    }
+                        socketOperations.ReceiveMessage(
+                            fixedLengthHeaderP, fixedLengthHeaderLength,
+                            control, controlLength
+                        );
 
                 var index = 0;
                 var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
@@ -58,27 +43,12 @@ namespace Dbus
                 fixed (byte* headerP = headerBytes)
                 fixed (byte* bodyP = bodyBytes)
                 fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
-                {
-                    iovecs[0].iov_base = headerP;
-                    iovecs[0].iov_len = receivedArrayLength;
-                    iovecs[1].iov_base = bodyP;
-                    iovecs[1].iov_len = bodyLength;
-                    iovecs[2].iov_base = fixedLengthHeaderP;
-                    iovecs[2].iov_len = fixedLengthHeaderLength;
-                    var nextMsg = new UnsafeNativeMethods.msghdr
-                    {
-                        iov = iovecs,
-                        iovlen = iovecsLength,
-                        control = control,
-                        controllen = controlLength * sizeof(int),
-                    };
-                    var length = UnsafeNativeMethods.recvmsg(socketHandle, ref nextMsg, 0);
-                    if (length == 0) // socket shutdown
-                        return;
-                    if (length < 0) // read error
-                        throw new InvalidOperationException("recvmsg failed with " + length);
-                    hasValidFixedHeader = length == receivedArrayLength + bodyLength + fixedLengthHeader.Length;
-                }
+                    hasValidFixedHeader = socketOperations.ReceiveMessage(
+                        headerP, receivedArrayLength,
+                        bodyP, bodyLength,
+                        fixedLengthHeaderP, fixedLengthHeaderLength,
+                        control, controlLength
+                    );
 
                 var header = new MessageHeader(headerBytes, control);
 

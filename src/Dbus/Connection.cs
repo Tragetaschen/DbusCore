@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,7 +9,6 @@ namespace Dbus
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
-        private readonly int socketHandle;
         private readonly CancellationTokenSource receiveCts;
         private readonly Task receiveTask;
 
@@ -18,11 +16,15 @@ namespace Dbus
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
-        private Connection(int socketHandle)
+        private readonly ISocketOperations socketOperations;
+
+        private Connection(ISocketOperations socketOperations)
         {
-            this.socketHandle = socketHandle;
+            this.socketOperations = socketOperations;
+
             semaphoreSend = new SemaphoreSlim(1);
             receiveCts = new CancellationTokenSource();
+
 
             receiveTask = Task.Factory.StartNew(
                 receive,
@@ -35,16 +37,11 @@ namespace Dbus
         public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
         {
             var sockaddr = createSockaddr(options.Address);
-            var socketHandle = UnsafeNativeMethods.socket((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
-            if (socketHandle < 0)
-                throw new InvalidOperationException("Opening the socket failed");
-            var connectResult = UnsafeNativeMethods.connect(socketHandle, sockaddr, sockaddr.Length);
-            if (connectResult < 0)
-                throw new InvalidOperationException("Connecting the socket failed");
+            var socketOperations = createSocketOperations(sockaddr);
 
-            await Task.Run(() => authenticate(socketHandle)).ConfigureAwait(false);
+            await Task.Run(() => authenticate(socketOperations)).ConfigureAwait(false);
 
-            var result = new Connection(socketHandle);
+            var result = new Connection(socketOperations);
 
             try
             {
@@ -58,6 +55,14 @@ namespace Dbus
             }
 
             return result;
+        }
+
+        private static ISocketOperations createSocketOperations(byte[] sockaddr)
+        {
+            if (IntPtr.Size == 4)
+                return new SocketOperations32(sockaddr);
+            else
+                return new SocketOperations64(sockaddr);
         }
 
         private static void addHeader(List<byte> buffer, ref int index, ObjectPath path)
@@ -101,9 +106,7 @@ namespace Dbus
             await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
             {
-                var sendResult = UnsafeNativeMethods.send(socketHandle, messageArray, messageArray.Length, 0);
-                if (sendResult < 0)
-                    throw new InvalidOperationException("Send failed");
+                socketOperations.Send(messageArray);
             }
             finally
             {
@@ -115,9 +118,14 @@ namespace Dbus
         {
             orgFreedesktopDbus.Dispose();
             receiveCts.Cancel();
-            UnsafeNativeMethods.shutdown(socketHandle, 2);
-            receiveTask.Wait();
-            UnsafeNativeMethods.close(socketHandle);
+            socketOperations.Shutdown();
+            try
+            {
+                receiveTask.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            { }
+            socketOperations.Dispose();
         }
 
         private class deregistration : IDisposable
