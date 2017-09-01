@@ -55,7 +55,7 @@ namespace Dbus.CodeGenerator
                     return (
                         "h",
                         @"var " + name + @"_index = global::Dbus.Decoder.GetInt32(" + body + ", ref " + index + @");
-" + indent + @"var " + name + @" = receivedMessage.Header.UnixFds[result_index];"
+" + indent + @"var " + name + @" = " + header + ".UnixFds[" + name + @"_index];"
                     );
                 else
                     return buildFromConstructor(name, type, indent, body, index);
