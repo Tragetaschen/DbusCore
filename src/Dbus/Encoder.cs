@@ -170,6 +170,18 @@ namespace Dbus
             Add(buffer, ref index, value);
         }
 
+        public static void AddVariant(List<byte> buffer, ref int index, ushort value)
+        {
+            Add(buffer, ref index, (Signature)"q");
+            Add(buffer, ref index, value);
+        }
+
+        public static void AddVariant(List<byte> buffer, ref int index, IEnumerable<string> value)
+        {
+            Add(buffer, ref index, (Signature)"as");
+            Add(buffer, ref index, value, Add);
+        }
+
         public static void AddVariant(List<byte> buffer, ref int index, object value)
         {
             switch (value)
@@ -187,6 +199,12 @@ namespace Dbus
                     AddVariant(buffer, ref index, v);
                     break;
                 case Signature v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case ushort v:
+                    AddVariant(buffer, ref index, v);
+                    break;
+                case IEnumerable<string> v:
                     AddVariant(buffer, ref index, v);
                     break;
                 default:
