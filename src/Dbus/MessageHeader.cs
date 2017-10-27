@@ -1,11 +1,15 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Dbus
 {
     public class MessageHeader
     {
-        public unsafe MessageHeader(byte[] headerBytes, int* controlBytes)
+        private readonly ISocketOperations socketOperations;
+
+        public unsafe MessageHeader(ISocketOperations socketOperations, byte[] headerBytes, int* controlBytes)
         {
+            this.socketOperations = socketOperations;
             BodySignature = "";
             var index = 0;
             while (index < headerBytes.Length)
@@ -53,7 +57,6 @@ namespace Dbus
                 Alignment.Advance(ref index, 8);
             }
         }
-
         public ObjectPath Path { get; }
         public string InterfaceName { get; }
         public string Member { get; }
@@ -66,5 +69,8 @@ namespace Dbus
 
         public override string ToString()
             => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
+
+        public Stream GetStreamFromFd(int index) =>
+            new UnixFdStream(UnixFds[index], socketOperations);
     }
 }

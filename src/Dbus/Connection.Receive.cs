@@ -50,7 +50,7 @@ namespace Dbus
                         control, controlLength
                     );
 
-                var header = new MessageHeader(headerBytes, control);
+                var header = new MessageHeader(socketOperations, headerBytes, control);
 
                 switch (messageType)
                 {
