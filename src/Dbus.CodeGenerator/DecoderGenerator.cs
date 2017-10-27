@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -56,6 +57,12 @@ namespace Dbus.CodeGenerator
                         "h",
                         @"var " + name + @"_index = global::Dbus.Decoder.GetInt32(" + body + ", ref " + index + @");
 " + indent + @"var " + name + @" = " + header + ".UnixFds[" + name + @"_index];"
+                    );
+                else if (type == typeof(Stream))
+                    return (
+                        "h",
+                        @"var " + name + @"_index = global::Dbus.Decoder.GetInt32(" + body + ", ref " + index + @");
+" + indent + @"var " + name + @" = " + header + ".GetStreamFromFd(" + name + @"_index);"
                     );
                 else
                     return buildFromConstructor(name, type, indent, body, index);

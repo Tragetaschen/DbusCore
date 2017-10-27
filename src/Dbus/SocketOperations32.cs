@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -8,15 +9,16 @@ namespace Dbus
 {
     public class SocketOperations32 : SocketOperationsBase, ISocketOperations
     {
-        [DllImport("libc")]
-        private static extern int connect(int sockfd, [In] byte[] addr, NativeInt addrlen);
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern int connect(SafeHandle sockfd, [In] byte[] addr, NativeInt addrlen);
 
         public SocketOperations32(byte[] sockaddr)
             : base(sockaddr)
         {
             var connectResult = connect(Handle, sockaddr, sockaddr.Length);
             if (connectResult < 0)
-                throw new InvalidOperationException("Connecting the socket failed");
+                throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
         public void WriteLine(string contents)
@@ -26,15 +28,15 @@ namespace Dbus
             Send(sendBytes);
         }
 
-        [DllImport("libc")]
-        private static extern NativeInt recv(int sockfd, byte[] buf, NativeInt len, int flags);
+        [DllImport("libc", SetLastError = true)]
+        private static extern unsafe NativeInt recv(SafeHandle sockfd, byte* buf, NativeInt len, int flags);
         public string ReadLine()
         {
             var line = "";
             var receiveByte = new byte[1];
             while (!line.EndsWith(Newline))
             {
-                var result = recv(Handle, receiveByte, 1, 0);
+                var result = Read(Handle, receiveByte, 0, 1);
                 if (result != 1)
                     throw new InvalidOperationException("recv failed: " + result);
                 line += Encoding.ASCII.GetString(receiveByte);
@@ -44,17 +46,42 @@ namespace Dbus
             return toReturn;
         }
 
-        [DllImport("libc")]
-        private static extern NativeInt send(int sockfd, [In] byte[] buf, NativeInt len, int flags);
+        public unsafe int Read(SafeHandle sockfd, byte[] buffer, int offset, int count)
+        {
+            fixed (byte* bufferP = buffer)
+            {
+                var readBytes = recv(sockfd, bufferP + offset, count, 0);
+                if (readBytes >= 0)
+                    return (int)readBytes;
+                else
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+            }
+        }
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern unsafe NativeInt send(SafeHandle sockfd, [In] byte* buf, NativeInt len, int flags);
         public void Send(byte[] messageArray)
         {
-            var sendResult = send(Handle, messageArray, messageArray.Length, 0);
+            var sendResult = Send(Handle, messageArray, 0, messageArray.Length);
             if (sendResult < 0)
-                throw new InvalidOperationException("Send failed");
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
+
+        public unsafe int Send(SafeHandle sockfd, byte[] buffer, int offset, int count)
+        {
+            fixed (byte* bufferP = buffer)
+            {
+                var sendResult = send(sockfd, bufferP + offset, count, 0);
+                if (sendResult < 0)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                return (int)sendResult;
+            }
         }
 
         [DllImport("libc")]
-        private static extern int recvmsg(int sockfd, [In] ref msghdr buf, int flags);
+        private static extern int recvmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
         public unsafe void ReceiveMessage(
             byte* fixedLengthHeader, int fixedLengthHeaderLength,
             int* control, int controlLength
