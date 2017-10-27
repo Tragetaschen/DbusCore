@@ -26,10 +26,13 @@ namespace Dbus
         {
             var fullPath = buildFullPath(path);
             var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
-            if (managedObjects.ContainsKey(fullPath))
-                managedObjects[fullPath].Add(proxy);
-            else
-                managedObjects.Add(fullPath, new List<IProxy>() { proxy });
+            lock (managedObjects)
+            {
+                if (managedObjects.ContainsKey(fullPath))
+                    managedObjects[fullPath].Add(proxy);
+                else
+                    managedObjects.Add(fullPath, new List<IProxy>() { proxy });
+            }
             return fullPath;
         }
 
