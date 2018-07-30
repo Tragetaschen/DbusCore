@@ -140,7 +140,7 @@ namespace Dbus.CodeGenerator
                 //var function = decoder(name, type, indent, name + "_b", name + "_i");
                 return (
                     decoder.Signature,
-                    "(byte[] " + name + "_b, ref int " + name + @"_i) =>
+                    "(global::System.ReadOnlySpan<byte> " + name + "_b, ref int " + name + @"_i) =>
 " + indent + @"{
 " + decoder.Result + @"
     " + indent + "return " + name + @"_inner;
