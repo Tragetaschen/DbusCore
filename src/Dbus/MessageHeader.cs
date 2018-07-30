@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using DotNetCross.NativeInts;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Dbus
@@ -44,7 +45,15 @@ namespace Dbus
                         break;
                     case 9:
                         var numberOfFds = (uint)value;
-                        var receivedNumberOfFds = (controlBytes[0] - 12) / sizeof(int);
+                        var sizeofStructCmsghdr = // CMSG_LEN(0) = sizeof(struct cmsghdr)
+                            sizeof(nuint) // size_t cmsg_len (not! socklen_t)
+                            + sizeof(int) // int cmsg_level
+                            + sizeof(int) // int cmsg_type
+                        ;
+                        var receivedNumberOfFds = (
+                            ((nint*)controlBytes)[0] // size_t cmsg_len (not! socklen_t)
+                            - sizeofStructCmsghdr
+                        ) / sizeof(int);
                         System.Diagnostics.Debug.Assert(numberOfFds == receivedNumberOfFds);
                         UnixFds = new SafeHandle[receivedNumberOfFds];
                         for (var i = 0; i < receivedNumberOfFds; ++i)
