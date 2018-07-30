@@ -13,8 +13,13 @@ namespace Dbus.CodeGenerator
         public static string Run()
         {
             var entry = Assembly.GetEntryAssembly();
-            var candidateTypes = entry
-                .GetTypes()
+            var alwaysIncludeTypes = new[]
+            {
+                typeof(IOrgFreedesktopDbus),
+                typeof(IOrgFreedesktopDbusObjectManager)
+            };
+            var candidateTypes = alwaysIncludeTypes
+                .Concat(entry.GetTypes())
                 .Concat(entry.GetReferencedAssemblies()
                     .Select(x => Assembly.Load(x))
                     .SelectMany(x => x.GetTypes())
@@ -27,7 +32,7 @@ namespace Dbus.CodeGenerator
             var services = new List<string>();
             var result = new StringBuilder();
 
-            foreach (var type in candidateTypes.OrderBy(x => x.FullName))
+            foreach (var type in candidateTypes.Distinct().OrderBy(x => x.FullName))
             {
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
                 if (consume != null)
