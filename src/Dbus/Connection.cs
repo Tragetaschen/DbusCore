@@ -16,9 +16,9 @@ namespace Dbus
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
-        private readonly ISocketOperations socketOperations;
+        private readonly SocketOperations socketOperations;
 
-        private Connection(ISocketOperations socketOperations)
+        private Connection(SocketOperations socketOperations)
         {
             this.socketOperations = socketOperations;
 
@@ -37,7 +37,7 @@ namespace Dbus
         public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
         {
             var sockaddr = createSockaddr(options.Address);
-            var socketOperations = createSocketOperations(sockaddr);
+            var socketOperations = new SocketOperations(sockaddr);
 
             await Task.Run(() => authenticate(socketOperations)).ConfigureAwait(false);
 
@@ -55,14 +55,6 @@ namespace Dbus
             }
 
             return result;
-        }
-
-        private static ISocketOperations createSocketOperations(byte[] sockaddr)
-        {
-            if (IntPtr.Size == 4)
-                return new SocketOperations32(sockaddr);
-            else
-                return new SocketOperations64(sockaddr);
         }
 
         private static void addHeader(List<byte> buffer, ref int index, ObjectPath path)

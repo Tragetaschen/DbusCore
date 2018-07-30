@@ -7,9 +7,9 @@ namespace Dbus
     internal class UnixFdStream : Stream
     {
         private readonly SafeHandle safeHandle;
-        private readonly ISocketOperations socketOperations;
+        private readonly SocketOperations socketOperations;
 
-        public UnixFdStream(SafeHandle safeHandle, ISocketOperations socketOperations)
+        public UnixFdStream(SafeHandle safeHandle, SocketOperations socketOperations)
         {
             this.safeHandle = safeHandle;
             this.socketOperations = socketOperations;

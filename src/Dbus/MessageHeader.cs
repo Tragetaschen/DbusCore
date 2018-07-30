@@ -5,9 +5,9 @@ namespace Dbus
 {
     public class MessageHeader
     {
-        private readonly ISocketOperations socketOperations;
+        private readonly SocketOperations socketOperations;
 
-        public unsafe MessageHeader(ISocketOperations socketOperations, byte[] headerBytes, int* controlBytes)
+        public unsafe MessageHeader(SocketOperations socketOperations, byte[] headerBytes, int* controlBytes)
         {
             this.socketOperations = socketOperations;
             BodySignature = "";

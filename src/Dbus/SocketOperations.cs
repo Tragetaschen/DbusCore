@@ -1,48 +1,79 @@
-﻿using System;
+﻿using DotNetCross.NativeInts;
+using System;
 using System.ComponentModel;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using NativeInt = System.Int32;
-
 namespace Dbus
 {
-    public class SocketOperations32 : SocketOperationsBase, ISocketOperations
+    public class SocketOperations : IDisposable
     {
+        private const string newline = "\r\n";
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern int connect(SafeHandle sockfd, [In] byte[] addr, NativeInt addrlen);
+        private readonly SafeHandle handle;
 
-        public SocketOperations32(byte[] sockaddr)
-            : base(sockaddr)
+        public SocketOperations(byte[] sockaddr)
         {
-            var connectResult = connect(Handle, sockaddr, sockaddr.Length);
+            var fd = socket((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
+            if (fd < 0)
+                throw new InvalidOperationException("Opening the socket failed");
+            handle = new ReceivedFileDescriptorSafeHandle(fd);
+
+            var connectResult = connect(handle, sockaddr, sockaddr.Length);
             if (connectResult < 0)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
+        [DllImport("libc")]
+        private static extern int socket(int domain, int type, int protocol);
+
+        [DllImport("libc")]
+        private static extern int shutdown(SafeHandle sockfd, int how);
+        public void Shutdown() => shutdown(handle, 2);
+
+        public void Dispose() => handle.Dispose();
+
+        [DllImport("libc")]
+        private static extern int getuid();
+        public int Uid => getuid();
+
+        [DllImport("libc")]
+        private static extern int fcntl(SafeHandle sockfd, int cmd, int flags);
+        [DllImport("libc")]
+        private static extern int fcntl(SafeHandle sockfd, int cmd);
+        public void SetNonblocking(SafeHandle sockfd)
+        {
+            var flags = fcntl(sockfd, 3/*f_getfl*/);
+            flags &= ~0x800/*o_nonblock*/;
+            fcntl(sockfd, 4/*f_setfl*/, flags);
+        }
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern int connect(SafeHandle sockfd, [In] byte[] addr, nint addrlen);
+
         public void WriteLine(string contents)
         {
-            contents += Newline;
+            contents += newline;
             var sendBytes = Encoding.ASCII.GetBytes(contents);
             Send(sendBytes);
         }
 
         [DllImport("libc", SetLastError = true)]
-        private static extern unsafe NativeInt recv(SafeHandle sockfd, byte* buf, NativeInt len, int flags);
+        private static extern unsafe nint recv(SafeHandle sockfd, byte* buf, nint len, int flags);
         public string ReadLine()
         {
             var line = "";
             var receiveByte = new byte[1];
-            while (!line.EndsWith(Newline))
+            while (!line.EndsWith(newline))
             {
-                var result = Read(Handle, receiveByte, 0, 1);
+                var result = Read(handle, receiveByte, 0, 1);
                 if (result != 1)
                     throw new InvalidOperationException("recv failed: " + result);
                 line += Encoding.ASCII.GetString(receiveByte);
             }
 
-            var toReturn = line.Substring(0, line.Length - Newline.Length);
+            var toReturn = line.Substring(0, line.Length - newline.Length);
             return toReturn;
         }
 
@@ -61,10 +92,10 @@ namespace Dbus
         }
 
         [DllImport("libc", SetLastError = true)]
-        private static extern unsafe NativeInt send(SafeHandle sockfd, [In] byte* buf, NativeInt len, int flags);
+        private static extern unsafe nint send(SafeHandle sockfd, [In] byte* buf, nint len, int flags);
         public void Send(byte[] messageArray)
         {
-            var sendResult = Send(Handle, messageArray, 0, messageArray.Length);
+            var sendResult = Send(handle, messageArray, 0, messageArray.Length);
             if (sendResult < 0)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
         }
@@ -100,7 +131,7 @@ namespace Dbus
                 controllen = controlLength * sizeof(int),
                 control = control
             };
-            var length = recvmsg(Handle, ref msg, 0);
+            var length = recvmsg(handle, ref msg, 0);
             if (length == 0)
                 throw new OperationCanceledException("Socket was shut down");
             if (length < 0)
@@ -130,7 +161,7 @@ namespace Dbus
                 control = control,
                 controllen = controlLength * sizeof(int),
             };
-            var length = recvmsg(Handle, ref nextMsg, 0);
+            var length = recvmsg(handle, ref nextMsg, 0);
             if (length == 0)
                 throw new OperationCanceledException("Socket was shut down");
             if (length < 0)
@@ -141,17 +172,17 @@ namespace Dbus
         private unsafe struct iovec
         {
             public byte* iov_base;
-            public NativeInt iov_len;
+            public nint iov_len;
         }
 
         private unsafe struct msghdr
         {
             public IntPtr name;
-            public NativeInt namelen;
+            public nint namelen;
             public iovec* iov;
-            public NativeInt iovlen;
+            public nint iovlen;
             public int* control;
-            public NativeInt controllen;
+            public nint controllen;
             public int flags;
         }
     }

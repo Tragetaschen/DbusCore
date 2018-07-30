@@ -5,4 +5,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DotNetCross.NativeInts" Version="0.1.0-alpha02" />
+  </ItemGroup>
+
 </Project>

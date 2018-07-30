@@ -5,7 +5,7 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private static void authenticate(ISocketOperations socketOperations)
+        private static void authenticate(SocketOperations socketOperations)
         {
             var authExternal = "\0AUTH EXTERNAL ";
 
