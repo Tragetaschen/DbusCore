@@ -5,24 +5,23 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private unsafe void receive()
+        private void receive()
         {
             const int fixedLengthHeaderLength = 16;
             const int controlLength = 16 * sizeof(int);
 
-            var fixedLengthHeader = new byte[fixedLengthHeaderLength]; // header up until the array length
-            var control = stackalloc byte[controlLength];
+            Span<byte> fixedLengthHeader = stackalloc byte[fixedLengthHeaderLength]; // header up until the array length
+            Span<byte> control = stackalloc byte[controlLength];
 
             var hasValidFixedHeader = false;
 
             while (true)
             {
                 if (!hasValidFixedHeader)
-                    fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
-                        socketOperations.ReceiveMessage(
-                            fixedLengthHeaderP, fixedLengthHeaderLength,
-                            control, controlLength
-                        );
+                    socketOperations.ReceiveMessage(
+                        fixedLengthHeader,
+                        control
+                    );
 
                 var index = 0;
                 var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
@@ -40,17 +39,14 @@ namespace Dbus
                 var headerBytes = new byte[receivedArrayLength];
                 var bodyBytes = new byte[bodyLength];
 
-                fixed (byte* headerP = headerBytes)
-                fixed (byte* bodyP = bodyBytes)
-                fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
-                    hasValidFixedHeader = socketOperations.ReceiveMessage(
-                        headerP, receivedArrayLength,
-                        bodyP, bodyLength,
-                        fixedLengthHeaderP, fixedLengthHeaderLength,
-                        control, controlLength
-                    );
+                hasValidFixedHeader = socketOperations.ReceiveMessage(
+                    headerBytes,
+                    bodyBytes,
+                    fixedLengthHeader,
+                    control
+                );
 
-                var header = new MessageHeader(socketOperations, headerBytes, new Span<byte>(control, controlLength));
+                var header = new MessageHeader(socketOperations, headerBytes, control);
 
                 switch (messageType)
                 {

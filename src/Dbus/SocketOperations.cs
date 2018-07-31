@@ -114,59 +114,69 @@ namespace Dbus
         [DllImport("libc")]
         private static extern int recvmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
         public unsafe void ReceiveMessage(
-            byte* fixedLengthHeader, int fixedLengthHeaderLength,
-            byte* control, int controlLength
+            Span<byte> fixedLengthHeader,
+            Span<byte> control
         )
         {
-            const int iovecsLength = 1;
-            var iovecs = stackalloc iovec[iovecsLength];
-
-            iovecs[0].iov_base = fixedLengthHeader;
-            iovecs[0].iov_len = fixedLengthHeaderLength;
-
-            var msg = new msghdr
+            fixed (byte* fixedLengthHeaderP = &fixedLengthHeader.GetPinnableReference())
+            fixed (byte* controlP = &control.GetPinnableReference())
             {
-                iov = iovecs,
-                iovlen = 1,
-                controllen = controlLength,
-                control = control
-            };
-            var length = recvmsg(handle, ref msg, 0);
-            if (length == 0)
-                throw new OperationCanceledException("Socket was shut down");
-            if (length < 0)
-                throw new InvalidOperationException("recvmsg failed with " + length);
+                const int iovecsLength = 1;
+                var iovecs = stackalloc iovec[iovecsLength];
+
+                iovecs[0].iov_base = fixedLengthHeaderP;
+                iovecs[0].iov_len = fixedLengthHeader.Length;
+
+                var msg = new msghdr
+                {
+                    iov = iovecs,
+                    iovlen = 1,
+                    controllen = control.Length,
+                    control = controlP
+                };
+                var length = recvmsg(handle, ref msg, 0);
+                if (length == 0)
+                    throw new OperationCanceledException("Socket was shut down");
+                if (length < 0)
+                    throw new InvalidOperationException("recvmsg failed with " + length);
+            }
         }
 
         public unsafe bool ReceiveMessage(
-            byte* header, int headerLength,
-            byte* body, int bodyLength,
-            byte* fixedLengthHeader, int fixedLengthHeaderLength,
-            byte* control, int controlLength
+            Span<byte> header,
+            Span<byte> body,
+            Span<byte> fixedLengthHeader,
+            Span<byte> control
         )
         {
-            const int iovecsLength = 3;
-            var iovecs = stackalloc iovec[iovecsLength];
-
-            iovecs[0].iov_base = header;
-            iovecs[0].iov_len = headerLength;
-            iovecs[1].iov_base = body;
-            iovecs[1].iov_len = bodyLength;
-            iovecs[2].iov_base = fixedLengthHeader;
-            iovecs[2].iov_len = fixedLengthHeaderLength;
-            var nextMsg = new msghdr
+            fixed (byte* headerP = &header.GetPinnableReference())
+            fixed (byte* bodyP = &body.GetPinnableReference())
+            fixed (byte* fixedLengthHeaderP = &fixedLengthHeader.GetPinnableReference())
+            fixed (byte* controlP = &control.GetPinnableReference())
             {
-                iov = iovecs,
-                iovlen = iovecsLength,
-                control = control,
-                controllen = controlLength,
-            };
-            var length = recvmsg(handle, ref nextMsg, 0);
-            if (length == 0)
-                throw new OperationCanceledException("Socket was shut down");
-            if (length < 0)
-                throw new InvalidOperationException("recvmsg failed with " + length);
-            return length == headerLength + bodyLength + fixedLengthHeaderLength;
+                const int iovecsLength = 3;
+                var iovecs = stackalloc iovec[iovecsLength];
+
+                iovecs[0].iov_base = headerP;
+                iovecs[0].iov_len = header.Length;
+                iovecs[1].iov_base = bodyP;
+                iovecs[1].iov_len = body.Length;
+                iovecs[2].iov_base = fixedLengthHeaderP;
+                iovecs[2].iov_len = fixedLengthHeader.Length;
+                var nextMsg = new msghdr
+                {
+                    iov = iovecs,
+                    iovlen = iovecsLength,
+                    control = controlP,
+                    controllen = control.Length,
+                };
+                var length = recvmsg(handle, ref nextMsg, 0);
+                if (length == 0)
+                    throw new OperationCanceledException("Socket was shut down");
+                if (length < 0)
+                    throw new InvalidOperationException("recvmsg failed with " + length);
+                return length == header.Length + body.Length + fixedLengthHeader.Length;
+            }
         }
 
         private unsafe struct iovec
