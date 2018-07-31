@@ -115,7 +115,7 @@ namespace Dbus
         private static extern int recvmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
         public unsafe void ReceiveMessage(
             byte* fixedLengthHeader, int fixedLengthHeaderLength,
-            int* control, int controlLength
+            byte* control, int controlLength
         )
         {
             const int iovecsLength = 1;
@@ -128,7 +128,7 @@ namespace Dbus
             {
                 iov = iovecs,
                 iovlen = 1,
-                controllen = controlLength * sizeof(int),
+                controllen = controlLength,
                 control = control
             };
             var length = recvmsg(handle, ref msg, 0);
@@ -142,7 +142,7 @@ namespace Dbus
             byte* header, int headerLength,
             byte* body, int bodyLength,
             byte* fixedLengthHeader, int fixedLengthHeaderLength,
-            int* control, int controlLength
+            byte* control, int controlLength
         )
         {
             const int iovecsLength = 3;
@@ -159,7 +159,7 @@ namespace Dbus
                 iov = iovecs,
                 iovlen = iovecsLength,
                 control = control,
-                controllen = controlLength * sizeof(int),
+                controllen = controlLength,
             };
             var length = recvmsg(handle, ref nextMsg, 0);
             if (length == 0)
@@ -181,7 +181,7 @@ namespace Dbus
             public nint namelen;
             public iovec* iov;
             public nint iovlen;
-            public int* control;
+            public byte* control;
             public nint controllen;
             public int flags;
         }

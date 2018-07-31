@@ -8,10 +8,10 @@ namespace Dbus
         private unsafe void receive()
         {
             const int fixedLengthHeaderLength = 16;
-            const int controlLength = 16;
+            const int controlLength = 16 * sizeof(int);
 
             var fixedLengthHeader = new byte[fixedLengthHeaderLength]; // header up until the array length
-            var control = stackalloc int[controlLength];
+            var control = stackalloc byte[controlLength];
 
             var hasValidFixedHeader = false;
 
@@ -50,7 +50,7 @@ namespace Dbus
                         control, controlLength
                     );
 
-                var header = new MessageHeader(socketOperations, headerBytes, control);
+                var header = new MessageHeader(socketOperations, headerBytes, new Span<byte>(control, controlLength));
 
                 switch (messageType)
                 {

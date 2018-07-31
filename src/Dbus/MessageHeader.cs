@@ -1,14 +1,22 @@
 ﻿using DotNetCross.NativeInts;
+using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Dbus
 {
     public class MessageHeader
     {
+        private static readonly int sizeofCmsghdr = Unsafe.SizeOf<cmsghdr>();
+
         private readonly SocketOperations socketOperations;
 
-        public unsafe MessageHeader(SocketOperations socketOperations, byte[] headerBytes, int* controlBytes)
+        public MessageHeader(
+            SocketOperations socketOperations,
+            ReadOnlySpan<byte> headerBytes,
+            ReadOnlySpan<byte> controlBytes
+        )
         {
             this.socketOperations = socketOperations;
             BodySignature = "";
@@ -45,22 +53,21 @@ namespace Dbus
                         break;
                     case 9:
                         var numberOfFds = (uint)value;
-                        var sizeofStructCmsghdr = // CMSG_LEN(0) = sizeof(struct cmsghdr)
-                            sizeof(nuint) // size_t cmsg_len (not! socklen_t)
-                            + sizeof(int) // int cmsg_level
-                            + sizeof(int) // int cmsg_type
-                        ;
-                        var receivedNumberOfFds = (
-                            ((nint*)controlBytes)[0] // size_t cmsg_len (not! socklen_t)
-                            - sizeofStructCmsghdr
-                        ) / sizeof(int);
-                        System.Diagnostics.Debug.Assert(numberOfFds == receivedNumberOfFds);
-                        UnixFds = new SafeHandle[receivedNumberOfFds];
-                        for (var i = 0; i < receivedNumberOfFds; ++i)
-                        {
-                            var number = controlBytes[3 + i];
-                            UnixFds[i] = new ReceivedFileDescriptorSafeHandle(number);
-                        }
+
+                        var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);
+                        var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
+
+                        var fileDescriptorsBytes = controlBytes.Slice(
+                            sizeofCmsghdr,
+                            cmsgHeader.Length - sizeofCmsghdr
+                        );
+                        var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
+
+                        System.Diagnostics.Debug.Assert(numberOfFds == fileDescriptors.Length);
+
+                        UnixFds = new SafeHandle[numberOfFds];
+                        for (var i = 0; i < numberOfFds; ++i)
+                            UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
                         break;
                 }
                 Alignment.Advance(ref index, 8);
@@ -81,5 +88,14 @@ namespace Dbus
 
         public Stream GetStreamFromFd(int index) =>
             new UnixFdStream(UnixFds[index], socketOperations);
+
+        private struct cmsghdr
+        {
+#pragma warning disable 0649
+            public nint len; // size_t, not! socklen_t
+            public int level;
+            public int type;
+#pragma warning restore
+        }
     }
 }
