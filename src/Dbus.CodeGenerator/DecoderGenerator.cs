@@ -25,14 +25,14 @@ namespace Dbus.CodeGenerator
         public string Result => resultBuilder.ToString();
         public string Signature => signatureBuilder.ToString();
 
-        public void Add(string name, Type type)
+        public void Add(string name, Type type, string indent = Generator.Indent)
         {
             if (resultBuilder.Length == 0)
             {
-                resultBuilder.Append(Generator.Indent);
+                resultBuilder.Append(indent);
                 resultBuilder.AppendLine("var decoderIndex = 0;");
             }
-            add(name, type, Generator.Indent, "decoderIndex");
+            add(name, type, indent, "decoderIndex");
         }
 
         private void add(string name, Type type, string indent, string index)

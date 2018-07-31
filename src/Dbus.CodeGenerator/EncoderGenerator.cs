@@ -26,9 +26,9 @@ namespace Dbus.CodeGenerator
         public string Result => resultBuilder.ToString();
         public string Signature => signatureBuilder.ToString();
 
-        public void AddVariant(string name, Type type)
+        public void AddVariant(string name, Type type, string indent = Generator.Indent)
         {
-            ensureSendIndex();
+            ensureSendIndex(indent);
 
             var variantInfo = encoder(name, name, type, Generator.Indent);
 
@@ -39,17 +39,17 @@ namespace Dbus.CodeGenerator
             resultBuilder.AppendLine(Generator.Indent + variantInfo.code);
         }
 
-        public void Add(string name, Type type)
+        public void Add(string name, Type type, string indent = Generator.Indent)
         {
-            ensureSendIndex();
-            add(name, name, type, Generator.Indent);
+            ensureSendIndex(indent);
+            add(name, name, type, indent);
         }
 
-        private void ensureSendIndex()
+        private void ensureSendIndex(string indent)
         {
             if (index != "")
                 return;
-            resultBuilder.Append(Generator.Indent);
+            resultBuilder.Append(indent);
             resultBuilder.AppendLine("var sendIndex = 0;");
             index = "sendIndex";
         }

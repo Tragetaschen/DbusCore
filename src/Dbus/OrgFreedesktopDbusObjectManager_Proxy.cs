@@ -37,12 +37,12 @@ namespace Dbus
                 (List<byte> sendBody_e, ref int sendIndex_e) => { }
             );
 
-        public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, byte[] body, bool doNotReply)
+        public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body, bool doNotReply)
         {
             switch (header.Member)
             {
                 case "GetManagedObjects":
-                    return handleGetManagedObjectsAsync(replySerial, header, body, doNotReply);
+                    return handleGetManagedObjectsAsync(replySerial, header, doNotReply);
                 default:
                     throw new DbusException(
                         DbusException.CreateErrorName("UnknownMethod"),
@@ -51,7 +51,7 @@ namespace Dbus
             }
         }
 
-        private async Task handleGetManagedObjectsAsync(uint replySerial, MessageHeader header, byte[] receivedBody, bool shouldSendReply)
+        private async Task handleGetManagedObjectsAsync(uint replySerial, MessageHeader header, bool shouldSendReply)
         {
             header.BodySignature.AssertEqual("");
             var managedObjects = await target.GetManagedObjectsAsync().ConfigureAwait(false);

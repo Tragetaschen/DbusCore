@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
@@ -6,14 +7,16 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private readonly ConcurrentDictionary<string, Action<MessageHeader, byte[]>> signalHandlers =
-            new ConcurrentDictionary<string, Action<MessageHeader, byte[]>>();
+        public delegate void SignalHandler(MessageHeader header, ReadOnlySpan<byte> body);
+
+        private readonly ConcurrentDictionary<string, SignalHandler> signalHandlers =
+            new ConcurrentDictionary<string, SignalHandler>();
 
         public IDisposable RegisterSignalHandler(
             ObjectPath path,
             string interfaceName,
             string member,
-            Action<MessageHeader, byte[]> handler
+            SignalHandler handler
         )
         {
             var dictionaryEntry = path + "\0" + interfaceName + "\0" + member;
@@ -34,7 +37,7 @@ namespace Dbus
             {
                 if (canRegister)
                     Task.Run(() => orgFreedesktopDbus.RemoveMatchAsync(match));
-                Action<MessageHeader, byte[]> current;
+                SignalHandler current;
                 do
                 {
                     signalHandlers.TryGetValue(dictionaryEntry, out current);
@@ -44,12 +47,17 @@ namespace Dbus
 
         private void handleSignal(
             MessageHeader header,
-            byte[] body
+            IMemoryOwner<byte> body,
+            int bodyLength
         )
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
-                Task.Run(() => handler(header, body));
+                Task.Run(() =>
+                {
+                    handler(header, body.Limit(bodyLength));
+                    body.Dispose();
+                });
         }
     }
 }

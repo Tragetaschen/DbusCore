@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -42,7 +43,7 @@ namespace Dbus
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
 
-            var tcs = new TaskCompletionSource<ReceivedMethodReturn>();
+            var tcs = new TaskCompletionSource<ReceivedMethodReturn>(); //!! TaskCreationOptions.RunContinuationsAsynchronously
             expectedMessages[(uint)serial] = tcs;
 
             var messageArray = message.ToArray();
@@ -53,7 +54,8 @@ namespace Dbus
 
         private void handleMethodReturn(
             MessageHeader header,
-            byte[] body
+            IMemoryOwner<byte> body,
+            int bodyLength
         )
         {
             if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
@@ -62,13 +64,14 @@ namespace Dbus
             {
                 Header = header,
                 Body = body,
+                BodyLength = bodyLength,
                 Signature = header.BodySignature,
             };
 
             Task.Run(() => tcs.SetResult(receivedMessage));
         }
 
-        private void handleError(MessageHeader header, byte[] body)
+        private void handleError(MessageHeader header, IMemoryOwner<byte> body, int bodyLength)
         {
             if (header.ReplySerial == 0)
                 throw new InvalidOperationException("Only errors for method calls are supported");
@@ -79,7 +82,9 @@ namespace Dbus
                 throw new InvalidOperationException("Couldn't find the method call for the error");
 
             var index = 0;
-            var message = Decoder.GetString(body, ref index);
+            var bodyBytes = body.Limit(bodyLength);
+            var message = Decoder.GetString(bodyBytes, ref index);
+            body.Dispose();
             var exception = new DbusException(header.ErrorName, message);
             Task.Run(() => tcs.SetException(exception));
         }

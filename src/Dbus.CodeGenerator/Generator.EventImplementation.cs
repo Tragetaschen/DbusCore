@@ -51,7 +51,7 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.Append("private void handle");
             implementation.Append(eventInfo.Name);
-            implementation.AppendLine("(global::Dbus.MessageHeader header, byte[] body)");
+            implementation.AppendLine("(global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body)");
             implementation.Append("        ");
             implementation.AppendLine("{");
             implementation.Append(Indent);

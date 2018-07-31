@@ -52,21 +52,32 @@ namespace Dbus.CodeGenerator
             }
 
             string returnStatement;
-            var decoder = new DecoderGenerator("receivedMessage.Body", "receivedMessage.Header");
+            var decoder = new DecoderGenerator("bodyBytes", "receivedMessage.Header");
 
             if (returnType == typeof(Task))
                 returnStatement = "return;";
             else if (isProperty)
             {
                 // must be "Get"
-                decoder.Add("result", typeof(object));
+                decoder.Add("result", typeof(object), Indent + "    ");
                 returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")result;";
             }
             else // Task<T>
             {
-                decoder.Add("result", returnType.GenericTypeArguments[0]);
+                decoder.Add("result", returnType.GenericTypeArguments[0], Indent + "    ");
                 returnStatement = "return result;";
             }
+
+            var createFunction = "";
+
+            if (returnType != typeof(Task))
+                createFunction = @"
+            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" createResult(global::System.ReadOnlySpan<byte> bodyBytes)
+            {
+" + decoder.Result + @"
+                " + returnStatement + @"
+            }
+            var createdResult = createResult(receivedMessage.Body.Memory.Span.Slice(0, receivedMessage.BodyLength));";
 
             return @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
@@ -82,7 +93,9 @@ namespace Dbus.CodeGenerator
                 """ + encoder.Signature + @"""
             ).ConfigureAwait(false);
             receivedMessage.Signature.AssertEqual(""" + decoder.Signature + @""");
-" + decoder.Result + @"            " + returnStatement + @"
+" + (returnType == typeof(Task) ? "" : createFunction) + @"
+            receivedMessage.Body.Dispose();
+            " + (returnType == typeof(Task) ? "return;" : "return createdResult;") + @"
         }
 ";
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 
 namespace Dbus
 {
@@ -19,5 +20,8 @@ namespace Dbus
             }
             Console.WriteLine();
         }
+
+        public static ReadOnlySpan<byte> Limit(this IMemoryOwner<byte> memoryOwner, int length)
+            => memoryOwner.Memory.Span.Slice(0, length);
     }
 }

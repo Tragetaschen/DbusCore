@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
             var methodImplementation = new StringBuilder();
 
             methodImplementation.Append(@"
-        private async System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, byte[] receivedBody, bool shouldSendReply)
+        private global::System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> receivedBody, bool shouldSendReply)
         {
 ");
             var decoder = new DecoderGenerator("receivedBody", "header");
@@ -27,33 +27,34 @@ namespace Dbus.CodeGenerator
             foreach (var parameter in method.GetParameters())
                 decoder.Add(parameter.Name, parameter.ParameterType);
 
+            var continueIndent = Indent + "        ";
             var encoder = new EncoderGenerator("sendBody");
             if (method.ReturnType != typeof(Task)) // Task<T>
             {
                 var returnType = method.ReturnType.GenericTypeArguments[0];
-                encoder.Add("result", returnType);
+                encoder.Add("x.Result", returnType, continueIndent);
             }
 
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine(@"header.BodySignature.AssertEqual(""" + decoder.Signature + @""");");
             methodImplementation.Append(decoder.Result);
             methodImplementation.Append(Indent);
-            if (encoder.Signature != "")
-                methodImplementation.Append("var result = ");
-            methodImplementation.Append("await target." + method.Name + "(");
+            methodImplementation.Append("return target." + method.Name + "(");
             methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
-            methodImplementation.AppendLine(@").ConfigureAwait(false);
-");
-            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine(@")
+                .ContinueWith(async x =>
+                {");
+            methodImplementation.Append(continueIndent);
             methodImplementation.AppendLine(@"if (!shouldSendReply)
-                return;");
-            methodImplementation.Append(Indent);
+                        return;");
+            methodImplementation.Append(continueIndent);
             methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
             if (encoder.Signature != "")
                 methodImplementation.Append(encoder.Result);
-            methodImplementation.Append(Indent);
+            methodImplementation.Append(continueIndent);
             methodImplementation.Append(@"await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, """ + encoder.Signature + @""").ConfigureAwait(false);");
             methodImplementation.AppendLine(@"
+                });
         }");
 
             return (methodName, methodImplementation.ToString());

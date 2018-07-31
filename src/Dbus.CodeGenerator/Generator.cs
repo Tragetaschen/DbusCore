@@ -132,7 +132,7 @@ namespace Dbus.CodeGenerator
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
 ");
                 propertyImplementations.Append(@"
-        private void handleProperties(global::Dbus.MessageHeader header, byte[] body)
+        private void handleProperties(global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body)
         {
             header.BodySignature.AssertEqual(""sa{sv}as"");
             var index = 0;
@@ -158,7 +158,13 @@ namespace Dbus.CodeGenerator
             ).ConfigureAwait(false);
             receivedMessage.Signature.AssertEqual(""a{sv}"");
             var index = 0;
-            var properties = global::Dbus.Decoder.GetDictionary(receivedMessage.Body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
+            var properties = global::Dbus.Decoder.GetDictionary(
+                receivedMessage.Body.Memory.Span.Slice(0, receivedMessage.BodyLength),
+                ref index,
+                global::Dbus.Decoder.GetString,
+                global::Dbus.Decoder.GetObject
+            );
+            receivedMessage.Body.Dispose();
             applyProperties(properties);
         }
 
@@ -329,7 +335,7 @@ namespace Dbus.CodeGenerator
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, byte[] body, bool shouldSendReply)
+        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body, bool shouldSendReply)
         {
             switch (header.Member)
             {

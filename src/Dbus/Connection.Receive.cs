@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -40,10 +41,14 @@ namespace Dbus
             var messageType = fixedLengthHeader.MessageType;
             var serial = fixedLengthHeader.Serial;
             var shouldSendReply = !fixedLengthHeader.Flags.HasFlag(dbusFlags.NoReplyExpected);
+            var bodyLength = fixedLengthHeader.BodyLength;
+
+            var bodyMemoryOwner = MemoryPool<byte>.Shared.Rent(bodyLength);
+            var bodyBytes = bodyMemoryOwner.Memory.Span.Slice(0, bodyLength);
+
             var receivedArrayLength = fixedLengthHeader.ArrayLength;
             Alignment.Advance(ref receivedArrayLength, 8);
             Span<byte> headerBytes = stackalloc byte[receivedArrayLength];
-            var bodyBytes = new byte[fixedLengthHeader.BodyLength];
 
             hasValidFixedHeader = socketOperations.ReceiveMessage(
                 headerBytes,
@@ -60,18 +65,19 @@ namespace Dbus
                     handleMethodCall(
                         serial,
                         header,
-                        bodyBytes,
+                        bodyMemoryOwner,
+                        bodyLength,
                         shouldSendReply
                     );
                     break;
                 case dbusMessageType.MethodReturn:
-                    handleMethodReturn(header, bodyBytes);
+                    handleMethodReturn(header, bodyMemoryOwner, bodyLength);
                     break;
                 case dbusMessageType.Error:
-                    handleError(header, bodyBytes);
+                    handleError(header, bodyMemoryOwner, bodyLength);
                     break;
                 case dbusMessageType.Signal:
-                    handleSignal(header, bodyBytes);
+                    handleSignal(header, bodyMemoryOwner, bodyLength);
                     break;
             }
         }
