@@ -46,18 +46,13 @@ namespace Dbus
             var bodyMemoryOwner = MemoryPool<byte>.Shared.Rent(bodyLength);
             var bodyBytes = bodyMemoryOwner.Memory.Span.Slice(0, bodyLength);
 
-            var receivedArrayLength = fixedLengthHeader.ArrayLength;
-            Alignment.Advance(ref receivedArrayLength, 8);
-            Span<byte> headerBytes = stackalloc byte[receivedArrayLength];
-
-            hasValidFixedHeader = socketOperations.ReceiveMessage(
-                headerBytes,
+            var header = receiveHeaderAndBody(
+                ref hasValidFixedHeader,
+                fixedLengthHeader.ArrayLength,
                 bodyBytes,
                 fixedLengthHeaderBytes,
                 control
             );
-
-            var header = new MessageHeader(socketOperations, headerBytes, control);
 
             switch (messageType)
             {
@@ -80,6 +75,27 @@ namespace Dbus
                     handleSignal(header, bodyMemoryOwner, bodyLength);
                     break;
             }
+        }
+
+        private MessageHeader receiveHeaderAndBody(
+            ref bool hasValidFixedHeader,
+            int receivedArrayLength,
+            Span<byte> bodyBytes,
+            Span<byte> fixedLengthHeaderBytes,
+            Span<byte> control
+        )
+        {
+            Alignment.Advance(ref receivedArrayLength, 8);
+            Span<byte> headerBytes = stackalloc byte[receivedArrayLength];
+
+            hasValidFixedHeader = socketOperations.ReceiveMessage(
+                headerBytes,
+                bodyBytes,
+                fixedLengthHeaderBytes,
+                control
+            );
+
+            return new MessageHeader(socketOperations, headerBytes, control);
         }
 
         private struct dbusFixedLengthHeader
