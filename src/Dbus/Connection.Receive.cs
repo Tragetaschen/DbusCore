@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Dbus
 {
@@ -7,10 +8,9 @@ namespace Dbus
     {
         private void receive()
         {
-            const int fixedLengthHeaderLength = 16;
             const int controlLength = 16 * sizeof(int);
 
-            Span<byte> fixedLengthHeader = stackalloc byte[fixedLengthHeaderLength]; // header up until the array length
+            Span<dbusFixedLengthHeader> fixedLengthHeader = stackalloc dbusFixedLengthHeader[1]; // header up until the array length
             Span<byte> control = stackalloc byte[controlLength];
 
             var hasValidFixedHeader = false;
@@ -19,34 +19,36 @@ namespace Dbus
                 handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader);
         }
 
-        private void handleOneMessage(Span<byte> fixedLengthHeader, Span<byte> control, ref bool hasValidFixedHeader)
+        private void handleOneMessage(Span<dbusFixedLengthHeader> fixedLengthHeaderSpan, Span<byte> control, ref bool hasValidFixedHeader)
         {
+            var fixedLengthHeaderBytes = MemoryMarshal.Cast<dbusFixedLengthHeader, byte>(fixedLengthHeaderSpan);
+
             if (!hasValidFixedHeader)
                 socketOperations.ReceiveMessage(
-                    fixedLengthHeader,
+                    fixedLengthHeaderBytes,
                     control
                 );
 
-            var index = 0;
-            var endianess = Decoder.GetByte(fixedLengthHeader, ref index);
-            if (endianess != (byte)'l')
+            ref var fixedLengthHeader = ref fixedLengthHeaderSpan[0];
+
+            if (fixedLengthHeader.Endianess != dbusEndianess.LittleEndian)
                 throw new InvalidDataException("Wrong endianess");
-            var messageType = Decoder.GetByte(fixedLengthHeader, ref index);
-            var shouldSendReply = (Decoder.GetByte(fixedLengthHeader, ref index) & 0x1) == 0x0;
-            var protocolVersion = Decoder.GetByte(fixedLengthHeader, ref index);
-            if (protocolVersion != 1)
+            if (fixedLengthHeader.ProtocolVersion != 1)
                 throw new InvalidDataException("Wrong protocol version");
-            var bodyLength = Decoder.GetInt32(fixedLengthHeader, ref index); // Actually uint
-            var receivedSerial = Decoder.GetUInt32(fixedLengthHeader, ref index);
-            var receivedArrayLength = Decoder.GetInt32(fixedLengthHeader, ref index); // Actually uint
+
+            // Store values before receiving the next header
+            var messageType = fixedLengthHeader.MessageType;
+            var serial = fixedLengthHeader.Serial;
+            var shouldSendReply = !fixedLengthHeader.Flags.HasFlag(dbusFlags.NoReplyExpected);
+            var receivedArrayLength = fixedLengthHeader.ArrayLength;
             Alignment.Advance(ref receivedArrayLength, 8);
             Span<byte> headerBytes = stackalloc byte[receivedArrayLength];
-            var bodyBytes = new byte[bodyLength];
+            var bodyBytes = new byte[fixedLengthHeader.BodyLength];
 
             hasValidFixedHeader = socketOperations.ReceiveMessage(
                 headerBytes,
                 bodyBytes,
-                fixedLengthHeader,
+                fixedLengthHeaderBytes,
                 control
             );
 
@@ -54,19 +56,58 @@ namespace Dbus
 
             switch (messageType)
             {
-                case 1:
-                    handleMethodCall(receivedSerial, header, bodyBytes, shouldSendReply);
+                case dbusMessageType.MethodCall:
+                    handleMethodCall(
+                        serial,
+                        header,
+                        bodyBytes,
+                        shouldSendReply
+                    );
                     break;
-                case 2:
+                case dbusMessageType.MethodReturn:
                     handleMethodReturn(header, bodyBytes);
                     break;
-                case 3:
+                case dbusMessageType.Error:
                     handleError(header, bodyBytes);
                     break;
-                case 4:
+                case dbusMessageType.Signal:
                     handleSignal(header, bodyBytes);
                     break;
             }
+        }
+
+        private struct dbusFixedLengthHeader
+        {
+            public dbusEndianess Endianess;
+            public dbusMessageType MessageType;
+            public dbusFlags Flags;
+            public byte ProtocolVersion;
+            public int BodyLength;
+            public uint Serial;
+            public int ArrayLength;
+        }
+
+        private enum dbusEndianess : byte
+        {
+            LittleEndian = (byte)'l',
+            BigEndian = (byte)'B',
+        }
+
+        private enum dbusMessageType : byte
+        {
+            Invalid,
+            MethodCall,
+            MethodReturn,
+            Error,
+            Signal,
+        }
+
+        [Flags]
+        private enum dbusFlags : byte
+        {
+            NoReplyExpected = 0x1,
+            NoAutoStart = 0x2,
+            AllowInteractiveAuthorization = 0x4,
         }
     }
 }
