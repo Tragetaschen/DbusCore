@@ -29,7 +29,7 @@ namespace Dbus
         public override void Flush()
         { }
 
-        public override unsafe int Read(byte[] buffer, int offset, int count) => socketOperations.Read(safeHandle, buffer, offset, count);
+        public override int Read(byte[] buffer, int offset, int count) => socketOperations.Read(safeHandle, buffer, offset, count);
 
         public override long Seek(long offset, SeekOrigin origin) => 0;
 
