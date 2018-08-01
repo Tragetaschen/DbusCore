@@ -118,8 +118,8 @@ namespace Dbus
             Span<byte> control
         )
         {
-            fixed (byte* fixedLengthHeaderP = &fixedLengthHeader.GetPinnableReference())
-            fixed (byte* controlP = &control.GetPinnableReference())
+            fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
+            fixed (byte* controlP = control)
             {
                 const int iovecsLength = 1;
                 var iovecs = stackalloc iovec[iovecsLength];
@@ -149,10 +149,10 @@ namespace Dbus
             Span<byte> control
         )
         {
-            fixed (byte* headerP = &header.GetPinnableReference())
-            fixed (byte* bodyP = &body.GetPinnableReference())
-            fixed (byte* fixedLengthHeaderP = &fixedLengthHeader.GetPinnableReference())
-            fixed (byte* controlP = &control.GetPinnableReference())
+            fixed (byte* headerP = header)
+            fixed (byte* bodyP = body)
+            fixed (byte* fixedLengthHeaderP = fixedLengthHeader)
+            fixed (byte* controlP = control)
             {
                 const int iovecsLength = 3;
                 var iovecs = stackalloc iovec[iovecsLength];
