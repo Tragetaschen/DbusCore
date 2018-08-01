@@ -1,14 +1,13 @@
 ﻿using DotNetCross.NativeInts;
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Dbus
 {
     public class MessageHeader
     {
-        private static readonly int sizeofCmsghdr = Unsafe.SizeOf<cmsghdr>();
+        private static readonly int sizeofCmsghdr = Marshal.SizeOf<cmsghdr>();
 
         private readonly SocketOperations socketOperations;
 

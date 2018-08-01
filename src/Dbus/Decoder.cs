@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using static System.Buffers.Text.Encodings;
+using System.Text;
 
 namespace Dbus
 {
@@ -43,6 +43,19 @@ namespace Dbus
         private static List<string> getStringArray(ReadOnlySpan<byte> buffer, ref int index)
             => GetArray(buffer, ref index, GetString);
 
+        private static unsafe string getStringFromBytes(ReadOnlySpan<byte> buffer, ref int index, int length)
+        {
+            var result = string.Empty;
+            if (length != 0)
+            {
+                var bytes = buffer.Slice(index, length);
+                fixed (byte* bytesP = bytes)
+                    result = Encoding.UTF8.GetString(bytesP, length);
+            }
+            index += length + 1 /* null byte */;
+            return result;
+        }
+
         /// <summary>
         /// Decodes a string from the buffer and advances the index
         /// </summary>
@@ -52,10 +65,7 @@ namespace Dbus
         public static string GetString(ReadOnlySpan<byte> buffer, ref int index)
         {
             var stringLength = GetInt32(buffer, ref index); // Actually uint
-            var stringBytes = buffer.Slice(index, stringLength);
-            var result = Utf8.ToString(stringBytes);
-            index += stringLength + 1 /* null byte */;
-            return result;
+            return getStringFromBytes(buffer, ref index, stringLength);
         }
 
         /// <summary>
@@ -76,10 +86,7 @@ namespace Dbus
         public static Signature GetSignature(ReadOnlySpan<byte> buffer, ref int index)
         {
             var signatureLength = GetByte(buffer, ref index);
-            var signatureBytes = buffer.Slice(index, signatureLength);
-            var result = Utf8.ToString(signatureBytes);
-            index += signatureLength + 1 /* null byte */;
-            return result;
+            return getStringFromBytes(buffer, ref index, signatureLength);
         }
 
         private static T getPrimitive<T>(ReadOnlySpan<byte> buffer, ref int index) where T : struct
