@@ -43,7 +43,7 @@ namespace Dbus
             Encoder.EnsureAlignment(message, ref index, 8);
             message.AddRange(body);
 
-            var tcs = new TaskCompletionSource<ReceivedMethodReturn>(); //!! TaskCreationOptions.RunContinuationsAsynchronously
+            var tcs = new TaskCompletionSource<ReceivedMethodReturn>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
             var messageArray = message.ToArray();
@@ -68,7 +68,7 @@ namespace Dbus
                 Signature = header.BodySignature,
             };
 
-            Task.Run(() => tcs.SetResult(receivedMessage));
+            tcs.SetResult(receivedMessage);
         }
 
         private void handleError(MessageHeader header, IMemoryOwner<byte> body, int bodyLength)
@@ -86,7 +86,7 @@ namespace Dbus
             var message = Decoder.GetString(bodyBytes, ref index);
             body.Dispose();
             var exception = new DbusException(header.ErrorName, message);
-            Task.Run(() => tcs.SetException(exception));
+            tcs.SetException(exception);
         }
     }
 }
