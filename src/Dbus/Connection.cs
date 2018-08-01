@@ -85,7 +85,7 @@ namespace Dbus
             Encoder.AddVariant(buffer, ref index, value);
         }
 
-        private int getSerial() => Interlocked.Increment(ref serialCounter);
+        private uint getSerial() => (uint)Interlocked.Increment(ref serialCounter);
 
         private static IDisposable deregisterVia(Action work)
             => new deregistration

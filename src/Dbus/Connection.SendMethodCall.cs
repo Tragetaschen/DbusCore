@@ -29,7 +29,7 @@ namespace Dbus
             Encoder.Add(message, ref index, (byte)0); // flags
             Encoder.Add(message, ref index, (byte)1); // protocol version
             Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial); // Actually uint
+            Encoder.Add(message, ref index, serial);
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
@@ -44,7 +44,7 @@ namespace Dbus
             message.AddRange(body);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>(); //!! TaskCreationOptions.RunContinuationsAsynchronously
-            expectedMessages[(uint)serial] = tcs;
+            expectedMessages[serial] = tcs;
 
             var messageArray = message.ToArray();
             await serializedWriteToStream(messageArray).ConfigureAwait(false);

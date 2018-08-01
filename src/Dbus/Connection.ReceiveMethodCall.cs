@@ -40,7 +40,7 @@ namespace Dbus
             Encoder.Add(message, ref index, (byte)1); // no reply expected
             Encoder.Add(message, ref index, (byte)1); // protocol version
             Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial); // Actually uint
+            Encoder.Add(message, ref index, serial);
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
@@ -205,7 +205,7 @@ namespace Dbus
             Encoder.Add(message, ref index, (byte)1); // no reply expected
             Encoder.Add(message, ref index, (byte)1); // protocol version
             Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial); // Actually uint
+            Encoder.Add(message, ref index, serial);
 
             Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
             {
