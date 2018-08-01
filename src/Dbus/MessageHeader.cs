@@ -24,35 +24,35 @@ namespace Dbus
             while (index < headerBytes.Length)
             {
                 var typeCode = Decoder.GetByte(headerBytes, ref index);
-                var value = Decoder.GetObject(headerBytes, ref index);
+                var signature = Decoder.GetSignature(headerBytes, ref index);
                 switch (typeCode)
                 {
                     case 1:
-                        Path = (ObjectPath)value;
+                        Path = Decoder.GetObjectPath(headerBytes, ref index);
                         break;
                     case 2:
-                        InterfaceName = (string)value;
+                        InterfaceName = Decoder.GetString(headerBytes, ref index);
                         break;
                     case 3:
-                        Member = (string)value;
+                        Member = Decoder.GetString(headerBytes, ref index);
                         break;
                     case 4:
-                        ErrorName = (string)value;
+                        ErrorName = Decoder.GetString(headerBytes, ref index);
                         break;
                     case 5:
-                        ReplySerial = (uint)value;
+                        ReplySerial = Decoder.GetUInt32(headerBytes, ref index);
                         break;
                     case 6:
-                        Destination = (string)value;
+                        Destination = Decoder.GetString(headerBytes, ref index);
                         break;
                     case 7:
-                        Sender = (string)value;
+                        Sender = Decoder.GetString(headerBytes, ref index);
                         break;
                     case 8:
-                        BodySignature = (Signature)value;
+                        BodySignature = Decoder.GetSignature(headerBytes, ref index);
                         break;
                     case 9:
-                        var numberOfFds = (uint)value;
+                        var numberOfFds = Decoder.GetUInt32(headerBytes, ref index);
 
                         var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);
                         var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
