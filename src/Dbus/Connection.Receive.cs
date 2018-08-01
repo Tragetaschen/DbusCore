@@ -34,7 +34,7 @@ namespace Dbus
 
             if (fixedLengthHeader.Endianess != dbusEndianess.LittleEndian)
                 throw new InvalidDataException("Wrong endianess");
-            if (fixedLengthHeader.ProtocolVersion != 1)
+            if (fixedLengthHeader.ProtocolVersion != dbusProtocolVersion.Default)
                 throw new InvalidDataException("Wrong protocol version");
 
             // Store values before receiving the next header
@@ -103,7 +103,7 @@ namespace Dbus
             public dbusEndianess Endianess;
             public dbusMessageType MessageType;
             public dbusFlags Flags;
-            public byte ProtocolVersion;
+            public dbusProtocolVersion ProtocolVersion;
             public int BodyLength;
             public uint Serial;
             public int ArrayLength;
@@ -127,9 +127,15 @@ namespace Dbus
         [Flags]
         private enum dbusFlags : byte
         {
+            None = 0,
             NoReplyExpected = 0x1,
             NoAutoStart = 0x2,
             AllowInteractiveAuthorization = 0x4,
+        }
+
+        private enum dbusProtocolVersion : byte
+        {
+            Default = 1,
         }
     }
 }

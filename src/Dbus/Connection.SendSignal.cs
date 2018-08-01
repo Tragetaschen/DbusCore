@@ -24,10 +24,10 @@ namespace Dbus
             var serial = getSerial();
             var message = Encoder.StartNew();
             var index = 0;
-            Encoder.Add(message, ref index, (byte)'l'); // little endian
-            Encoder.Add(message, ref index, (byte)4); // signal
-            Encoder.Add(message, ref index, (byte)0); // flags
-            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(message, ref index, (byte)dbusMessageType.Signal);
+            Encoder.Add(message, ref index, (byte)dbusFlags.None);
+            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
             Encoder.Add(message, ref index, body.Count); // Actually uint
             Encoder.Add(message, ref index, serial);
 

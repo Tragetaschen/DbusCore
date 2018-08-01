@@ -35,10 +35,10 @@ namespace Dbus
 
             var message = Encoder.StartNew();
             var index = 0;
-            Encoder.Add(message, ref index, (byte)'l'); // little endian
-            Encoder.Add(message, ref index, (byte)2); // method return
-            Encoder.Add(message, ref index, (byte)1); // no reply expected
-            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(message, ref index, (byte)dbusMessageType.MethodReturn);
+            Encoder.Add(message, ref index, (byte)dbusFlags.NoReplyExpected);
+            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
             Encoder.Add(message, ref index, body.Count); // Actually uint
             Encoder.Add(message, ref index, serial);
 
@@ -200,10 +200,10 @@ namespace Dbus
 
             var message = Encoder.StartNew();
             index = 0;
-            Encoder.Add(message, ref index, (byte)'l'); // little endian
-            Encoder.Add(message, ref index, (byte)3); // error
-            Encoder.Add(message, ref index, (byte)1); // no reply expected
-            Encoder.Add(message, ref index, (byte)1); // protocol version
+            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(message, ref index, (byte)dbusMessageType.Error);
+            Encoder.Add(message, ref index, (byte)dbusFlags.NoReplyExpected);
+            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
             Encoder.Add(message, ref index, body.Count); // Actually uint
             Encoder.Add(message, ref index, serial);
 
