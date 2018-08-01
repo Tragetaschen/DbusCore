@@ -56,7 +56,7 @@ namespace Dbus
         {
             contents += newline;
             var sendBytes = Encoding.ASCII.GetBytes(contents);
-            Send(sendBytes);
+            Send(handle, sendBytes, 0, sendBytes.Length);
         }
 
         [DllImport("libc", SetLastError = true)]
@@ -92,13 +92,30 @@ namespace Dbus
         }
 
         [DllImport("libc", SetLastError = true)]
-        private static extern unsafe nint send(SafeHandle sockfd, [In] byte* buf, nint len, int flags);
-        public void Send(byte[] messageArray)
+        private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
+        public unsafe void Send(ReadOnlySpan<byte> message)
         {
-            var sendResult = Send(handle, messageArray, 0, messageArray.Length);
-            if (sendResult < 0)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+            fixed (byte* messageP = message)
+            {
+                var iovecs = stackalloc iovec[1];
+
+                iovecs[0].iov_base = messageP;
+                iovecs[0].iov_len = message.Length;
+
+                var msg = new msghdr
+                {
+                    iov = iovecs,
+                    iovlen = 1,
+                };
+
+                var sendResult = sendmsg(handle, ref msg, 0);
+                if (sendResult < 0)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
         }
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern unsafe nint send(SafeHandle sockfd, [In] byte* buf, nint len, int flags);
 
         public unsafe int Send(SafeHandle sockfd, byte[] buffer, int offset, int count)
         {
