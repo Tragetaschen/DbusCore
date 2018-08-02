@@ -27,7 +27,7 @@ namespace Dbus
         {
             if (ReferenceEquals(lhs, rhs))
                 return true;
-            if ((object)lhs == null || (object)rhs == null)
+            if (lhs is null || rhs is null)
                 return false;
             return lhs.objectPath == rhs.objectPath;
         }

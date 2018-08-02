@@ -3,7 +3,7 @@
 namespace Dbus
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class DbusMethodAttribute: Attribute
+    public class DbusMethodAttribute : Attribute
     {
     }
 }

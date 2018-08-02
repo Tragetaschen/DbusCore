@@ -37,10 +37,10 @@ namespace Dbus.CodeGenerator
 
         private void add(string name, Type type, string indent, string index)
         {
-            var function = decoder(name, type, indent, body, index);
-            signatureBuilder.Append(function.signature);
+            var (signature, code) = decoder(name, type, indent, body, index);
+            signatureBuilder.Append(signature);
             resultBuilder.Append(indent);
-            resultBuilder.AppendLine(function.code);
+            resultBuilder.AppendLine(code);
         }
 
         private (string signature, string code) decoder(string name, Type type, string indent, string body, string index)
@@ -73,22 +73,22 @@ namespace Dbus.CodeGenerator
                 if (genericType == typeof(IEnumerable<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var elementFunction = createMethod(elementType, name + "_e", indent);
+                    var (signature, code) = createMethod(elementType, name + "_e", indent);
                     return (
-                        "a" + elementFunction.signature,
-                        "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + elementFunction.code + ");"
+                        "a" + signature,
+                        "var " + name + " = global::Dbus.Decoder.GetArray(" + body + ", ref " + index + ", " + code + ");"
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var keyFunction = createMethod(keyType, name + "_k", indent);
-                    var valueFunction = createMethod(valueType, name + "_v", indent);
+                    var (keySignature, keyCode) = createMethod(keyType, name + "_k", indent);
+                    var (valueSignature, valueCode) = createMethod(valueType, name + "_v", indent);
 
                     return (
-                        "a{" + keyFunction.signature + valueFunction.signature + "}",
-                        "var " + name + " = global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyFunction.code + ", " + valueFunction.code + ");"
+                        "a{" + keySignature + valueSignature + "}",
+                        "var " + name + " = global::Dbus.Decoder.GetDictionary(" + body + ", ref " + index + ", " + keyCode + ", " + valueCode + ");"
                     );
                 }
                 else

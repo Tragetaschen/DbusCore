@@ -115,7 +115,7 @@ namespace Dbus
 
             var sendResult = sendmsg(handle, ref msg, 0);
 
-            for (var i=0; i< numberOfBlocks; ++i)
+            for (var i = 0; i < numberOfBlocks; ++i)
                 handles[i].Dispose();
 
             if (sendResult < 0)

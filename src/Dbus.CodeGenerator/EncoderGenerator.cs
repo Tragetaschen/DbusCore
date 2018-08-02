@@ -30,13 +30,13 @@ namespace Dbus.CodeGenerator
         {
             ensureSendIndex(indent);
 
-            var variantInfo = encoder(name, name, type, Generator.Indent);
+            var (signature, code) = encoder(name, name, type, Generator.Indent);
 
             var innerGenerator = new EncoderGenerator(body, index);
-            innerGenerator.add($@"(global::Dbus.Signature)""{variantInfo.signature}""", name, typeof(Signature), Generator.Indent);
+            innerGenerator.add($@"(global::Dbus.Signature)""{signature}""", name, typeof(Signature), Generator.Indent);
             signatureBuilder.Append("v");
             resultBuilder.Append(innerGenerator.Result);
-            resultBuilder.AppendLine(Generator.Indent + variantInfo.code);
+            resultBuilder.AppendLine(Generator.Indent + code);
         }
 
         public void Add(string name, Type type, string indent = Generator.Indent)
@@ -56,10 +56,10 @@ namespace Dbus.CodeGenerator
 
         private void add(string value, string name, Type type, string indent)
         {
-            var function = encoder(value, name, type, indent);
-            signatureBuilder.Append(function.signature);
+            var (signature, code) = encoder(value, name, type, indent);
+            signatureBuilder.Append(signature);
             resultBuilder.Append(indent);
-            resultBuilder.AppendLine(function.code);
+            resultBuilder.AppendLine(code);
         }
 
         private (string signature, string code) encoder(string value, string name, Type type, string indent)
@@ -85,22 +85,22 @@ namespace Dbus.CodeGenerator
                 if (genericType == typeof(IEnumerable<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var elementFunction = createMethod(elementType, name + "_e", name + "_e", indent);
+                    var (elementSignature, elementCode) = createMethod(elementType, name + "_e", name + "_e", indent);
                     return (
-                        "a" + elementFunction.signature,
-                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + elementFunction.code + ");"
+                        "a" + elementSignature,
+                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + elementCode + ");"
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var keyFunction = createMethod(keyType, name + "_k", name + "_k", indent);
-                    var valueFunction = createMethod(valueType, name + "_v", name + "_v", indent);
+                    var (keySignature, keyCode) = createMethod(keyType, name + "_k", name + "_k", indent);
+                    var (valueSignature, valueCode) = createMethod(valueType, name + "_v", name + "_v", indent);
 
                     return (
-                        "a{" + keyFunction.signature + valueFunction.signature + "}",
-                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + keyFunction.code + ", " + valueFunction.code + ");"
+                        "a{" + keySignature + valueSignature + "}",
+                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + keyCode + ", " + valueCode + ");"
                     );
                 }
                 else

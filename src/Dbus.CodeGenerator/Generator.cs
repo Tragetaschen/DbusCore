@@ -37,18 +37,18 @@ namespace Dbus.CodeGenerator
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
                 if (consume != null)
                 {
-                    var consumeImplementation = generateConsumeImplementation(type, consume);
-                    result.Append(consumeImplementation.implementation);
-                    registrations.Add(consumeImplementation.registration);
+                    var (implementation, registration) = generateConsumeImplementation(type, consume);
+                    result.Append(implementation);
+                    registrations.Add(registration);
                     services.Add(BuildTypeString(type));
                 }
 
                 var provide = type.GetTypeInfo().GetCustomAttribute<DbusProvideAttribute>();
                 if (provide != null)
                 {
-                    var provideImplementation = generateProvideImplementation(type, provide);
-                    result.Append(provideImplementation.implementation);
-                    registrations.Add(provideImplementation.registration);
+                    var (implementation, registration) = generateProvideImplementation(type, provide);
+                    result.Append(implementation);
+                    registrations.Add(registration);
                 }
             }
 
@@ -104,9 +104,9 @@ namespace Dbus.CodeGenerator
 
             foreach (var eventInfo in typeInfo.GetEvents().OrderBy(x => x.Name))
             {
-                var result = GenerateEventImplementation(eventInfo, consume.InterfaceName);
-                eventSubscriptions.Append(result.subscription);
-                eventImplementations.Append(result.implementation);
+                var (subscription, implementation) = GenerateEventImplementation(eventInfo, consume.InterfaceName);
+                eventSubscriptions.Append(subscription);
+                eventImplementations.Append(implementation);
             }
             foreach (var methodInfo in typeInfo.GetMethods().OrderBy(x => x.Name))
             {
@@ -243,10 +243,10 @@ namespace Dbus.CodeGenerator
                 if (method.DeclaringType == typeof(object))
                     continue;
 
-                var result = GenerateMethodProxy(method);
+                var (name, implementation) = GenerateMethodProxy(method);
 
-                knownMethods.Add(result.name);
-                proxies.Append(result.implementation);
+                knownMethods.Add(name);
+                proxies.Append(implementation);
             }
 
             var proxyRegistration = "global::Dbus.Connection.AddPublishProxy<" + BuildTypeString(type) + ">(" + type.Name + "_Proxy.Factory);";
