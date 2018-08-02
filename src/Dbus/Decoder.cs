@@ -89,33 +89,13 @@ namespace Dbus
             return getStringFromBytes(buffer, ref index, signatureLength);
         }
 
-        private static T getPrimitive<T>(ReadOnlySpan<byte> buffer, ref int index) where T : struct
+        private static T getPrimitive<T>(
+            ReadOnlySpan<byte> buffer,
+            ref int index,
+            int shiftWidth
+        ) where T : struct
         {
-            int alignment;
-            int shiftWidth;
-            if (typeof(T) == typeof(byte))
-            {
-                alignment = 1;
-                shiftWidth = 0;
-            }
-            else if (typeof(T) == typeof(short) || typeof(T) == typeof(ushort))
-            {
-                alignment = 2;
-                shiftWidth = 1;
-            }
-            else if (typeof(T) == typeof(int) || typeof(T) == typeof(uint))
-            {
-                alignment = 4;
-                shiftWidth = 2;
-            }
-            else if (typeof(T) == typeof(long) || typeof(T) == typeof(ulong) || typeof(T) == typeof(double))
-            {
-                alignment = 8;
-                shiftWidth = 3;
-            }
-            else
-                throw new InvalidOperationException("Unsupported primitive type: " + typeof(T));
-
+            var alignment = 1 << shiftWidth;
             Alignment.Advance(ref index, alignment);
             var typedSpan = MemoryMarshal.Cast<byte, T>(buffer);
             var result = typedSpan[index >> shiftWidth];
@@ -130,7 +110,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Byte</returns>
         public static byte GetByte(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<byte>(buffer, ref index);
+            => getPrimitive<byte>(buffer, ref index, 0);
 
         /// <summary>
         /// Decodes a Boolean from the buffer and advances the index
@@ -139,7 +119,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Boolean</returns>
         public static bool GetBoolean(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<int>(buffer, ref index) != 0;
+            => getPrimitive<int>(buffer, ref index, 2) != 0;
 
         /// <summary>
         /// Decodes an Int16 from the buffer and advances the index
@@ -148,7 +128,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int16</returns>
         public static short GetInt16(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<short>(buffer, ref index);
+            => getPrimitive<short>(buffer, ref index, 1);
 
         /// <summary>
         /// Decodes an UInt16 from the buffer and advances the index
@@ -157,7 +137,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt16</returns>
         public static ushort GetUInt16(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<ushort>(buffer, ref index);
+            => getPrimitive<ushort>(buffer, ref index, 1);
 
         /// <summary>
         /// Decodes an Int32 from the buffer and advances the index
@@ -166,7 +146,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int32</returns>
         public static int GetInt32(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<int>(buffer, ref index);
+            => getPrimitive<int>(buffer, ref index, 2);
 
         /// <summary>
         /// Decodes an UInt32 from the buffer and advances the index
@@ -175,7 +155,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt32</returns>
         public static uint GetUInt32(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<uint>(buffer, ref index);
+            => getPrimitive<uint>(buffer, ref index, 2);
 
         /// <summary>
         /// Decodes an Int64 from the buffer and advances the index
@@ -184,7 +164,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int64</returns>
         public static long GetInt64(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<long>(buffer, ref index);
+            => getPrimitive<long>(buffer, ref index, 3);
 
         /// <summary>
         /// Decodes an UInt64 from the buffer and advances the index
@@ -193,7 +173,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt64</returns>
         public static ulong GetUInt64(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<ulong>(buffer, ref index);
+            => getPrimitive<ulong>(buffer, ref index, 3);
 
         /// <summary>
         /// Decodes an Double from the buffer and advances the index
@@ -202,7 +182,7 @@ namespace Dbus
         /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Double</returns>
         public static double GetDouble(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<double>(buffer, ref index);
+            => getPrimitive<double>(buffer, ref index, 3);
 
         /// <summary>
         /// Decodes an array from the buffer and advances the index
