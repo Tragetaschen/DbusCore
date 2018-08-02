@@ -13,45 +13,44 @@ namespace Dbus
 
         public MessageHeader(
             SocketOperations socketOperations,
-            ReadOnlySpan<byte> headerBytes,
+            Decoder header,
             ReadOnlySpan<byte> controlBytes
         )
         {
             this.socketOperations = socketOperations;
             BodySignature = "";
-            var index = 0;
-            while (index < headerBytes.Length)
+            while (!header.IsFinished)
             {
-                var typeCode = Decoder.GetByte(headerBytes, ref index);
-                var signature = Decoder.GetSignature(headerBytes, ref index);
+                var typeCode = header.GetByte();
+                var signature = header.GetSignature();
                 switch (typeCode)
                 {
                     case 1:
-                        Path = Decoder.GetObjectPath(headerBytes, ref index);
+                        Path = header.GetObjectPath();
                         break;
                     case 2:
-                        InterfaceName = Decoder.GetString(headerBytes, ref index);
+                        InterfaceName = header.GetString();
                         break;
                     case 3:
-                        Member = Decoder.GetString(headerBytes, ref index);
+                        Member = header.GetString();
                         break;
                     case 4:
-                        ErrorName = Decoder.GetString(headerBytes, ref index);
+                        ErrorName = header.GetString();
                         break;
                     case 5:
-                        ReplySerial = Decoder.GetUInt32(headerBytes, ref index);
+                        ReplySerial = header.GetUInt32();
                         break;
                     case 6:
-                        Destination = Decoder.GetString(headerBytes, ref index);
+                        Destination = header.GetString();
                         break;
                     case 7:
-                        Sender = Decoder.GetString(headerBytes, ref index);
+                        Sender = header.GetString();
                         break;
                     case 8:
-                        BodySignature = Decoder.GetSignature(headerBytes, ref index);
+                        BodySignature = header.GetSignature();
                         break;
                     case 9:
-                        var numberOfFds = Decoder.GetUInt32(headerBytes, ref index);
+                        var numberOfFds = header.GetUInt32();
 
                         var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);
                         var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
@@ -69,7 +68,7 @@ namespace Dbus
                             UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
                         break;
                 }
-                Alignment.Advance(ref index, 8);
+                header.AdvanceToAlignment(8);
             }
         }
         public ObjectPath Path { get; }

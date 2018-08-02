@@ -19,10 +19,10 @@ namespace Dbus.CodeGenerator
             var methodImplementation = new StringBuilder();
 
             methodImplementation.Append(@"
-        private global::System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> receivedBody, bool shouldSendReply)
+        private global::System.Threading.Tasks.Task handle" + method.Name + @"(uint replySerial, global::Dbus.MessageHeader header, global::Dbus.Decoder decoder, bool shouldSendReply)
         {
 ");
-            var decoder = new DecoderGenerator("receivedBody", "header");
+            var decoder = new DecoderGenerator("decoder", "header");
             var parameters = method.GetParameters();
             foreach (var parameter in method.GetParameters())
                 decoder.Add(parameter.Name, parameter.ParameterType);

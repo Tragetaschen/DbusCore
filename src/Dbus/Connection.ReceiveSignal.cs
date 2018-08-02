@@ -7,7 +7,7 @@ namespace Dbus
 {
     public partial class Connection
     {
-        public delegate void SignalHandler(MessageHeader header, ReadOnlySpan<byte> body);
+        public delegate void SignalHandler(MessageHeader header, Decoder decoder);
 
         private readonly ConcurrentDictionary<string, SignalHandler> signalHandlers =
             new ConcurrentDictionary<string, SignalHandler>();
@@ -55,7 +55,7 @@ namespace Dbus
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
                 Task.Run(() =>
                 {
-                    handler(header, body.Limit(bodyLength));
+                    handler(header, new Decoder(body.Memory, bodyLength));
                     body.Dispose();
                 });
         }

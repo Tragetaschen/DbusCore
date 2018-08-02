@@ -86,7 +86,8 @@ namespace Dbus
         )
         {
             Alignment.Advance(ref receivedArrayLength, 8);
-            Span<byte> headerBytes = stackalloc byte[receivedArrayLength];
+            var headerBytesOwnedMemory = MemoryPool<byte>.Shared.Rent(receivedArrayLength);
+            var headerBytes = headerBytesOwnedMemory.Memory.Span.Slice(0, receivedArrayLength);
 
             hasValidFixedHeader = socketOperations.ReceiveMessage(
                 headerBytes,
@@ -95,7 +96,15 @@ namespace Dbus
                 control
             );
 
-            return new MessageHeader(socketOperations, headerBytes, control);
+            var decoder = new Decoder(headerBytesOwnedMemory.Memory, receivedArrayLength);
+            try
+            {
+                return new MessageHeader(socketOperations, decoder, control);
+            }
+            finally
+            {
+                headerBytesOwnedMemory.Dispose();
+            }
         }
 
         private struct dbusFixedLengthHeader

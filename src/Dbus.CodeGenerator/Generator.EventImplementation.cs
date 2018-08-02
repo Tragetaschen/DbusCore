@@ -28,7 +28,7 @@ namespace Dbus.CodeGenerator
 
 
             var invocationParameters = new List<string>();
-            var decoder = new DecoderGenerator("body", "header");
+            var decoder = new DecoderGenerator("decoder", "header");
 
             if (eventInfo.EventHandlerType.IsConstructedGenericType)
             {
@@ -51,7 +51,7 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.Append("private void handle");
             implementation.Append(eventInfo.Name);
-            implementation.AppendLine("(global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body)");
+            implementation.AppendLine("(global::Dbus.MessageHeader header, global::Dbus.Decoder decoder)");
             implementation.Append("        ");
             implementation.AppendLine("{");
             implementation.Append(Indent);

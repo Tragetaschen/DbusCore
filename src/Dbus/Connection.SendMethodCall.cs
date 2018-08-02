@@ -84,9 +84,8 @@ namespace Dbus
             if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
                 throw new InvalidOperationException("Couldn't find the method call for the error");
 
-            var index = 0;
-            var bodyBytes = body.Limit(bodyLength);
-            var message = Decoder.GetString(bodyBytes, ref index);
+            var decoder = new Decoder(body.Memory, bodyLength);
+            var message = decoder.GetString();
             body.Dispose();
             var exception = new DbusException(header.ErrorName, message);
             tcs.SetException(exception);

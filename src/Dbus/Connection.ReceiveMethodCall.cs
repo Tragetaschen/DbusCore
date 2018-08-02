@@ -71,7 +71,8 @@ namespace Dbus
                 {
                     try
                     {
-                        handlePropertyRequestAsync(replySerial, header, body.Limit(bodyLength));
+                        var decoder = new Decoder(body.Memory, bodyLength);
+                        handlePropertyRequestAsync(replySerial, header, decoder);
                     }
                     finally
                     {
@@ -86,7 +87,8 @@ namespace Dbus
                 {
                     try
                     {
-                        return proxy.HandleMethodCallAsync(replySerial, header, body.Limit(bodyLength), shouldSendReply);
+                        var decoder = new Decoder(body.Memory, bodyLength);
+                        return proxy.HandleMethodCallAsync(replySerial, header, decoder, shouldSendReply);
                     }
                     catch (DbusException dbusException)
                     {
@@ -123,7 +125,7 @@ namespace Dbus
             }
         }
 
-        private Task handlePropertyRequestAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body)
+        private Task handlePropertyRequestAsync(uint replySerial, MessageHeader header, Decoder body)
         {
             switch (header.Member)
             {
@@ -138,11 +140,10 @@ namespace Dbus
                     );
             }
         }
-        private Task handleGetAllAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body)
+        private Task handleGetAllAsync(uint replySerial, MessageHeader header, Decoder body)
         {
             header.BodySignature.AssertEqual("s");
-            var decoderIndex = 0;
-            var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
+            var requestedInterfaces = body.GetString();
             var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
@@ -159,12 +160,11 @@ namespace Dbus
                 );
         }
 
-        private Task handleGetAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body)
+        private Task handleGetAsync(uint replySerial, MessageHeader header, Decoder body)
         {
             header.BodySignature.AssertEqual("ss");
-            var decoderIndex = 0;
-            var requestedInterfaces = Decoder.GetString(body, ref decoderIndex);
-            var requestedProperty = Decoder.GetString(body, ref decoderIndex);
+            var requestedInterfaces = body.GetString();
+            var requestedProperty = body.GetString();
             var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {

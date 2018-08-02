@@ -52,7 +52,7 @@ namespace Dbus.CodeGenerator
             }
 
             string returnStatement;
-            var decoder = new DecoderGenerator("bodyBytes", "receivedMessage.Header");
+            var decoder = new DecoderGenerator("decoder", "receivedMessage.Header");
 
             if (returnType == typeof(Task))
                 returnStatement = "return;";
@@ -72,12 +72,12 @@ namespace Dbus.CodeGenerator
 
             if (returnType != typeof(Task))
                 createFunction = @"
-            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" createResult(global::System.ReadOnlySpan<byte> bodyBytes)
+            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" createResult(global::Dbus.Decoder decoder)
             {
 " + decoder.Result + @"
                 " + returnStatement + @"
             }
-            var createdResult = createResult(receivedMessage.Body.Memory.Span.Slice(0, receivedMessage.BodyLength));";
+            var createdResult = createResult(new global::Dbus.Decoder(receivedMessage.Body.Memory, receivedMessage.BodyLength));";
 
             return @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")

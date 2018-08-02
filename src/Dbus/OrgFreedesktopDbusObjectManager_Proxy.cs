@@ -33,7 +33,7 @@ namespace Dbus
         public void Encode(Encoder encoder)
             => encoder.Add(0); // empty array
 
-        public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body, bool doNotReply)
+        public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, Decoder decoder, bool doNotReply)
         {
             switch (header.Member)
             {

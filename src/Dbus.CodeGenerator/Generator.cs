@@ -132,13 +132,11 @@ namespace Dbus.CodeGenerator
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
 ");
                 propertyImplementations.Append(@"
-        private void handleProperties(global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body)
+        private void handleProperties(global::Dbus.MessageHeader header, global::Dbus.Decoder body)
         {
             header.BodySignature.AssertEqual(""sa{sv}as"");
-            var index = 0;
-            var interfaceName = global::Dbus.Decoder.GetString(body, ref index);
-            var changed = global::Dbus.Decoder.GetDictionary(body, ref index, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
-            //var invalidated = global::Dbus.Decoder.GetArray(body, ref index, global::Dbus.Decoder.GetString);
+            var interfaceName = body.GetString();
+            var changed = body.GetDictionary(body.GetString, body.GetObject);
             applyProperties(changed);
         }
 
@@ -156,12 +154,10 @@ namespace Dbus.CodeGenerator
                 ""s""
             ).ConfigureAwait(false);
             receivedMessage.Signature.AssertEqual(""a{sv}"");
-            var index = 0;
-            var properties = global::Dbus.Decoder.GetDictionary(
-                receivedMessage.Body.Memory.Span.Slice(0, receivedMessage.BodyLength),
-                ref index,
-                global::Dbus.Decoder.GetString,
-                global::Dbus.Decoder.GetObject
+            var decoder = new global::Dbus.Decoder(receivedMessage.Body.Memory, receivedMessage.BodyLength);
+            var properties = decoder.GetDictionary(
+                decoder.GetString,
+                decoder.GetObject
             );
             receivedMessage.Body.Dispose();
             applyProperties(properties);
@@ -333,7 +329,7 @@ namespace Dbus.CodeGenerator
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, global::System.ReadOnlySpan<byte> body, bool shouldSendReply)
+        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, global::Dbus.Decoder body, bool shouldSendReply)
         {
             switch (header.Member)
             {

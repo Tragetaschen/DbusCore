@@ -5,50 +5,58 @@ using System.Text;
 
 namespace Dbus
 {
-    public static class Decoder
+    public class Decoder
     {
-        private static readonly Dictionary<string, ElementDecoder<object>> typeDecoders = new Dictionary<string, ElementDecoder<object>>
+        private static readonly Dictionary<string, Func<Decoder, object>> typeDecoders = new Dictionary<string, Func<Decoder, object>>
         {
-            ["o"] = GetObjectPath,
-            ["s"] = GetString,
-            ["g"] = GetSignature,
-            ["y"] = box(GetByte),
-            ["b"] = box(GetBoolean),
-            ["n"] = box(GetInt16),
-            ["q"] = box(GetUInt16),
-            ["i"] = box(GetInt32),
-            ["u"] = box(GetUInt32),
-            ["x"] = box(GetInt64),
-            ["t"] = box(GetUInt64),
-            ["d"] = box(GetDouble),
-            ["a{sv}"] = getPropertyList,
-            ["as"] = getStringArray,
+            ["o"] = d => d.GetObjectPath(),
+            ["s"] = d => d.GetString(),
+            ["g"] = d => d.GetSignature(),
+            ["y"] = d => d.GetByte(),
+            ["b"] = d => d.GetBoolean(),
+            ["n"] = d => d.GetInt16(),
+            ["q"] = d => d.GetUInt16(),
+            ["i"] = d => d.GetInt32(),
+            ["u"] = d => d.GetUInt32(),
+            ["x"] = d => d.GetInt64(),
+            ["t"] = d => d.GetUInt64(),
+            ["d"] = d => d.GetDouble(),
+            ["a{sv}"] = d => d.getPropertyList(),
+            ["as"] = d => d.getStringArray(),
         };
+
+        private readonly ReadOnlyMemory<byte> buffer;
+        private readonly int bufferLength;
+        private int index;
+
+        public Decoder(ReadOnlyMemory<byte> buffer, int bufferLength)
+        {
+            this.buffer = buffer;
+            this.bufferLength = bufferLength;
+            index = 0;
+        }
+
+        public bool IsFinished => index >= bufferLength;
+        public void AdvanceToAlignment(int alignment) => Alignment.Advance(ref index, alignment);
 
         /// <summary>
         /// Decoder for element types
         /// </summary>
         /// <typeparam name="T">Result type of the decoder</typeparam>
-        /// <param name="buffer">Buffer to decode from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
+        /// <param name="decoder">The decoder</param>
         /// <returns>The decoded type</returns>
-        public delegate T ElementDecoder<T>(ReadOnlySpan<byte> buffer, ref int index);
+        public delegate T ElementDecoder<T>();
 
-        private static ElementDecoder<object> box<T>(ElementDecoder<T> orig)
-            => (ReadOnlySpan<byte> buffer, ref int index) => orig(buffer, ref index);
+        private IDictionary<string, object> getPropertyList() => GetDictionary(GetString, GetObject);
 
-        private static IDictionary<string, object> getPropertyList(ReadOnlySpan<byte> buffer, ref int index)
-            => GetDictionary(buffer, ref index, GetString, GetObject);
+        private List<string> getStringArray() => GetArray(GetString);
 
-        private static List<string> getStringArray(ReadOnlySpan<byte> buffer, ref int index)
-            => GetArray(buffer, ref index, GetString);
-
-        private static unsafe string getStringFromBytes(ReadOnlySpan<byte> buffer, ref int index, int length)
+        private unsafe string getStringFromBytes(int length)
         {
             var result = string.Empty;
             if (length != 0)
             {
-                var bytes = buffer.Slice(index, length);
+                var bytes = buffer.Span.Slice(index, length);
                 fixed (byte* bytesP = bytes)
                     result = Encoding.UTF8.GetString(bytesP, length);
             }
@@ -59,45 +67,36 @@ namespace Dbus
         /// <summary>
         /// Decodes a string from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the string from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded string</returns>
-        public static string GetString(ReadOnlySpan<byte> buffer, ref int index)
+        public string GetString()
         {
-            var stringLength = GetInt32(buffer, ref index); // Actually uint
-            return getStringFromBytes(buffer, ref index, stringLength);
+            var stringLength = GetInt32(); // Actually uint
+            return getStringFromBytes(stringLength);
         }
 
         /// <summary>
         /// Decodes an object path from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the object path from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded object path</returns>
-        public static ObjectPath GetObjectPath(ReadOnlySpan<byte> buffer, ref int index)
-            => GetString(buffer, ref index);
+        public ObjectPath GetObjectPath() => GetString();
 
         /// <summary>
         /// Decodes a signature from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the signature from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded signature</returns>
-        public static Signature GetSignature(ReadOnlySpan<byte> buffer, ref int index)
+        public Signature GetSignature()
         {
-            var signatureLength = GetByte(buffer, ref index);
-            return getStringFromBytes(buffer, ref index, signatureLength);
+            var signatureLength = GetByte();
+            return getStringFromBytes(signatureLength);
         }
 
-        private static T getPrimitive<T>(
-            ReadOnlySpan<byte> buffer,
-            ref int index,
+        private T getPrimitive<T>(
             int shiftWidth
         ) where T : struct
         {
             var alignment = 1 << shiftWidth;
-            Alignment.Advance(ref index, alignment);
-            var typedSpan = MemoryMarshal.Cast<byte, T>(buffer);
+            AdvanceToAlignment(alignment);
+            var typedSpan = MemoryMarshal.Cast<byte, T>(buffer.Span);
             var result = typedSpan[index >> shiftWidth];
             index += alignment;
             return result;
@@ -106,100 +105,71 @@ namespace Dbus
         /// <summary>
         /// Decodes a Byte from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Int32 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Byte</returns>
-        public static byte GetByte(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<byte>(buffer, ref index, 0);
+        public byte GetByte() => getPrimitive<byte>(0);
 
         /// <summary>
         /// Decodes a Boolean from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Boolean from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Boolean</returns>
-        public static bool GetBoolean(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<int>(buffer, ref index, 2) != 0;
+        public bool GetBoolean() => getPrimitive<int>(2) != 0;
 
         /// <summary>
         /// Decodes an Int16 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Int16 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int16</returns>
-        public static short GetInt16(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<short>(buffer, ref index, 1);
+        public short GetInt16() => getPrimitive<short>(1);
 
         /// <summary>
         /// Decodes an UInt16 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the UInt16 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt16</returns>
-        public static ushort GetUInt16(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<ushort>(buffer, ref index, 1);
+        public ushort GetUInt16() => getPrimitive<ushort>(1);
 
         /// <summary>
         /// Decodes an Int32 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Int32 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int32</returns>
-        public static int GetInt32(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<int>(buffer, ref index, 2);
+        public int GetInt32() => getPrimitive<int>(2);
 
         /// <summary>
         /// Decodes an UInt32 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the UInt32 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt32</returns>
-        public static uint GetUInt32(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<uint>(buffer, ref index, 2);
+        public uint GetUInt32() => getPrimitive<uint>(2);
 
         /// <summary>
         /// Decodes an Int64 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Int64 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Int64</returns>
-        public static long GetInt64(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<long>(buffer, ref index, 3);
+        public long GetInt64() => getPrimitive<long>(3);
 
         /// <summary>
         /// Decodes an UInt64 from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the UInt64 from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded UInt64</returns>
-        public static ulong GetUInt64(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<ulong>(buffer, ref index, 3);
+        public ulong GetUInt64() => getPrimitive<ulong>(3);
 
         /// <summary>
         /// Decodes an Double from the buffer and advances the index
         /// </summary>
-        /// <param name="buffer">Buffer to decode the Double from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <returns>The decoded Double</returns>
-        public static double GetDouble(ReadOnlySpan<byte> buffer, ref int index)
-            => getPrimitive<double>(buffer, ref index, 3);
+        public double GetDouble() => getPrimitive<double>(3);
 
         /// <summary>
         /// Decodes an array from the buffer and advances the index
         /// </summary>
         /// <typeparam name="T">Type of the array elements</typeparam>
-        /// <param name="buffer">Buffer to decode the array from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <param name="decoder">The decoder for the elements</param>
         /// <returns>The decoded array</returns>
-        public static List<T> GetArray<T>(ReadOnlySpan<byte> buffer, ref int index, ElementDecoder<T> decoder)
+        public List<T> GetArray<T>(ElementDecoder<T> decoder)
         {
             var result = new List<T>();
-            var arrayLength = GetInt32(buffer, ref index); // Actually uint
+            var arrayLength = GetInt32(); // Actually uint
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
-                var element = decoder(buffer, ref index);
+                var element = decoder();
                 result.Add(element);
             }
             return result;
@@ -210,44 +180,40 @@ namespace Dbus
         /// </summary>
         /// <typeparam name="TKey">Type of the dictionary keys</typeparam>
         /// <typeparam name="TValue">Type of the dictionary values</typeparam>
-        /// <param name="buffer">Buffer to decode the dictionary from</param>
-        /// <param name="index">Index into the buffer to start decoding</param>
         /// <param name="keyDecoder">The decoder for the keys</param>
         /// <param name="valueDecoder">The decoder for the values</param>
         /// <returns>The decoded dictionary</returns>
-        public static IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
-            ReadOnlySpan<byte> buffer,
-            ref int index,
+        public IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
             ElementDecoder<TKey> keyDecoder,
             ElementDecoder<TValue> valueDecoder
         )
         {
             var result = new Dictionary<TKey, TValue>();
-            var arrayLength = GetInt32(buffer, ref index); // Actually uint
-            Alignment.Advance(ref index, 8);
+            var arrayLength = GetInt32(); // Actually uint
+            AdvanceToAlignment(8);
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
-                Alignment.Advance(ref index, 8);
+                AdvanceToAlignment(8);
 
-                var key = keyDecoder(buffer, ref index);
-                var value = valueDecoder(buffer, ref index);
+                var key = keyDecoder();
+                var value = valueDecoder();
 
                 result.Add(key, value);
             }
             return result;
         }
 
-        public static object GetObject(ReadOnlySpan<byte> buffer, ref int index)
+        public object GetObject()
         {
-            var signature = GetSignature(buffer, ref index);
+            var signature = GetSignature();
             var stringSignature = signature.ToString();
             if (typeDecoders.TryGetValue(stringSignature, out var elementDecoder))
-                return elementDecoder(buffer, ref index);
+                return elementDecoder(this);
             else if (stringSignature.StartsWith("a"))
             {
                 if (typeDecoders.TryGetValue(stringSignature.Substring(1), out elementDecoder))
-                    return GetArray(buffer, ref index, elementDecoder);
+                    return GetArray(() => elementDecoder(this));
             }
             throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }
