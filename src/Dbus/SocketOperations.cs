@@ -123,17 +123,14 @@ namespace Dbus
         }
 
         [DllImport("libc", SetLastError = true)]
-        private static extern unsafe nint send(SafeHandle sockfd, [In] byte* buf, nint len, int flags);
+        private static extern unsafe nint send(SafeHandle sockfd, [In] ref byte buf, nint len, int flags);
 
-        public unsafe int Send(SafeHandle sockfd, byte[] buffer, int offset, int count)
+        public int Send(SafeHandle sockfd, byte[] buffer, int offset, int count)
         {
-            fixed (byte* bufferP = buffer)
-            {
-                var sendResult = send(sockfd, bufferP + offset, count, 0);
-                if (sendResult < 0)
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
-                return (int)sendResult;
-            }
+            var sendResult = send(sockfd, ref buffer[offset], count, 0);
+            if (sendResult < 0)
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            return (int)sendResult;
         }
 
         [DllImport("libc")]
