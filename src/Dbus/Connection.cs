@@ -93,12 +93,12 @@ namespace Dbus
                 Deregister = work,
             };
 
-        private async Task serializedWriteToStream(byte[] messageArray)
+        private async Task serializedWriteToStream(params ReadOnlyMemory<byte>[] blocks)
         {
             await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
             {
-                socketOperations.Send(messageArray);
+                socketOperations.Send(blocks);
             }
             finally
             {

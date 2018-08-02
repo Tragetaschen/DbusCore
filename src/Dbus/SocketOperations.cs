@@ -1,5 +1,6 @@
 ﻿using DotNetCross.NativeInts;
 using System;
+using System.Buffers;
 using System.ComponentModel;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -93,25 +94,32 @@ namespace Dbus
 
         [DllImport("libc", SetLastError = true)]
         private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
-        public unsafe void Send(ReadOnlySpan<byte> message)
+        public unsafe void Send(ReadOnlyMemory<byte>[] blocks)
         {
-            fixed (byte* messageP = message)
+            var numberOfBlocks = blocks.Length;
+            var handles = new MemoryHandle[numberOfBlocks];
+            var iovecs = stackalloc iovec[numberOfBlocks];
+
+            for (var i = 0; i < numberOfBlocks; ++i)
             {
-                var iovecs = stackalloc iovec[1];
-
-                iovecs[0].iov_base = messageP;
-                iovecs[0].iov_len = message.Length;
-
-                var msg = new msghdr
-                {
-                    iov = iovecs,
-                    iovlen = 1,
-                };
-
-                var sendResult = sendmsg(handle, ref msg, 0);
-                if (sendResult < 0)
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                handles[i] = blocks[i].Pin();
+                iovecs[i].iov_base = (byte*)handles[i].Pointer;
+                iovecs[i].iov_len = blocks[i].Length;
             }
+
+            var msg = new msghdr
+            {
+                iov = iovecs,
+                iovlen = numberOfBlocks,
+            };
+
+            var sendResult = sendmsg(handle, ref msg, 0);
+
+            for (var i=0; i< numberOfBlocks; ++i)
+                handles[i].Dispose();
+
+            if (sendResult < 0)
+                throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
         [DllImport("libc", SetLastError = true)]

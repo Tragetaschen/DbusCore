@@ -33,27 +33,25 @@ namespace Dbus
         {
             var serial = getSerial();
 
-            var message = Encoder.StartNew();
+            var messageHeader = Encoder.StartNew();
             var index = 0;
-            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(message, ref index, (byte)dbusMessageType.MethodReturn);
-            Encoder.Add(message, ref index, (byte)dbusFlags.NoReplyExpected);
-            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial);
+            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.MethodReturn);
+            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.NoReplyExpected);
+            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
+            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
+            Encoder.Add(messageHeader, ref index, serial);
 
-            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
             {
                 addHeader(buffer, ref localIndex, 6, destination);
                 addHeader(buffer, ref localIndex, replySerial);
                 if (body.Count > 0)
                     addHeader(buffer, ref localIndex, signature);
             });
-            Encoder.EnsureAlignment(message, ref index, 8);
-            message.AddRange(body);
+            Encoder.EnsureAlignment(messageHeader, ref index, 8);
 
-            var messageArray = message.ToArray();
-            return serializedWriteToStream(messageArray);
+            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
         }
 
         private void handleMethodCall(
@@ -198,16 +196,16 @@ namespace Dbus
             var body = Encoder.StartNew();
             Encoder.Add(body, ref index, errorMessage);
 
-            var message = Encoder.StartNew();
+            var messageHeader = Encoder.StartNew();
             index = 0;
-            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(message, ref index, (byte)dbusMessageType.Error);
-            Encoder.Add(message, ref index, (byte)dbusFlags.NoReplyExpected);
-            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial);
+            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.Error);
+            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.NoReplyExpected);
+            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
+            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
+            Encoder.Add(messageHeader, ref index, serial);
 
-            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
             {
                 addHeader(buffer, ref localIndex, 6, destination);
                 addHeader(buffer, ref localIndex, 4, error);
@@ -215,11 +213,9 @@ namespace Dbus
                 if (body.Count > 0)
                     addHeader(buffer, ref localIndex, (Signature)"s");
             });
-            Encoder.EnsureAlignment(message, ref index, 8);
-            message.AddRange(body);
+            Encoder.EnsureAlignment(messageHeader, ref index, 8);
 
-            var messageArray = message.ToArray();
-            return serializedWriteToStream(messageArray);
+            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
         }
     }
 }

@@ -22,16 +22,16 @@ namespace Dbus
                 throw new ArgumentException("Signal member must not be empty", nameof(methodName));
 
             var serial = getSerial();
-            var message = Encoder.StartNew();
+            var messageHeader = Encoder.StartNew();
             var index = 0;
-            Encoder.Add(message, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(message, ref index, (byte)dbusMessageType.Signal);
-            Encoder.Add(message, ref index, (byte)dbusFlags.None);
-            Encoder.Add(message, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(message, ref index, body.Count); // Actually uint
-            Encoder.Add(message, ref index, serial);
+            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
+            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.Signal);
+            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.None);
+            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
+            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
+            Encoder.Add(messageHeader, ref index, serial);
 
-            Encoder.AddArray(message, ref index, (List<byte> buffer, ref int localIndex) =>
+            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
             {
                 addHeader(buffer, ref localIndex, path);
                 addHeader(buffer, ref localIndex, 2, interfaceName);
@@ -39,10 +39,9 @@ namespace Dbus
                 if (body.Count > 0)
                     addHeader(buffer, ref localIndex, signature);
             });
-            Encoder.EnsureAlignment(message, ref index, 8);
-            message.AddRange(body);
-            var messageArray = message.ToArray();
-            return serializedWriteToStream(messageArray);
+            Encoder.EnsureAlignment(messageHeader, ref index, 8);
+
+            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
         }
     }
 }
