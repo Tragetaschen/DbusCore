@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -16,36 +15,42 @@ namespace Dbus
             string interfaceName,
             string methodName,
             string destination,
-            List<byte> body,
+            Encoder body,
             Signature signature
         )
         {
             var serial = getSerial();
 
-            var messageHeader = Encoder.StartNew();
-            var index = 0;
-            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.MethodCall);
-            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.None);
-            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
-            Encoder.Add(messageHeader, ref index, serial);
+            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodyLength = 0;
+            foreach (var segment in bodySegments)
+                bodyLength += segment.Length;
 
-            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
+            var header = new Encoder();
+            header.Add((byte)dbusEndianess.LittleEndian);
+            header.Add((byte)dbusMessageType.MethodCall);
+            header.Add((byte)dbusFlags.None);
+            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add(bodyLength); // Actually uint
+            header.Add(serial);
+
+            header.AddArray(() =>
             {
-                addHeader(buffer, ref localIndex, path);
-                addHeader(buffer, ref localIndex, 2, interfaceName);
-                addHeader(buffer, ref localIndex, 3, methodName);
-                addHeader(buffer, ref localIndex, 6, destination);
-                if (body.Count > 0)
-                    addHeader(buffer, ref localIndex, signature);
+                addHeader(header, path);
+                addHeader(header, 2, interfaceName);
+                addHeader(header, 3, methodName);
+                addHeader(header, 6, destination);
+                if (bodyLength > 0)
+                    addHeader(header, signature);
             });
-            Encoder.EnsureAlignment(messageHeader, ref index, 8);
+            header.EnsureAlignment(8);
+
+            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
-            await serializedWriteToStream(messageHeader.ToArray(), body.ToArray()).ConfigureAwait(false);
+            await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }

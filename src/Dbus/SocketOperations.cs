@@ -94,29 +94,30 @@ namespace Dbus
 
         [DllImport("libc", SetLastError = true)]
         private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
-        public unsafe void Send(ReadOnlyMemory<byte>[] blocks)
+        public unsafe void Send(Span<ReadOnlyMemory<byte>> segments, int numberOfSegments)
         {
-            var numberOfBlocks = blocks.Length;
-            var handles = new MemoryHandle[numberOfBlocks];
-            var iovecs = stackalloc iovec[numberOfBlocks];
+            var handlesMemoryOwner= MemoryPool<MemoryHandle>.Shared.Rent(numberOfSegments);
+            var handles = handlesMemoryOwner.Memory.Span;
+            var iovecs = stackalloc iovec[numberOfSegments];
 
-            for (var i = 0; i < numberOfBlocks; ++i)
+            for (var i = 0; i < numberOfSegments; ++i)
             {
-                handles[i] = blocks[i].Pin();
+                handles[i] = segments[i].Pin();
                 iovecs[i].iov_base = (byte*)handles[i].Pointer;
-                iovecs[i].iov_len = blocks[i].Length;
+                iovecs[i].iov_len = segments[i].Length;
             }
 
             var msg = new msghdr
             {
                 iov = iovecs,
-                iovlen = numberOfBlocks,
+                iovlen = numberOfSegments,
             };
 
             var sendResult = sendmsg(handle, ref msg, 0);
 
-            for (var i = 0; i < numberOfBlocks; ++i)
+            for (var i = 0; i < numberOfSegments; ++i)
                 handles[i].Dispose();
+            handlesMemoryOwner.Dispose();
 
             if (sendResult < 0)
                 throw new Win32Exception(Marshal.GetLastWin32Error());

@@ -82,7 +82,7 @@ namespace Dbus.CodeGenerator
             return @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
-            var sendBody = global::Dbus.Encoder.StartNew();
+            var sendBody = new global::Dbus.Encoder();
 " + encoder.Result + @"
             var receivedMessage = await connection.SendMethodCall(
                 this.path,

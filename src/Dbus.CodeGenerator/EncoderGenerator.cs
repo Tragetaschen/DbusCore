@@ -9,30 +9,20 @@ namespace Dbus.CodeGenerator
     public class EncoderGenerator
     {
         private readonly string body;
-        private string index;
         private readonly StringBuilder resultBuilder = new StringBuilder();
         private readonly StringBuilder signatureBuilder = new StringBuilder();
 
         public EncoderGenerator(string body)
-            : this(body, "")
-        { }
-
-        public EncoderGenerator(string body, string index)
-        {
-            this.body = body;
-            this.index = index;
-        }
+            => this.body = body;
 
         public string Result => resultBuilder.ToString();
         public string Signature => signatureBuilder.ToString();
 
         public void AddVariant(string name, Type type, string indent = Generator.Indent)
         {
-            ensureSendIndex(indent);
-
             var (signature, code) = encoder(name, name, type, Generator.Indent);
 
-            var innerGenerator = new EncoderGenerator(body, index);
+            var innerGenerator = new EncoderGenerator(body);
             innerGenerator.add($@"(global::Dbus.Signature)""{signature}""", name, typeof(Signature), Generator.Indent);
             signatureBuilder.Append("v");
             resultBuilder.Append(innerGenerator.Result);
@@ -40,19 +30,7 @@ namespace Dbus.CodeGenerator
         }
 
         public void Add(string name, Type type, string indent = Generator.Indent)
-        {
-            ensureSendIndex(indent);
-            add(name, name, type, indent);
-        }
-
-        private void ensureSendIndex(string indent)
-        {
-            if (index != "")
-                return;
-            resultBuilder.Append(indent);
-            resultBuilder.AppendLine("var sendIndex = 0;");
-            index = "sendIndex";
-        }
+            => add(name, name, type, indent);
 
         private void add(string value, string name, Type type, string indent)
         {
@@ -67,14 +45,14 @@ namespace Dbus.CodeGenerator
             if (type == typeof(object))
                 return (
                     SignatureString.For[type],
-                    "global::Dbus.Encoder.AddVariant(" + body + ", ref " + index + ", " + value + ");"
+                    body + ".AddVariant(" + value + ");"
                 );
             else if (!type.IsConstructedGenericType)
             {
                 if (SignatureString.For.ContainsKey(type))
                     return (
                         SignatureString.For[type],
-                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ");"
+                        body + ".Add(" + value + ");"
                     );
                 else
                     return buildFromConstructor(value, name, type, indent);
@@ -88,7 +66,7 @@ namespace Dbus.CodeGenerator
                     var (elementSignature, elementCode) = createMethod(elementType, name + "_e", name + "_e", indent);
                     return (
                         "a" + elementSignature,
-                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + elementCode + ");"
+                        body + ".Add(" + value + ", " + elementCode + ");"
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
@@ -100,7 +78,7 @@ namespace Dbus.CodeGenerator
 
                     return (
                         "a{" + keySignature + valueSignature + "}",
-                        "global::Dbus.Encoder.Add(" + body + ", ref " + index + ", " + value + ", " + keyCode + ", " + valueCode + ");"
+                        body + ".Add(" + value + ", " + keyCode + ", " + valueCode + ");"
                     );
                 }
                 else
@@ -118,14 +96,14 @@ namespace Dbus.CodeGenerator
                 .First()
             ;
             var builder = new StringBuilder();
-            builder.AppendLine("global::Dbus.Alignment.Advance(ref " + index + ", 8);");
+            builder.AppendLine(body + ".EnsureAlignment(8);");
             var signature = "(";
 
             foreach (var p in constructorParameters)
             {
                 var parameterName = p.Name;
                 var propertyName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
-                var encoder = new EncoderGenerator(body, index);
+                var encoder = new EncoderGenerator(body);
                 encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent);
                 signature += encoder.Signature;
                 builder.Append(encoder.Result);
@@ -136,25 +114,25 @@ namespace Dbus.CodeGenerator
             return (signature, builder.ToString());
         }
 
-        private static (string signature, string code) createMethod(Type type, string value, string name, string indent)
+        private (string signature, string code) createMethod(Type type, string value, string name, string indent)
         {
             if (type == typeof(object))
                 return (
                     SignatureString.For[type],
-                    "global::Dbus.Encoder.AddVariant"
+                    body + ".AddVariant"
                 );
             else if (SignatureString.For.ContainsKey(type))
                 return (
                     SignatureString.For[type],
-                    "global::Dbus.Encoder.Add"
+                    body + ".Add"
                 );
             else
             {
-                var encoder = new EncoderGenerator(name + "_b", name + "_i");
+                var encoder = new EncoderGenerator(body);
                 encoder.add(value, name, type, indent + "    ");
                 return (
                     encoder.Signature,
-                    "(global::System.Collections.Generic.List<byte> " + name + "_b, ref int " + name + @"_i, " + Generator.BuildTypeString(type) + " " + name + @") =>
+                    "(" + Generator.BuildTypeString(type) + " " + name + @") =>
 " + indent + @"{
 " + encoder.Result + indent + "}"
                 );

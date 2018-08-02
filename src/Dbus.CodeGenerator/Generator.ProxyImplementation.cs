@@ -48,7 +48,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.AppendLine(@"if (!shouldSendReply)
                         return;");
             methodImplementation.Append(continueIndent);
-            methodImplementation.AppendLine("var sendBody = global::Dbus.Encoder.StartNew();");
+            methodImplementation.AppendLine("var sendBody = new global::Dbus.Encoder();");
             if (encoder.Signature != "")
                 methodImplementation.Append(encoder.Result);
             methodImplementation.Append(continueIndent);

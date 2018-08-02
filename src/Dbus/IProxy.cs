@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -7,8 +6,8 @@ namespace Dbus
     public interface IProxy : IDisposable
     {
         string InterfaceName { get; }
-        void EncodeProperties(List<byte> sendBody, ref int index);
+        void EncodeProperties(Encoder sendBody);
         Task HandleMethodCallAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body, bool shouldSendReply);
-        void EncodeProperty(List<byte> sendBody, ref int index, string propertyName);
+        void EncodeProperty(Encoder sendBody, string propertyName);
     }
 }

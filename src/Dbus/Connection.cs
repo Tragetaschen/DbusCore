@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,32 +58,32 @@ namespace Dbus
             return result;
         }
 
-        private static void addHeader(List<byte> buffer, ref int index, ObjectPath path)
+        private static void addHeader(Encoder encoder, ObjectPath path)
         {
-            Encoder.EnsureAlignment(buffer, ref index, 8);
-            Encoder.Add(buffer, ref index, (byte)1);
-            Encoder.AddVariant(buffer, ref index, path);
+            encoder.EnsureAlignment(8);
+            encoder.Add((byte)1);
+            encoder.AddVariant(path);
         }
 
-        private static void addHeader(List<byte> buffer, ref int index, uint replySerial)
+        private static void addHeader(Encoder encoder, uint replySerial)
         {
-            Encoder.EnsureAlignment(buffer, ref index, 8);
-            Encoder.Add(buffer, ref index, (byte)5);
-            Encoder.AddVariant(buffer, ref index, replySerial);
+            encoder.EnsureAlignment(8);
+            encoder.Add((byte)5);
+            encoder.AddVariant(replySerial);
         }
 
-        private static void addHeader(List<byte> buffer, ref int index, Signature signature)
+        private static void addHeader(Encoder encoder, Signature signature)
         {
-            Encoder.EnsureAlignment(buffer, ref index, 8);
-            Encoder.Add(buffer, ref index, (byte)8);
-            Encoder.AddVariant(buffer, ref index, signature);
+            encoder.EnsureAlignment(8);
+            encoder.Add((byte)8);
+            encoder.AddVariant(signature);
         }
 
-        private static void addHeader(List<byte> buffer, ref int index, byte type, string value)
+        private static void addHeader(Encoder encoder, byte type, string value)
         {
-            Encoder.EnsureAlignment(buffer, ref index, 8);
-            Encoder.Add(buffer, ref index, type);
-            Encoder.AddVariant(buffer, ref index, value);
+            encoder.EnsureAlignment(8);
+            encoder.Add(type);
+            encoder.AddVariant(value);
         }
 
         private uint getSerial() => (uint)Interlocked.Increment(ref serialCounter);
@@ -93,17 +94,37 @@ namespace Dbus
                 Deregister = work,
             };
 
-        private async Task serializedWriteToStream(params ReadOnlyMemory<byte>[] blocks)
+        private async Task serializedWriteToStream(ReadOnlySequence<byte> header, ReadOnlySequence<byte> body)
         {
+            var numberOfSegments = 0;
+            foreach (var _ in header)
+                ++numberOfSegments;
+            foreach (var _ in body)
+                ++numberOfSegments;
+
+            var segmentsOwnedMemory = fillSegments(header, body, numberOfSegments);
             await semaphoreSend.WaitAsync().ConfigureAwait(false);
             try
             {
-                socketOperations.Send(blocks);
+                socketOperations.Send(segmentsOwnedMemory.Memory.Span, numberOfSegments);
             }
             finally
             {
+                segmentsOwnedMemory.Dispose();
                 semaphoreSend.Release();
             }
+        }
+
+        private static IMemoryOwner<ReadOnlyMemory<byte>> fillSegments(ReadOnlySequence<byte> header, ReadOnlySequence<byte> body, int numberOfSegments)
+        {
+            var segmentsOwnedMemory = MemoryPool<ReadOnlyMemory<byte>>.Shared.Rent(numberOfSegments);
+            var segments = segmentsOwnedMemory.Memory.Span;
+            var index = 0;
+            foreach (var segment in header)
+                segments[index++] = segment;
+            foreach (var segment in body)
+                segments[index++] = segment;
+            return segmentsOwnedMemory;
         }
 
         public void Dispose()

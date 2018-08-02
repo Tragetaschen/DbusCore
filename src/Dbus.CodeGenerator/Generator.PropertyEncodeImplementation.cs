@@ -10,23 +10,23 @@ namespace Dbus.CodeGenerator
         {
             var propertyEncoder = new StringBuilder();
             propertyEncoder.Append(@"
-        public void EncodeProperties(global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
+        public void EncodeProperties(global::Dbus.Encoder sendBody)
         {
-            global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
+            sendBody.AddArray(() =>
             {");
 
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
-                global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
-                global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, """ + property.Name + @""");
-                Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);");
+                sendBody.EnsureAlignment(8);
+                sendBody.Add(""" + property.Name + @""");
+                Encode" + property.Name + @"(sendBody);");
             }
             propertyEncoder.Append(@"
             }, true);
         }
 
-        public void EncodeProperty(global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex, string propertyName)
+        public void EncodeProperty(global::Dbus.Encoder sendBody, string propertyName)
         {
             switch (propertyName)
             {");
@@ -34,7 +34,7 @@ namespace Dbus.CodeGenerator
             {
                 propertyEncoder.Append(@"
                 case """ + property.Name + @""":
-                    Encode" + property.Name + @"(sendBody, ref sendIndex);
+                    Encode" + property.Name + @"(sendBody);
                     break;");
             }
             propertyEncoder.Append(@"
@@ -47,11 +47,11 @@ namespace Dbus.CodeGenerator
         }");
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
-                var encoder = new EncoderGenerator("sendBody", "sendIndex");
+                var encoder = new EncoderGenerator("sendBody");
                 encoder.AddVariant("value", property.PropertyType);
                 propertyEncoder.Append(@"
 
-        private void Encode" + property.Name + @"(global::System.Collections.Generic.List<byte> sendBody, ref int sendIndex)
+        private void Encode" + property.Name + @"(global::Dbus.Encoder sendBody)
         {
             var value = target." + property.Name + @";
 " + encoder.Result + @"

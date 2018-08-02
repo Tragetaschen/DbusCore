@@ -1,229 +1,210 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.IO.Pipelines;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public static class Encoder
+    public class Encoder
     {
-        public delegate void ElementWriter<T>(List<byte> buffer, ref int index, T value);
-        public delegate void ElementWriter(List<byte> buffer, ref int index);
+        public delegate void ElementWriter<T>(T value);
+        public delegate void ElementWriter();
 
-        public static List<byte> StartNew() => new List<byte>();
+        private readonly Pipe pipe = new Pipe(new PipeOptions(
+            // There's no reader until the entire message is built in memory.
+            // That means we cannot tolerate a pause for the writer to wait for the non-existant reader
+            pauseWriterThreshold: long.MaxValue
+        ));
+        private int index;
 
-        public static void Add(List<byte> buffer, ref int index, string value)
+        private Span<byte> reserve(int size)
+        {
+            var result = pipe.Writer.GetSpan(size);
+            pipe.Writer.Advance(size);
+            index += size;
+            return result;
+        }
+
+        public async Task<ReadOnlySequence<byte>> FinishAsync()
+        {
+            await pipe.Writer.FlushAsync();
+            pipe.Writer.Complete();
+            var readResult = await pipe.Reader.ReadAsync();
+            return readResult.Buffer;
+        }
+
+        public void Add(string value)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
-            Add(buffer, ref index, bytes.Length); // Actually uint
-            buffer.AddRange(bytes);
-            index += bytes.Length;
-            buffer.Add(0);
-            index += 1;
+            Add(bytes.Length); // Actually uint
+            var span = reserve(bytes.Length + 1);
+            bytes.CopyTo(span);
+            span[bytes.Length] = 0;
         }
 
-        public static void Add(List<byte> buffer, ref int index, Signature signature)
+        public void Add(Signature signature)
         {
             var bytes = Encoding.UTF8.GetBytes(signature.ToString());
-            Add(buffer, ref index, (byte)bytes.Length);
-            buffer.AddRange(bytes);
-            index += bytes.Length;
-            buffer.Add(0);
-            index += 1;
+            Add((byte)bytes.Length);
+            var span = reserve(bytes.Length + 1);
+            bytes.CopyTo(span);
+            span[bytes.Length] = 0;
         }
 
-        public static void Add(List<byte> buffer, ref int index, ObjectPath value)
-            => Add(buffer, ref index, value.ToString());
+        public void Add(ObjectPath value)
+            => Add(value.ToString());
 
-        public static void Add(List<byte> buffer, ref int index, short value)
+        private void addPrimitive<T>(T value, int size) where T : struct
         {
-            EnsureAlignment(buffer, ref index, 2);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 2;
+            EnsureAlignment(size);
+            var span = MemoryMarshal.Cast<byte, T>(reserve(size));
+            span[0] = value;
         }
 
-        public static void Add(List<byte> buffer, ref int index, ushort value)
-        {
-            EnsureAlignment(buffer, ref index, 2);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 2;
-        }
+        public void Add(short value)
+            => addPrimitive(value, sizeof(short));
 
-        public static void Add(List<byte> buffer, ref int index, int value)
-        {
-            EnsureAlignment(buffer, ref index, 4);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 4;
-        }
+        public void Add(ushort value)
+            => addPrimitive(value, sizeof(ushort));
 
-        public static void Add(List<byte> buffer, ref int index, uint value)
-        {
-            EnsureAlignment(buffer, ref index, 4);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 4;
-        }
+        public void Add(int value)
+            => addPrimitive(value, sizeof(int));
 
-        public static void Add(List<byte> buffer, ref int index, ulong value)
-        {
-            EnsureAlignment(buffer, ref index, 8);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 8;
-        }
+        public void Add(uint value)
+            => addPrimitive(value, sizeof(uint));
 
-        public static void Add(List<byte> buffer, ref int index, long value)
-        {
-            EnsureAlignment(buffer, ref index, 8);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 8;
-        }
+        public void Add(ulong value)
+            => addPrimitive(value, sizeof(ulong));
 
-        public static void Add(List<byte> buffer, ref int index, double value)
-        {
-            EnsureAlignment(buffer, ref index, 8);
-            buffer.AddRange(BitConverter.GetBytes(value));
-            index += 8;
-        }
+        public void Add(long value)
+            => addPrimitive(value, sizeof(long));
 
-        public static void Add(List<byte> buffer, ref int index, byte value)
-        {
-            buffer.Add(value);
-            index += 1;
-        }
+        public void Add(double value)
+            => addPrimitive(value, sizeof(double));
 
-        public static void Add(List<byte> buffer, ref int index, bool value)
-            => Add(buffer, ref index, value ? 1 : 0);
+        public void Add(byte value)
+            => addPrimitive(value, sizeof(byte));
 
-        public static void Add<T>(List<byte> buffer, ref int index, IEnumerable<T> values, ElementWriter<T> writer)
-        {
-            EnsureAlignment(buffer, ref index, 4);
-            var lengthPosition = index;
-            Add(buffer, ref index, 0); // Actually uint
-            EnsureAlignment(buffer, ref index, 4);
-            var arrayStart = index;
-            foreach (var value in values)
-                writer(buffer, ref index, value);
-            var arrayLength = index - arrayStart;
-            var lengthBytes = BitConverter.GetBytes(arrayLength);
-            for (var i = 0; i < 4; ++i)
-                buffer[lengthPosition + i] = lengthBytes[i];
-        }
+        public void Add(bool value)
+            => addPrimitive(value ? 1 : 0, sizeof(int));
 
-        public static void Add<TKey, TValue>(List<byte> buffer, ref int index, IDictionary<TKey, TValue> values, ElementWriter<TKey> keyWriter, ElementWriter<TValue> valueWriter)
-        {
-            EnsureAlignment(buffer, ref index, 4);
-            var lengthPosition = index;
-            Add(buffer, ref index, 0); // Actually uint
-            EnsureAlignment(buffer, ref index, 8);
-            var arrayStart = index;
-            foreach (var value in values)
+        public void Add<T>(IEnumerable<T> values, ElementWriter<T> writer)
+            => AddArray(() =>
             {
-                EnsureAlignment(buffer, ref index, 8);
-                keyWriter(buffer, ref index, value.Key);
-                valueWriter(buffer, ref index, value.Value);
-            }
-            var arrayLength = index - arrayStart;
-            var lengthBytes = BitConverter.GetBytes(arrayLength);
-            for (var i = 0; i < 4; ++i)
-                buffer[lengthPosition + i] = lengthBytes[i];
-        }
+                foreach (var value in values)
+                    writer(value);
+            }, false);
 
-        public static void AddArray(List<byte> buffer, ref int index, ElementWriter writer, bool alignment_8 = false)
+        public void Add<TKey, TValue>(IDictionary<TKey, TValue> values, ElementWriter<TKey> keyWriter, ElementWriter<TValue> valueWriter)
+            => AddArray(() =>
+            {
+                foreach (var value in values)
+                {
+                    EnsureAlignment(8);
+                    keyWriter(value.Key);
+                    valueWriter(value.Value);
+                }
+            }, true);
+
+        public void AddArray(ElementWriter writer, bool alignment_8 = false)
         {
-            EnsureAlignment(buffer, ref index, 4);
-            var lengthPosition = index;
-            Add(buffer, ref index, 0); // Actually uint
-            EnsureAlignment(buffer, ref index, alignment_8 ? 8 : 4);
+            EnsureAlignment(4);
+            var lengthSpan = MemoryMarshal.Cast<byte, int>(reserve(4));
+            EnsureAlignment(alignment_8 ? 8 : 4);
             var arrayStart = index;
-            writer(buffer, ref index);
+
+            writer();
+
             var arrayLength = index - arrayStart;
-            var lengthBytes = BitConverter.GetBytes(arrayLength);
-            for (var i = 0; i < 4; ++i)
-                buffer[lengthPosition + i] = lengthBytes[i];
+            lengthSpan[0] = arrayLength;
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, string value)
+        public void AddVariant(string value)
         {
-            Add(buffer, ref index, (Signature)"s");
-            Add(buffer, ref index, value);
+            Add((Signature)"s");
+            Add(value);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, ObjectPath value)
+        public void AddVariant(ObjectPath value)
         {
-            Add(buffer, ref index, (Signature)"o");
-            Add(buffer, ref index, value.ToString());
+            Add((Signature)"o");
+            Add(value.ToString());
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, uint value)
+        public void AddVariant(uint value)
         {
-            Add(buffer, ref index, (Signature)"u");
-            Add(buffer, ref index, value);
+            Add((Signature)"u");
+            Add(value);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, Signature signature)
+        public void AddVariant(Signature signature)
         {
-            Add(buffer, ref index, (Signature)"g");
-            Add(buffer, ref index, signature);
+            Add((Signature)"g");
+            Add(signature);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, bool value)
+        public void AddVariant(bool value)
         {
-            Add(buffer, ref index, (Signature)"b");
-            Add(buffer, ref index, value);
+            Add((Signature)"b");
+            Add(value);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, ushort value)
+        public void AddVariant(ushort value)
         {
-            Add(buffer, ref index, (Signature)"q");
-            Add(buffer, ref index, value);
+            Add((Signature)"q");
+            Add(value);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, IEnumerable<string> value)
+        public void AddVariant(IEnumerable<string> value)
         {
-            Add(buffer, ref index, (Signature)"as");
-            Add(buffer, ref index, value, Add);
+            Add((Signature)"as");
+            Add(value, Add);
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, object value)
+        public void AddVariant(object value)
         {
             switch (value)
             {
                 case bool v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case string v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case ObjectPath v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case uint v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case Signature v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case ushort v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 case IEnumerable<string> v:
-                    AddVariant(buffer, ref index, v);
+                    AddVariant(v);
                     break;
                 default:
                     throw new InvalidOperationException("Unsupported Type for Variant");
             }
         }
 
-        public static void AddVariant(List<byte> buffer, ref int index, IDictionary<string, object> value)
+        public void AddVariant(IDictionary<string, object> value)
         {
-            Add(buffer, ref index, (Signature)"a{sv}");
-            Add(buffer, ref index, value, Add, AddVariant);
+            Add((Signature)"a{sv}");
+            Add(value, Add, AddVariant);
         }
 
-        public static void EnsureAlignment(List<byte> buffer, ref int index, int alignment)
+        public void EnsureAlignment(int alignment)
         {
-            var bytesToAdd = Alignment.Calculate(buffer.Count, alignment);
-            for (var i = 0; i < bytesToAdd; ++i)
-                buffer.Add(0);
-            index += bytesToAdd;
+            var bytesToAdd = Alignment.Calculate(index, alignment);
+            var span = reserve(bytesToAdd);
+            span.Clear();
         }
     }
 }

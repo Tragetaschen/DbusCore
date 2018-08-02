@@ -1,19 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dbus
 {
     public partial class Connection
     {
-        public Task SendSignalAsync(
+        public async Task SendSignalAsync(
             ObjectPath path,
             string interfaceName,
             string methodName,
-            List<byte> body,
+            Encoder body,
             Signature signature
             )
         {
+            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+
             if (path.ToString() == "")
                 throw new ArgumentException("Signal path must not be empty", nameof(path));
             if (interfaceName == "")
@@ -21,27 +22,31 @@ namespace Dbus
             if (methodName == "")
                 throw new ArgumentException("Signal member must not be empty", nameof(methodName));
 
-            var serial = getSerial();
-            var messageHeader = Encoder.StartNew();
-            var index = 0;
-            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.Signal);
-            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.None);
-            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
-            Encoder.Add(messageHeader, ref index, serial);
+            var bodyLength = 0;
+            foreach (var segment in bodySegments)
+                bodyLength += segment.Length;
 
-            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
+            var header = new Encoder();
+            header.Add((byte)dbusEndianess.LittleEndian);
+            header.Add((byte)dbusMessageType.Signal);
+            header.Add((byte)dbusFlags.None);
+            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add(bodyLength); // Actually uint
+            header.Add(getSerial());
+
+            header.AddArray(() =>
             {
-                addHeader(buffer, ref localIndex, path);
-                addHeader(buffer, ref localIndex, 2, interfaceName);
-                addHeader(buffer, ref localIndex, 3, methodName);
-                if (body.Count > 0)
-                    addHeader(buffer, ref localIndex, signature);
+                addHeader(header, path);
+                addHeader(header, 2, interfaceName);
+                addHeader(header, 3, methodName);
+                if (bodyLength > 0)
+                    addHeader(header, signature);
             });
-            Encoder.EnsureAlignment(messageHeader, ref index, 8);
+            header.EnsureAlignment(8);
 
-            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
+            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+
+            await serializedWriteToStream(headerSegments, bodySegments);
         }
     }
 }

@@ -144,9 +144,8 @@ namespace Dbus.CodeGenerator
 
         private async global::System.Threading.Tasks.Task initProperties()
         {
-            var sendBody = global::Dbus.Encoder.StartNew();
-            var sendIndex = 0;
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + consume.InterfaceName + @""");
+            var sendBody = new global::Dbus.Encoder();
+            sendBody.Add(""" + consume.InterfaceName + @""");
 
             var receivedMessage = await connection.SendMethodCall(
                 this.path,
@@ -291,15 +290,14 @@ namespace Dbus.CodeGenerator
                 proxyClass.Append(@"
         private async void HandlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            var sendBody = global::Dbus.Encoder.StartNew();
-            var sendIndex = 0;
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, """ + provide.InterfaceName + @""");");
+            var sendBody = new global::Dbus.Encoder();
+            sendBody.Add(""" + provide.InterfaceName + @""");");
                 //Only one property is changed at a time, so no foreach loop is necessary
                 proxyClass.Append(@"
-            global::Dbus.Encoder.AddArray(sendBody, ref sendIndex, (global::System.Collections.Generic.List<byte> sendBody_e, ref int sendIndex_e) =>
+            sendBody.AddArray(() =>
             {
-                global::Dbus.Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
-                global::Dbus.Encoder.Add(sendBody_e, ref sendIndex_e, e.PropertyName);
+                sendBody.EnsureAlignment(8);
+                sendBody.Add(e.PropertyName);
                 switch (e.PropertyName)
                 {");
                 foreach (var property in type.GetTypeInfo().GetProperties())
@@ -308,7 +306,7 @@ namespace Dbus.CodeGenerator
                     {
                         proxyClass.Append(@"
                     case """ + property.Name + @""":
-                        Encode" + property.Name + @"(sendBody_e, ref sendIndex_e);
+                        Encode" + property.Name + @"(sendBody);
                         break;
 ");
                     }
@@ -320,7 +318,7 @@ namespace Dbus.CodeGenerator
             }, true);");
                 //This is actually an empty array, but the encoding per 0-integer is more efficient
                 proxyClass.Append(@"
-            global::Dbus.Encoder.Add(sendBody, ref sendIndex, 0);
+            sendBody.Add(0);
 
             await connection.SendSignalAsync(
                 path,

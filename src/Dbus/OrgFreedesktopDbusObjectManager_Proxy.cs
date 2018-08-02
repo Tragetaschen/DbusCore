@@ -30,12 +30,8 @@ namespace Dbus
         public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
             => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
 
-        public void Encode(List<byte> sendBody, ref int sendIndex)
-            => Encoder.AddArray(
-                sendBody,
-                ref sendIndex,
-                (List<byte> sendBody_e, ref int sendIndex_e) => { }
-            );
+        public void Encode(Encoder encoder)
+            => encoder.Add(0); // empty array
 
         public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body, bool doNotReply)
         {
@@ -55,28 +51,27 @@ namespace Dbus
         {
             header.BodySignature.AssertEqual("");
             var managedObjects = await target.GetManagedObjectsAsync().ConfigureAwait(false);
-            var sendBody = Encoder.StartNew();
-            var sendIndex = 0;
+            var sendBody = new Encoder();
             if (shouldSendReply)
             {
-                Encoder.AddArray(sendBody, ref sendIndex, (List<byte> sendBody_e, ref int sendIndex_e) =>
+                sendBody.AddArray(() =>
                 {
                     foreach (var managedObject in managedObjects)
                     {
-                        Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e, 8);
-                        Encoder.Add(sendBody_e, ref sendIndex_e, managedObject.Key);
-                        Encoder.AddArray(sendBody_e, ref sendIndex_e, (List<byte> sendBody_e_e, ref int sendIndex_e_e) =>
+                        sendBody.EnsureAlignment(8);
+                        sendBody.Add(managedObject.Key);
+                        sendBody.AddArray(() =>
                         {
                             foreach (var interfaceInstance in managedObject.Value)
                             {
-                                Encoder.EnsureAlignment(sendBody_e_e, ref sendIndex_e_e, 8);
-                                Encoder.Add(sendBody_e, ref sendIndex_e_e, interfaceInstance.InterfaceName);
-                                interfaceInstance.EncodeProperties(sendBody_e_e, ref sendIndex);
+                                sendBody.EnsureAlignment(8);
+                                sendBody.Add(interfaceInstance.InterfaceName);
+                                interfaceInstance.EncodeProperties(sendBody);
                             }
-                            Encoder.EnsureAlignment(sendBody_e_e, ref sendIndex_e_e, 8);
-                            Encoder.Add(sendBody_e, ref sendIndex_e_e, "org.freedesktop.DBus.Properties");
-                            Encoder.Add(sendBody_e, ref sendIndex_e_e, 0); // empty properties for the properties interface
-                            Encoder.EnsureAlignment(sendBody_e, ref sendIndex_e_e, 8);
+                            sendBody.EnsureAlignment(8);
+                            sendBody.Add("org.freedesktop.DBus.Properties");
+                            sendBody.Add(0); // empty properties for the properties interface
+                            sendBody.EnsureAlignment(8);
                         }, true);
 
                     }
@@ -85,13 +80,13 @@ namespace Dbus
             }
         }
 
-        public void EncodeProperties(List<byte> sendBody, ref int index)
+        public void EncodeProperties(Encoder encoder)
             => throw new DbusException(
                 DbusException.CreateErrorName("InvalidCall"),
                 "ObjectManager has no Properties"
             );
 
-        public void EncodeProperty(List<byte> sendBody, ref int index, string requestedProperty)
+        public void EncodeProperty(Encoder encoder, string requestedProperty)
             => throw new DbusException(
                 DbusException.CreateErrorName("InvalidCall"),
                 "ObjectManager has no Properties"

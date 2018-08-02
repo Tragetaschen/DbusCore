@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -29,38 +28,42 @@ namespace Dbus
             }
         }
 
-        public Task SendMethodReturnAsync(uint replySerial, string destination, List<byte> body, Signature signature)
+        public async Task SendMethodReturnAsync(uint replySerial, string destination, Encoder body, Signature signature)
         {
-            var serial = getSerial();
+            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodyLength = 0;
+            foreach (var bodySegment in bodySegments)
+                bodyLength += bodySegment.Length;
 
-            var messageHeader = Encoder.StartNew();
-            var index = 0;
-            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.MethodReturn);
-            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.NoReplyExpected);
-            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
-            Encoder.Add(messageHeader, ref index, serial);
+            var header = new Encoder();
+            header.Add((byte)dbusEndianess.LittleEndian);
+            header.Add((byte)dbusMessageType.MethodReturn);
+            header.Add((byte)dbusFlags.NoReplyExpected);
+            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add(bodyLength); // Actually uint
+            header.Add(getSerial());
 
-            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
+            header.AddArray(() =>
             {
-                addHeader(buffer, ref localIndex, 6, destination);
-                addHeader(buffer, ref localIndex, replySerial);
-                if (body.Count > 0)
-                    addHeader(buffer, ref localIndex, signature);
+                addHeader(header, 6, destination);
+                addHeader(header, replySerial);
+                if (bodyLength > 0)
+                    addHeader(header, signature);
             });
-            Encoder.EnsureAlignment(messageHeader, ref index, 8);
+            header.EnsureAlignment(8);
 
-            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
+            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+
+            await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
         }
 
         private void handleMethodCall(
-            uint replySerial,
-            MessageHeader header,
-            IMemoryOwner<byte> body,
-            int bodyLength,
-            bool shouldSendReply
-        )
+                uint replySerial,
+                MessageHeader header,
+                IMemoryOwner<byte> body,
+                int bodyLength,
+                bool shouldSendReply
+            )
         {
             if (header.InterfaceName == "org.freedesktop.DBus.Properties")
             {
@@ -143,24 +146,19 @@ namespace Dbus
             var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
-
-                var sendBody = Encoder.StartNew();
-                var sendIndex = 0;
-                proxy.EncodeProperties(sendBody, ref sendIndex);
+                var sendBody = new Encoder();
+                proxy.EncodeProperties(sendBody);
                 return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{sv}");
-
             }
             else
-            {
                 return sendMethodCallErrorAsync(
                     replySerial,
                     header.Sender,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 );
-            }
-
         }
+
         private Task handleGetAsync(uint replySerial, MessageHeader header, ReadOnlySpan<byte> body)
         {
             header.BodySignature.AssertEqual("ss");
@@ -170,52 +168,49 @@ namespace Dbus
             var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
-
-                var sendBody = Encoder.StartNew();
-                var sendIndex = 0;
-                proxy.EncodeProperty(sendBody, ref sendIndex, requestedProperty);
+                var sendBody = new Encoder();
+                proxy.EncodeProperty(sendBody, requestedProperty);
                 return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "v");
-
             }
             else
-            {
                 return sendMethodCallErrorAsync(
                     replySerial,
                     header.Sender,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 );
-            }
         }
 
-        private Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
+        private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
         {
-            var serial = getSerial();
+            var body = new Encoder();
+            body.Add(errorMessage);
+            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodyLength = 0;
+            foreach (var segment in bodySegments)
+                bodyLength += segment.Length;
 
-            var index = 0;
-            var body = Encoder.StartNew();
-            Encoder.Add(body, ref index, errorMessage);
+            var header = new Encoder();
+            header.Add((byte)dbusEndianess.LittleEndian);
+            header.Add((byte)dbusMessageType.Error);
+            header.Add((byte)dbusFlags.NoReplyExpected);
+            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add(bodyLength); // Actually uint
+            header.Add(getSerial());
 
-            var messageHeader = Encoder.StartNew();
-            index = 0;
-            Encoder.Add(messageHeader, ref index, (byte)dbusEndianess.LittleEndian);
-            Encoder.Add(messageHeader, ref index, (byte)dbusMessageType.Error);
-            Encoder.Add(messageHeader, ref index, (byte)dbusFlags.NoReplyExpected);
-            Encoder.Add(messageHeader, ref index, (byte)dbusProtocolVersion.Default);
-            Encoder.Add(messageHeader, ref index, body.Count); // Actually uint
-            Encoder.Add(messageHeader, ref index, serial);
-
-            Encoder.AddArray(messageHeader, ref index, (List<byte> buffer, ref int localIndex) =>
+            header.AddArray(() =>
             {
-                addHeader(buffer, ref localIndex, 6, destination);
-                addHeader(buffer, ref localIndex, 4, error);
-                addHeader(buffer, ref localIndex, replySerial);
-                if (body.Count > 0)
-                    addHeader(buffer, ref localIndex, (Signature)"s");
+                addHeader(header, 6, destination);
+                addHeader(header, 4, error);
+                addHeader(header, replySerial);
+                if (bodyLength > 0)
+                    addHeader(header, (Signature)"s");
             });
-            Encoder.EnsureAlignment(messageHeader, ref index, 8);
+            header.EnsureAlignment(8);
 
-            return serializedWriteToStream(messageHeader.ToArray(), body.ToArray());
+            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+
+            await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
         }
     }
 }
