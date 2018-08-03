@@ -58,6 +58,29 @@ namespace Dbus
             return result;
         }
 
+        private Encoder createHeader(
+            DbusMessageType type,
+            DbusMessageFlags flags,
+            int bodyLength,
+            Action<Encoder> otherHeaders,
+            uint? serial = null
+        )
+        {
+            var header = new Encoder();
+
+            header.Add((byte)DbusEndianess.LittleEndian);
+            header.Add((byte)type);
+            header.Add((byte)flags);
+            header.Add((byte)DbusProtocolVersion.Default);
+            header.Add(bodyLength); // Actually uint
+            header.Add(serial ?? getSerial());
+
+            header.AddArray(() => otherHeaders(header));
+            header.EnsureAlignment(8);
+
+            return header;
+        }
+
         private static void addHeader(Encoder encoder, ObjectPath path)
         {
             encoder.EnsureAlignment(8);

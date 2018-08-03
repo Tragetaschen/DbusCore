@@ -34,22 +34,18 @@ namespace Dbus
             foreach (var bodySegment in bodySegments)
                 bodyLength += bodySegment.Length;
 
-            var header = new Encoder();
-            header.Add((byte)DbusEndianess.LittleEndian);
-            header.Add((byte)DbusMessageType.MethodReturn);
-            header.Add((byte)DbusMessageFlags.NoReplyExpected);
-            header.Add((byte)DbusProtocolVersion.Default);
-            header.Add(bodyLength); // Actually uint
-            header.Add(getSerial());
-
-            header.AddArray(() =>
-            {
-                addHeader(header, 6, methodCallOptions.Sender);
-                addHeader(header, methodCallOptions.ReplySerial);
-                if (bodyLength > 0)
-                    addHeader(header, signature);
-            });
-            header.EnsureAlignment(8);
+            var header = createHeader(
+                DbusMessageType.MethodReturn,
+                DbusMessageFlags.NoReplyExpected,
+                bodyLength,
+                e =>
+                {
+                    addHeader(e, DbusHeaderType.Destination, methodCallOptions.Sender);
+                    addHeader(e, methodCallOptions.ReplySerial);
+                    if (bodyLength > 0)
+                        addHeader(e, signature);
+                }
+            );
 
             var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
@@ -174,23 +170,19 @@ namespace Dbus
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
 
-            var header = new Encoder();
-            header.Add((byte)DbusEndianess.LittleEndian);
-            header.Add((byte)DbusMessageType.Error);
-            header.Add((byte)DbusMessageFlags.NoReplyExpected);
-            header.Add((byte)DbusProtocolVersion.Default);
-            header.Add(bodyLength); // Actually uint
-            header.Add(getSerial());
-
-            header.AddArray(() =>
-            {
-                addHeader(header, 6, methodCallOptions.Sender);
-                addHeader(header, 4, error);
-                addHeader(header, methodCallOptions.ReplySerial);
-                if (bodyLength > 0)
-                    addHeader(header, (Signature)"s");
-            });
-            header.EnsureAlignment(8);
+            var header = createHeader(
+                DbusMessageType.Error,
+                DbusMessageFlags.NoReplyExpected,
+                bodyLength,
+                e =>
+                {
+                    addHeader(e, DbusHeaderType.Destination, methodCallOptions.Sender);
+                    addHeader(e, DbusHeaderType.ErrorName, error);
+                    addHeader(e, methodCallOptions.ReplySerial);
+                    if (bodyLength > 0)
+                        addHeader(e, (Signature)"s");
+                }
+            );
 
             var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 

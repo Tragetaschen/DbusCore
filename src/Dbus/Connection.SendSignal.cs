@@ -26,23 +26,19 @@ namespace Dbus
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
 
-            var header = new Encoder();
-            header.Add((byte)DbusEndianess.LittleEndian);
-            header.Add((byte)DbusMessageType.Signal);
-            header.Add((byte)DbusMessageFlags.None);
-            header.Add((byte)DbusProtocolVersion.Default);
-            header.Add(bodyLength); // Actually uint
-            header.Add(getSerial());
-
-            header.AddArray(() =>
-            {
-                addHeader(header, path);
-                addHeader(header, DbusHeaderType.InterfaceName, interfaceName);
-                addHeader(header, DbusHeaderType.Member, methodName);
-                if (bodyLength > 0)
-                    addHeader(header, signature);
-            });
-            header.EnsureAlignment(8);
+            var header = createHeader(
+                DbusMessageType.Signal,
+                DbusMessageFlags.None,
+                bodyLength,
+                e =>
+                {
+                    addHeader(e, path);
+                    addHeader(e, DbusHeaderType.InterfaceName, interfaceName);
+                    addHeader(e, DbusHeaderType.Member, methodName);
+                    if (bodyLength > 0)
+                        addHeader(e, signature);
+                }
+            );
 
             var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
