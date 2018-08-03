@@ -122,8 +122,7 @@ namespace Dbus.CodeGenerator
                 if (!typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(typeInfo))
                     throw new InvalidOperationException("Interface " + type.Name + " with cache properties does not implement 'INotifyPropertyChanged'");
 
-                eventSubscriptions.Append(@"
-            eventSubscriptions.Add(connection.RegisterSignalHandler(
+                eventSubscriptions.Append(@"            eventSubscriptions.Add(connection.RegisterSignalHandler(
                 this.path,
                 ""org.freedesktop.DBus.Properties"",
                 ""PropertiesChanged"",
@@ -208,14 +207,12 @@ namespace Dbus.CodeGenerator
             this.connection = connection;
             this.path = path ?? """ + consume.Path + @""";
             this.destination = destination ?? """ + consume.Destination + @""";
-" + eventSubscriptions + @"
-        }
+" + eventSubscriptions + @"        }
 
         public static " + BuildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new " + className + @"(connection, path, destination);
         }
-
 " + propertyImplementations + methodImplementations + @"
 " + eventImplementations + @"
         public void Dispose()

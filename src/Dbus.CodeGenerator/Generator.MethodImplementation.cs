@@ -72,7 +72,7 @@ namespace Dbus.CodeGenerator
 
             if (returnType != typeof(Task))
                 createFunction = @"
-            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" createResult(global::Dbus.Decoder decoder)
+            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" decode(global::Dbus.Decoder decoder)
             {
 " + decoder.Result + @"
                 " + returnStatement + @"
@@ -96,8 +96,7 @@ namespace Dbus.CodeGenerator
             using (receivedMessage)
             {
                 receivedMessage.AssertSignature(""" + decoder.Signature + @""");
-                " + (returnType == typeof(Task) ? "return;" : @"var createdResult = createResult(receivedMessage.Decoder);
-                return createdResult;") + @"
+                " + (returnType == typeof(Task) ? "return;" : "return decode(receivedMessage.Decoder);") + @"
             }
         }
 ";
