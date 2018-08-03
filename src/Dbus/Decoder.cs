@@ -38,7 +38,10 @@ namespace Dbus
         }
 
         public bool IsFinished => index >= bufferLength;
-        public void AdvanceToAlignment(int alignment) => Alignment.Advance(ref index, alignment);
+        public void AdvanceToStruct() => advanceToAlignment(8);
+        public void AdvanceToDictEntry() => advanceToAlignment(8);
+
+        private void advanceToAlignment(int alignment) => Alignment.Advance(ref index, alignment);
 
         /// <summary>
         /// Decoder for element types
@@ -94,7 +97,7 @@ namespace Dbus
         private T getPrimitive<T>(int shiftWidth) where T : struct
         {
             var alignment = 1 << shiftWidth;
-            AdvanceToAlignment(alignment);
+            advanceToAlignment(alignment);
             var typedSpan = MemoryMarshal.Cast<byte, T>(memoryOwner.Memory.Span);
             var result = typedSpan[index >> shiftWidth];
             index += alignment;
@@ -189,11 +192,11 @@ namespace Dbus
         {
             var result = new Dictionary<TKey, TValue>();
             var arrayLength = GetInt32(); // Actually uint
-            AdvanceToAlignment(8);
+            AdvanceToDictEntry();
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
-                AdvanceToAlignment(8);
+                AdvanceToDictEntry();
 
                 var key = keyDecoder();
                 var value = valueDecoder();

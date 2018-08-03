@@ -68,7 +68,7 @@ namespace Dbus
                             UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
                         break;
                 }
-                header.AdvanceToAlignment(8);
+                header.AdvanceToStruct();
             }
         }
         public ObjectPath Path { get; }

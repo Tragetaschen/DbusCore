@@ -99,7 +99,7 @@ namespace Dbus.CodeGenerator
                 .First()
             ;
             var builder = new StringBuilder();
-            builder.AppendLine(decoder + ".AdvanceToAlignment(8);");
+            builder.AppendLine(decoder + ".AdvanceToStruct();");
             var signature = "(";
 
             foreach (var p in constructorParameters)
