@@ -21,35 +21,35 @@ namespace Dbus
             BodySignature = "";
             while (!header.IsFinished)
             {
-                var typeCode = header.GetByte();
+                var typeCode = (DbusHeaderType)header.GetByte();
                 var signature = header.GetSignature();
                 switch (typeCode)
                 {
-                    case 1:
+                    case DbusHeaderType.Path:
                         Path = header.GetObjectPath();
                         break;
-                    case 2:
+                    case DbusHeaderType.InterfaceName:
                         InterfaceName = header.GetString();
                         break;
-                    case 3:
+                    case DbusHeaderType.Member:
                         Member = header.GetString();
                         break;
-                    case 4:
+                    case DbusHeaderType.ErrorName:
                         ErrorName = header.GetString();
                         break;
-                    case 5:
+                    case DbusHeaderType.ReplySerial:
                         ReplySerial = header.GetUInt32();
                         break;
-                    case 6:
+                    case DbusHeaderType.Destination:
                         Destination = header.GetString();
                         break;
-                    case 7:
+                    case DbusHeaderType.Sender:
                         Sender = header.GetString();
                         break;
-                    case 8:
+                    case DbusHeaderType.Signature:
                         BodySignature = header.GetSignature();
                         break;
-                    case 9:
+                    case DbusHeaderType.UnixFds:
                         var numberOfFds = header.GetUInt32();
 
                         var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);

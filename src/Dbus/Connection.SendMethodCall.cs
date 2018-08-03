@@ -36,9 +36,9 @@ namespace Dbus
             header.AddArray(() =>
             {
                 addHeader(header, path);
-                addHeader(header, 2, interfaceName);
-                addHeader(header, 3, methodName);
-                addHeader(header, 6, destination);
+                addHeader(header, DbusHeaderType.InterfaceName, interfaceName);
+                addHeader(header, DbusHeaderType.Member, methodName);
+                addHeader(header, DbusHeaderType.Destination, destination);
                 if (bodyLength > 0)
                     addHeader(header, signature);
             });
