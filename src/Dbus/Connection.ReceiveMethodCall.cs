@@ -30,7 +30,7 @@ namespace Dbus
 
         public async Task SendMethodReturnAsync(uint replySerial, string destination, Encoder body, Signature signature)
         {
-            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
             var bodyLength = 0;
             foreach (var bodySegment in bodySegments)
                 bodyLength += bodySegment.Length;
@@ -52,9 +52,12 @@ namespace Dbus
             });
             header.EnsureAlignment(8);
 
-            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
             await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
+
+            body.CompleteReading(bodySegments);
+            header.CompleteReading(headerSegments);
         }
 
         private void handleMethodCall(
@@ -185,7 +188,7 @@ namespace Dbus
         {
             var body = new Encoder();
             body.Add(errorMessage);
-            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
             var bodyLength = 0;
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
@@ -208,9 +211,12 @@ namespace Dbus
             });
             header.EnsureAlignment(8);
 
-            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
             await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
+
+            body.CompleteReading(bodySegments);
+            header.CompleteReading(headerSegments);
         }
     }
 }

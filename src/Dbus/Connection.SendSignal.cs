@@ -13,7 +13,7 @@ namespace Dbus
             Signature signature
             )
         {
-            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
 
             if (path.ToString() == "")
                 throw new ArgumentException("Signal path must not be empty", nameof(path));
@@ -44,9 +44,12 @@ namespace Dbus
             });
             header.EnsureAlignment(8);
 
-            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
             await serializedWriteToStream(headerSegments, bodySegments);
+
+            body.CompleteReading(bodySegments);
+            header.CompleteReading(headerSegments);
         }
     }
 }

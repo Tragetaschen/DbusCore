@@ -28,7 +28,7 @@ namespace Dbus
             return result;
         }
 
-        public async Task<ReadOnlySequence<byte>> FinishAsync()
+        public async Task<ReadOnlySequence<byte>> CompleteWritingAsync()
         {
             await pipe.Writer.FlushAsync();
             pipe.Writer.Complete();
@@ -206,5 +206,8 @@ namespace Dbus
             var span = reserve(bytesToAdd);
             span.Clear();
         }
+
+        public void CompleteReading(ReadOnlySequence<byte> buffer)
+            => pipe.Reader.AdvanceTo(buffer.End);
     }
 }

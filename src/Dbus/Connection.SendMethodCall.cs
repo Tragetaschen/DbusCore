@@ -21,7 +21,7 @@ namespace Dbus
         {
             var serial = getSerial();
 
-            var bodySegments = await body.FinishAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
             var bodyLength = 0;
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
@@ -45,12 +45,15 @@ namespace Dbus
             });
             header.EnsureAlignment(8);
 
-            var headerSegments = await header.FinishAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
             var tcs = new TaskCompletionSource<ReceivedMethodReturn>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
             await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
+
+            body.CompleteReading(bodySegments);
+            header.CompleteReading(headerSegments);
 
             return await tcs.Task.ConfigureAwait(false);
         }
