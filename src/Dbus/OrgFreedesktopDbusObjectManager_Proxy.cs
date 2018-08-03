@@ -57,22 +57,20 @@ namespace Dbus
             {
                 foreach (var managedObject in managedObjects)
                 {
-                    sendBody.EnsureAlignment(8);
+                    sendBody.StartDictEntry();
                     sendBody.Add(managedObject.Key);
                     sendBody.AddArray(() =>
                     {
                         foreach (var interfaceInstance in managedObject.Value)
                         {
-                            sendBody.EnsureAlignment(8);
+                            sendBody.StartDictEntry();
                             sendBody.Add(interfaceInstance.InterfaceName);
                             interfaceInstance.EncodeProperties(sendBody);
                         }
-                        sendBody.EnsureAlignment(8);
+                        sendBody.StartDictEntry();
                         sendBody.Add("org.freedesktop.DBus.Properties");
-                        sendBody.Add(0); // empty properties for the properties interface
-                        sendBody.EnsureAlignment(8);
+                        sendBody.AddArray(() => { }, true);  // empty properties for the properties interface
                     }, true);
-
                 }
             }, true);
             await connection.SendMethodReturnAsync(methodCallOptions, sendBody, "a{oa{sa{sv}}}").ConfigureAwait(false);

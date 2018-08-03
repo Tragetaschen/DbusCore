@@ -294,7 +294,7 @@ namespace Dbus.CodeGenerator
                 proxyClass.Append(@"
             sendBody.AddArray(() =>
             {
-                sendBody.EnsureAlignment(8);
+                sendBody.StartDictEntry();
                 sendBody.Add(e.PropertyName);
                 switch (e.PropertyName)
                 {");

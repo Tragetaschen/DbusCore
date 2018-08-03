@@ -18,7 +18,7 @@ namespace Dbus.CodeGenerator
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
-                sendBody.EnsureAlignment(8);
+                sendBody.StartDictEntry();
                 sendBody.Add(""" + property.Name + @""");
                 Encode" + property.Name + @"(sendBody);");
             }

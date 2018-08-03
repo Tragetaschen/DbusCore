@@ -76,35 +76,35 @@ namespace Dbus
             header.Add(serial ?? getSerial());
 
             header.AddArray(() => otherHeaders(header));
-            header.EnsureAlignment(8);
+            header.FinishHeader();
 
             return header;
         }
 
         private static void addHeader(Encoder encoder, ObjectPath path)
         {
-            encoder.EnsureAlignment(8);
+            encoder.StartStruct();
             encoder.Add((byte)DbusHeaderType.Path);
             encoder.AddVariant(path);
         }
 
         private static void addHeader(Encoder encoder, uint replySerial)
         {
-            encoder.EnsureAlignment(8);
+            encoder.StartStruct();
             encoder.Add((byte)DbusHeaderType.ReplySerial);
             encoder.AddVariant(replySerial);
         }
 
         private static void addHeader(Encoder encoder, Signature signature)
         {
-            encoder.EnsureAlignment(8);
+            encoder.StartStruct();
             encoder.Add((byte)DbusHeaderType.Signature);
             encoder.AddVariant(signature);
         }
 
         private static void addHeader(Encoder encoder, DbusHeaderType type, string value)
         {
-            encoder.EnsureAlignment(8);
+            encoder.StartStruct();
             encoder.Add((byte)type);
             encoder.AddVariant(value);
         }

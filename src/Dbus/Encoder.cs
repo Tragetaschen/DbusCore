@@ -59,7 +59,7 @@ namespace Dbus
 
         private void addPrimitive<T>(T value, int size) where T : struct
         {
-            EnsureAlignment(size);
+            ensureAlignment(size);
             var span = MemoryMarshal.Cast<byte, T>(reserve(size));
             span[0] = value;
         }
@@ -103,7 +103,7 @@ namespace Dbus
             {
                 foreach (var value in values)
                 {
-                    EnsureAlignment(8);
+                    StartDictEntry();
                     keyWriter(value.Key);
                     valueWriter(value.Value);
                 }
@@ -111,9 +111,9 @@ namespace Dbus
 
         public void AddArray(ElementWriter writer, bool alignment_8 = false)
         {
-            EnsureAlignment(4);
+            ensureAlignment(4);
             var lengthSpan = MemoryMarshal.Cast<byte, int>(reserve(4));
-            EnsureAlignment(alignment_8 ? 8 : 4);
+            ensureAlignment(alignment_8 ? 8 : 4);
             var arrayStart = index;
 
             writer();
@@ -200,7 +200,11 @@ namespace Dbus
             Add(value, Add, AddVariant);
         }
 
-        public void EnsureAlignment(int alignment)
+        public void FinishHeader() => ensureAlignment(8);
+        public void StartStruct() => ensureAlignment(8);
+        public void StartDictEntry() => ensureAlignment(8);
+
+        private void ensureAlignment(int alignment)
         {
             var bytesToAdd = Alignment.Calculate(index, alignment);
             var span = reserve(bytesToAdd);
