@@ -26,10 +26,10 @@ namespace Dbus
                 bodyLength += segment.Length;
 
             var header = new Encoder();
-            header.Add((byte)dbusEndianess.LittleEndian);
-            header.Add((byte)dbusMessageType.MethodCall);
-            header.Add((byte)dbusFlags.None);
-            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add((byte)DbusEndianess.LittleEndian);
+            header.Add((byte)DbusMessageType.MethodCall);
+            header.Add((byte)DbusMessageFlags.None);
+            header.Add((byte)DbusProtocolVersion.Default);
             header.Add(bodyLength); // Actually uint
             header.Add(serial);
 

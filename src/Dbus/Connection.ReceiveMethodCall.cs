@@ -35,10 +35,10 @@ namespace Dbus
                 bodyLength += bodySegment.Length;
 
             var header = new Encoder();
-            header.Add((byte)dbusEndianess.LittleEndian);
-            header.Add((byte)dbusMessageType.MethodReturn);
-            header.Add((byte)dbusFlags.NoReplyExpected);
-            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add((byte)DbusEndianess.LittleEndian);
+            header.Add((byte)DbusMessageType.MethodReturn);
+            header.Add((byte)DbusMessageFlags.NoReplyExpected);
+            header.Add((byte)DbusProtocolVersion.Default);
             header.Add(bodyLength); // Actually uint
             header.Add(getSerial());
 
@@ -175,10 +175,10 @@ namespace Dbus
                 bodyLength += segment.Length;
 
             var header = new Encoder();
-            header.Add((byte)dbusEndianess.LittleEndian);
-            header.Add((byte)dbusMessageType.Error);
-            header.Add((byte)dbusFlags.NoReplyExpected);
-            header.Add((byte)dbusProtocolVersion.Default);
+            header.Add((byte)DbusEndianess.LittleEndian);
+            header.Add((byte)DbusMessageType.Error);
+            header.Add((byte)DbusMessageFlags.NoReplyExpected);
+            header.Add((byte)DbusProtocolVersion.Default);
             header.Add(bodyLength); // Actually uint
             header.Add(getSerial());
 

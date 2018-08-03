@@ -11,7 +11,7 @@ namespace Dbus
         {
             const int controlLength = 16 * sizeof(int);
 
-            Span<dbusFixedLengthHeader> fixedLengthHeader = stackalloc dbusFixedLengthHeader[1]; // header up until the array length
+            Span<DbusFixedLengthHeader> fixedLengthHeader = stackalloc DbusFixedLengthHeader[1]; // header up until the array length
             Span<byte> control = stackalloc byte[controlLength];
 
             var hasValidFixedHeader = false;
@@ -20,9 +20,9 @@ namespace Dbus
                 handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader);
         }
 
-        private void handleOneMessage(Span<dbusFixedLengthHeader> fixedLengthHeaderSpan, Span<byte> control, ref bool hasValidFixedHeader)
+        private void handleOneMessage(Span<DbusFixedLengthHeader> fixedLengthHeaderSpan, Span<byte> control, ref bool hasValidFixedHeader)
         {
-            var fixedLengthHeaderBytes = MemoryMarshal.Cast<dbusFixedLengthHeader, byte>(fixedLengthHeaderSpan);
+            var fixedLengthHeaderBytes = MemoryMarshal.Cast<DbusFixedLengthHeader, byte>(fixedLengthHeaderSpan);
 
             if (!hasValidFixedHeader)
                 socketOperations.ReceiveMessage(
@@ -32,15 +32,15 @@ namespace Dbus
 
             ref var fixedLengthHeader = ref fixedLengthHeaderSpan[0];
 
-            if (fixedLengthHeader.Endianess != dbusEndianess.LittleEndian)
+            if (fixedLengthHeader.Endianess != DbusEndianess.LittleEndian)
                 throw new InvalidDataException("Wrong endianess");
-            if (fixedLengthHeader.ProtocolVersion != dbusProtocolVersion.Default)
+            if (fixedLengthHeader.ProtocolVersion != DbusProtocolVersion.Default)
                 throw new InvalidDataException("Wrong protocol version");
 
             // Store values before receiving the next header
             var messageType = fixedLengthHeader.MessageType;
             var serial = fixedLengthHeader.Serial;
-            var shouldSendReply = !fixedLengthHeader.Flags.HasFlag(dbusFlags.NoReplyExpected);
+            var shouldSendReply = !fixedLengthHeader.Flags.HasFlag(DbusMessageFlags.NoReplyExpected);
             var bodyLength = fixedLengthHeader.BodyLength;
 
             var bodyMemoryOwner = MemoryPool<byte>.Shared.Rent(bodyLength);
@@ -58,7 +58,7 @@ namespace Dbus
 
             switch (messageType)
             {
-                case dbusMessageType.MethodCall:
+                case DbusMessageType.MethodCall:
                     var methodCallOptions = new MethodCallOptions(header, shouldSendReply);
                     var receivedMessage = new ReceivedMessage(header, decoder);
                     handleMethodCall(
@@ -66,13 +66,13 @@ namespace Dbus
                         receivedMessage
                     );
                     break;
-                case dbusMessageType.MethodReturn:
+                case DbusMessageType.MethodReturn:
                     handleMethodReturn(header, decoder);
                     break;
-                case dbusMessageType.Error:
+                case DbusMessageType.Error:
                     handleError(header, decoder);
                     break;
-                case dbusMessageType.Signal:
+                case DbusMessageType.Signal:
                     handleSignal(header, decoder);
                     break;
             }
@@ -106,46 +106,6 @@ namespace Dbus
             {
                 headerBytesOwnedMemory.Dispose();
             }
-        }
-
-        private struct dbusFixedLengthHeader
-        {
-            public dbusEndianess Endianess;
-            public dbusMessageType MessageType;
-            public dbusFlags Flags;
-            public dbusProtocolVersion ProtocolVersion;
-            public int BodyLength;
-            public uint Serial;
-            public int ArrayLength;
-        }
-
-        private enum dbusEndianess : byte
-        {
-            LittleEndian = (byte)'l',
-            BigEndian = (byte)'B',
-        }
-
-        private enum dbusMessageType : byte
-        {
-            Invalid,
-            MethodCall,
-            MethodReturn,
-            Error,
-            Signal,
-        }
-
-        [Flags]
-        private enum dbusFlags : byte
-        {
-            None = 0,
-            NoReplyExpected = 0x1,
-            NoAutoStart = 0x2,
-            AllowInteractiveAuthorization = 0x4,
-        }
-
-        private enum dbusProtocolVersion : byte
-        {
-            Default = 1,
         }
     }
 }
