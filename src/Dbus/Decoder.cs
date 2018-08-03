@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus
 {
-    public class Decoder
+    public class Decoder : IDisposable
     {
         private static readonly Dictionary<string, Func<Decoder, object>> typeDecoders = new Dictionary<string, Func<Decoder, object>>
         {
@@ -25,13 +26,13 @@ namespace Dbus
             ["as"] = d => d.getStringArray(),
         };
 
-        private readonly ReadOnlyMemory<byte> buffer;
+        private readonly IMemoryOwner<byte> memoryOwner;
         private readonly int bufferLength;
         private int index;
 
-        public Decoder(ReadOnlyMemory<byte> buffer, int bufferLength)
+        public Decoder(IMemoryOwner<byte> memoryOwner, int bufferLength)
         {
-            this.buffer = buffer;
+            this.memoryOwner = memoryOwner;
             this.bufferLength = bufferLength;
             index = 0;
         }
@@ -56,7 +57,7 @@ namespace Dbus
             var result = string.Empty;
             if (length != 0)
             {
-                var bytes = buffer.Span.Slice(index, length);
+                var bytes = memoryOwner.Memory.Span.Slice(index, length);
                 fixed (byte* bytesP = bytes)
                     result = Encoding.UTF8.GetString(bytesP, length);
             }
@@ -90,13 +91,11 @@ namespace Dbus
             return getStringFromBytes(signatureLength);
         }
 
-        private T getPrimitive<T>(
-            int shiftWidth
-        ) where T : struct
+        private T getPrimitive<T>(int shiftWidth) where T : struct
         {
             var alignment = 1 << shiftWidth;
             AdvanceToAlignment(alignment);
-            var typedSpan = MemoryMarshal.Cast<byte, T>(buffer.Span);
+            var typedSpan = MemoryMarshal.Cast<byte, T>(memoryOwner.Memory.Span);
             var result = typedSpan[index >> shiftWidth];
             index += alignment;
             return result;
@@ -217,5 +216,7 @@ namespace Dbus
             }
             throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }
+
+        public void Dispose() => memoryOwner.Dispose();
     }
 }

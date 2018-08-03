@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
@@ -7,10 +6,10 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>> expectedMessages =
-            new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMethodReturn>>();
+        private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMessage>> expectedMessages =
+            new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMessage>>();
 
-        public async Task<ReceivedMethodReturn> SendMethodCall(
+        public async Task<ReceivedMessage> SendMethodCall(
             ObjectPath path,
             string interfaceName,
             string methodName,
@@ -47,7 +46,7 @@ namespace Dbus
 
             var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
 
-            var tcs = new TaskCompletionSource<ReceivedMethodReturn>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<ReceivedMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
             await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
@@ -58,40 +57,34 @@ namespace Dbus
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        private void handleMethodReturn(
-            MessageHeader header,
-            IMemoryOwner<byte> body,
-            int bodyLength
-        )
+        private void handleMethodReturn(MessageHeader header, Decoder decoder)
         {
             if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
-                throw new InvalidOperationException("Couldn't find the method call for the method return");
-            var receivedMessage = new ReceivedMethodReturn
             {
-                Header = header,
-                Body = body,
-                BodyLength = bodyLength,
-                Signature = header.BodySignature,
-            };
+                decoder.Dispose();
+                throw new InvalidOperationException("Couldn't find the method call for the method return");
+            }
 
+            var receivedMessage = new ReceivedMessage(header, decoder);
             tcs.SetResult(receivedMessage);
         }
 
-        private void handleError(MessageHeader header, IMemoryOwner<byte> body, int bodyLength)
+        private void handleError(MessageHeader header, Decoder decoder)
         {
-            if (header.ReplySerial == 0)
-                throw new InvalidOperationException("Only errors for method calls are supported");
-            if (!header.BodySignature.ToString().StartsWith("s"))
-                throw new InvalidOperationException("Errors are expected to start their body with a string");
+            using (decoder)
+            {
+                if (header.ReplySerial == 0)
+                    throw new InvalidOperationException("Only errors for method calls are supported");
+                if (!header.BodySignature.ToString().StartsWith("s"))
+                    throw new InvalidOperationException("Errors are expected to start their body with a string");
 
-            if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
-                throw new InvalidOperationException("Couldn't find the method call for the error");
+                if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
+                    throw new InvalidOperationException("Couldn't find the method call for the error");
 
-            var decoder = new Decoder(body.Memory, bodyLength);
-            var message = decoder.GetString();
-            body.Dispose();
-            var exception = new DbusException(header.ErrorName, message);
-            tcs.SetException(exception);
+                var message = decoder.GetString();
+                var exception = new DbusException(header.ErrorName, message);
+                tcs.SetException(exception);
+            }
         }
     }
 }

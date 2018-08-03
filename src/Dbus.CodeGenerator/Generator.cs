@@ -132,11 +132,12 @@ namespace Dbus.CodeGenerator
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
 ");
                 propertyImplementations.Append(@"
-        private void handleProperties(global::Dbus.MessageHeader header, global::Dbus.Decoder body)
+        private void handleProperties(global::Dbus.ReceivedMessage receivedMessage)
         {
-            header.BodySignature.AssertEqual(""sa{sv}as"");
-            var interfaceName = body.GetString();
-            var changed = body.GetDictionary(body.GetString, body.GetObject);
+            receivedMessage.AssertSignature(""sa{sv}as"");
+            var decoder = receivedMessage.Decoder;
+            var interfaceName = decoder.GetString();
+            var changed = decoder.GetDictionary(decoder.GetString, decoder.GetObject);
             applyProperties(changed);
         }
 
@@ -153,14 +154,15 @@ namespace Dbus.CodeGenerator
                 sendBody,
                 ""s""
             ).ConfigureAwait(false);
-            receivedMessage.Signature.AssertEqual(""a{sv}"");
-            var decoder = new global::Dbus.Decoder(receivedMessage.Body.Memory, receivedMessage.BodyLength);
-            var properties = decoder.GetDictionary(
-                decoder.GetString,
-                decoder.GetObject
-            );
-            receivedMessage.Body.Dispose();
-            applyProperties(properties);
+            using (receivedMessage)
+            {
+                receivedMessage.AssertSignature(""a{sv}"");
+                var properties = receivedMessage.Decoder.GetDictionary(
+                    receivedMessage.Decoder.GetString,
+                    receivedMessage.Decoder.GetObject
+                );
+                applyProperties(properties);
+            }
         }
 
         private void applyProperties(global::System.Collections.Generic.IDictionary<string, object> changed)
@@ -329,13 +331,13 @@ namespace Dbus.CodeGenerator
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-        public System.Threading.Tasks.Task HandleMethodCallAsync(uint replySerial, global::Dbus.MessageHeader header, global::Dbus.Decoder body, bool shouldSendReply)
+        public System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage)
         {
-            switch (header.Member)
+            switch (methodCallOptions.Member)
             {
                 " + string.Join(@"
                 ", knownMethods.Select(x => @"case """ + x + @""":
-                    return handle" + x + @"Async(replySerial, header, body, shouldSendReply);")) + @"");
+                    return handle" + x + @"Async(methodCallOptions, receivedMessage);")) + @"");
             proxyClass.Append(@"
                 default:
                     throw new global::Dbus.DbusException(

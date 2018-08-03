@@ -52,7 +52,7 @@ namespace Dbus.CodeGenerator
             }
 
             string returnStatement;
-            var decoder = new DecoderGenerator("decoder", "receivedMessage.Header");
+            var decoder = new DecoderGenerator("decoder", "receivedMessage");
 
             if (returnType == typeof(Task))
                 returnStatement = "return;";
@@ -77,7 +77,7 @@ namespace Dbus.CodeGenerator
 " + decoder.Result + @"
                 " + returnStatement + @"
             }
-            var createdResult = createResult(new global::Dbus.Decoder(receivedMessage.Body.Memory, receivedMessage.BodyLength));";
+";
 
             return @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
@@ -92,10 +92,13 @@ namespace Dbus.CodeGenerator
                 sendBody,
                 """ + encoder.Signature + @"""
             ).ConfigureAwait(false);
-            receivedMessage.Signature.AssertEqual(""" + decoder.Signature + @""");
 " + (returnType == typeof(Task) ? "" : createFunction) + @"
-            receivedMessage.Body.Dispose();
-            " + (returnType == typeof(Task) ? "return;" : "return createdResult;") + @"
+            using (receivedMessage)
+            {
+                receivedMessage.AssertSignature(""" + decoder.Signature + @""");
+                " + (returnType == typeof(Task) ? "return;" : @"var createdResult = createResult(receivedMessage.Decoder);
+                return createdResult;") + @"
+            }
         }
 ";
         }

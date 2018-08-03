@@ -11,15 +11,15 @@ namespace Dbus.CodeGenerator
     public class DecoderGenerator
     {
         private readonly string decoder;
-        private readonly string header;
+        private readonly string message;
 
         private readonly StringBuilder resultBuilder = new StringBuilder();
         private readonly StringBuilder signatureBuilder = new StringBuilder();
 
-        public DecoderGenerator(string decoder, string header)
+        public DecoderGenerator(string decoder, string message)
         {
             this.decoder = decoder;
-            this.header = header;
+            this.message = message;
         }
 
         public string Result => resultBuilder.ToString();
@@ -49,13 +49,13 @@ namespace Dbus.CodeGenerator
                     return (
                         "h",
                         @"var " + name + @"_index = " + decoder + @".GetInt32();
-" + indent + @"var " + name + @" = " + header + ".UnixFds[" + name + @"_index];"
+" + indent + @"var " + name + @" = " + message + ".UnixFds[" + name + @"_index];"
                     );
                 else if (type == typeof(Stream))
                     return (
                         "h",
                         @"var " + name + @"_index = " + decoder + @".GetInt32();
-" + indent + @"var " + name + @" = " + header + ".GetStreamFromFd(" + name + @"_index);"
+" + indent + @"var " + name + @" = " + message + ".GetStream(" + name + @"_index);"
                     );
                 else
                     return buildFromConstructor(name, type, indent);
@@ -104,7 +104,7 @@ namespace Dbus.CodeGenerator
 
             foreach (var p in constructorParameters)
             {
-                var decoderGenerator = new DecoderGenerator(decoder, header);
+                var decoderGenerator = new DecoderGenerator(decoder, message);
                 decoderGenerator.add(name + "_" + p.Name, p.ParameterType, indent);
                 signature += decoderGenerator.Signature;
                 builder.Append(decoderGenerator.Result);
@@ -128,7 +128,7 @@ namespace Dbus.CodeGenerator
                 );
             else
             {
-                var decoderGenerator = new DecoderGenerator(decoder, header);
+                var decoderGenerator = new DecoderGenerator(decoder, message);
                 decoderGenerator.add(name + "_inner", type, indent + "    ");
                 return (
                     decoderGenerator.Signature,

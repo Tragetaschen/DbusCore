@@ -54,25 +54,26 @@ namespace Dbus
                 control
             );
 
+            var decoder = new Decoder(bodyMemoryOwner, bodyLength);
+
             switch (messageType)
             {
                 case dbusMessageType.MethodCall:
+                    var methodCallOptions = new MethodCallOptions(header, shouldSendReply);
+                    var receivedMessage = new ReceivedMessage(header, decoder);
                     handleMethodCall(
-                        serial,
-                        header,
-                        bodyMemoryOwner,
-                        bodyLength,
-                        shouldSendReply
+                        methodCallOptions,
+                        receivedMessage
                     );
                     break;
                 case dbusMessageType.MethodReturn:
-                    handleMethodReturn(header, bodyMemoryOwner, bodyLength);
+                    handleMethodReturn(header, decoder);
                     break;
                 case dbusMessageType.Error:
-                    handleError(header, bodyMemoryOwner, bodyLength);
+                    handleError(header, decoder);
                     break;
                 case dbusMessageType.Signal:
-                    handleSignal(header, bodyMemoryOwner, bodyLength);
+                    handleSignal(header, decoder);
                     break;
             }
         }
@@ -96,7 +97,7 @@ namespace Dbus
                 control
             );
 
-            var decoder = new Decoder(headerBytesOwnedMemory.Memory, receivedArrayLength);
+            var decoder = new Decoder(headerBytesOwnedMemory, receivedArrayLength);
             try
             {
                 return new MessageHeader(socketOperations, decoder, control);

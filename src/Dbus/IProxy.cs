@@ -7,7 +7,7 @@ namespace Dbus
     {
         string InterfaceName { get; }
         void EncodeProperties(Encoder sendBody);
-        Task HandleMethodCallAsync(uint replySerial, MessageHeader header, Decoder body, bool shouldSendReply);
+        Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, ReceivedMessage message);
         void EncodeProperty(Encoder sendBody, string propertyName);
     }
 }

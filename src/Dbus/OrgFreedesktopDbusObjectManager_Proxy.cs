@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -33,12 +32,12 @@ namespace Dbus
         public void Encode(Encoder encoder)
             => encoder.Add(0); // empty array
 
-        public Task HandleMethodCallAsync(uint replySerial, MessageHeader header, Decoder decoder, bool doNotReply)
+        public Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, ReceivedMessage message)
         {
-            switch (header.Member)
+            switch (methodCallOptions.Member)
             {
                 case "GetManagedObjects":
-                    return handleGetManagedObjectsAsync(replySerial, header, doNotReply);
+                    return handleGetManagedObjectsAsync(methodCallOptions, message);
                 default:
                     throw new DbusException(
                         DbusException.CreateErrorName("UnknownMethod"),
@@ -47,37 +46,36 @@ namespace Dbus
             }
         }
 
-        private async Task handleGetManagedObjectsAsync(uint replySerial, MessageHeader header, bool shouldSendReply)
+        private async Task handleGetManagedObjectsAsync(MethodCallOptions methodCallOptions, ReceivedMessage message)
         {
-            header.BodySignature.AssertEqual("");
+            message.AssertSignature("");
             var managedObjects = await target.GetManagedObjectsAsync().ConfigureAwait(false);
             var sendBody = new Encoder();
-            if (shouldSendReply)
+            if (!methodCallOptions.ShouldSendReply)
+                return;
+            sendBody.AddArray(() =>
             {
-                sendBody.AddArray(() =>
+                foreach (var managedObject in managedObjects)
                 {
-                    foreach (var managedObject in managedObjects)
+                    sendBody.EnsureAlignment(8);
+                    sendBody.Add(managedObject.Key);
+                    sendBody.AddArray(() =>
                     {
-                        sendBody.EnsureAlignment(8);
-                        sendBody.Add(managedObject.Key);
-                        sendBody.AddArray(() =>
+                        foreach (var interfaceInstance in managedObject.Value)
                         {
-                            foreach (var interfaceInstance in managedObject.Value)
-                            {
-                                sendBody.EnsureAlignment(8);
-                                sendBody.Add(interfaceInstance.InterfaceName);
-                                interfaceInstance.EncodeProperties(sendBody);
-                            }
                             sendBody.EnsureAlignment(8);
-                            sendBody.Add("org.freedesktop.DBus.Properties");
-                            sendBody.Add(0); // empty properties for the properties interface
-                            sendBody.EnsureAlignment(8);
-                        }, true);
+                            sendBody.Add(interfaceInstance.InterfaceName);
+                            interfaceInstance.EncodeProperties(sendBody);
+                        }
+                        sendBody.EnsureAlignment(8);
+                        sendBody.Add("org.freedesktop.DBus.Properties");
+                        sendBody.Add(0); // empty properties for the properties interface
+                        sendBody.EnsureAlignment(8);
+                    }, true);
 
-                    }
-                }, true);
-                await connection.SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{oa{sa{sv}}}").ConfigureAwait(false);
-            }
+                }
+            }, true);
+            await connection.SendMethodReturnAsync(methodCallOptions, sendBody, "a{oa{sa{sv}}}").ConfigureAwait(false);
         }
 
         public void EncodeProperties(Encoder encoder)

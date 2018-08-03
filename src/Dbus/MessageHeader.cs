@@ -84,7 +84,7 @@ namespace Dbus
         public override string ToString()
             => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
 
-        public Stream GetStreamFromFd(int index) =>
+        public Stream GetStream(int index) =>
             new UnixFdStream(UnixFds[index], socketOperations);
 
         private struct cmsghdr

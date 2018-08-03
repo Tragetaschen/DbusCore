@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
@@ -7,7 +6,7 @@ namespace Dbus
 {
     public partial class Connection
     {
-        public delegate void SignalHandler(MessageHeader header, Decoder decoder);
+        public delegate void SignalHandler(ReceivedMessage message);
 
         private readonly ConcurrentDictionary<string, SignalHandler> signalHandlers =
             new ConcurrentDictionary<string, SignalHandler>();
@@ -45,19 +44,18 @@ namespace Dbus
             }
         }
 
-        private void handleSignal(
-            MessageHeader header,
-            IMemoryOwner<byte> body,
-            int bodyLength
-        )
+        private void handleSignal(MessageHeader header, Decoder decoder)
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
                 Task.Run(() =>
                 {
-                    handler(header, new Decoder(body.Memory, bodyLength));
-                    body.Dispose();
+                    var message = new ReceivedMessage(header, decoder);
+                    using (message)
+                        handler(message);
                 });
+            else
+                decoder.Dispose();
         }
     }
 }

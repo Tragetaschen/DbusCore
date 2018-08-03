@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
@@ -28,7 +27,7 @@ namespace Dbus
             }
         }
 
-        public async Task SendMethodReturnAsync(uint replySerial, string destination, Encoder body, Signature signature)
+        public async Task SendMethodReturnAsync(MethodCallOptions methodCallOptions, Encoder body, Signature signature)
         {
             var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
             var bodyLength = 0;
@@ -45,8 +44,8 @@ namespace Dbus
 
             header.AddArray(() =>
             {
-                addHeader(header, 6, destination);
-                addHeader(header, replySerial);
+                addHeader(header, 6, methodCallOptions.Sender);
+                addHeader(header, methodCallOptions.ReplySerial);
                 if (bodyLength > 0)
                     addHeader(header, signature);
             });
@@ -61,43 +60,32 @@ namespace Dbus
         }
 
         private void handleMethodCall(
-                uint replySerial,
-                MessageHeader header,
-                IMemoryOwner<byte> body,
-                int bodyLength,
-                bool shouldSendReply
-            )
+            MethodCallOptions methodCallOptions,
+            ReceivedMessage receivedMessage
+        )
         {
-            if (header.InterfaceName == "org.freedesktop.DBus.Properties")
+            if (methodCallOptions.InterfaceName == "org.freedesktop.DBus.Properties")
             {
                 Task.Run(() =>
                 {
-                    try
-                    {
-                        var decoder = new Decoder(body.Memory, bodyLength);
-                        handlePropertyRequestAsync(replySerial, header, decoder);
-                    }
-                    finally
-                    {
-                        body.Dispose();
-                    }
+                    using (receivedMessage)
+                        handlePropertyRequestAsync(methodCallOptions, receivedMessage);
                 });
                 return;
             }
-            var dictionaryEntry = header.Path + "\0" + header.InterfaceName;
+            var dictionaryEntry = methodCallOptions.Path + "\0" + methodCallOptions.InterfaceName;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
                 Task.Run(() =>
                 {
                     try
                     {
-                        var decoder = new Decoder(body.Memory, bodyLength);
-                        return proxy.HandleMethodCallAsync(replySerial, header, decoder, shouldSendReply);
+                        using (receivedMessage)
+                            return proxy.HandleMethodCallAsync(methodCallOptions, receivedMessage);
                     }
                     catch (DbusException dbusException)
                     {
                         return sendMethodCallErrorAsync(
-                            replySerial,
-                            header.Sender,
+                            methodCallOptions,
                             dbusException.ErrorName,
                             dbusException.ErrorMessage
                          );
@@ -105,37 +93,31 @@ namespace Dbus
                     catch (Exception e)
                     {
                         return sendMethodCallErrorAsync(
-                            replySerial,
-                            header.Sender,
+                            methodCallOptions,
                             DbusException.CreateErrorName("General"),
                             e.Message
                          );
                     }
-                    finally
-                    {
-                        body.Dispose();
-                    }
                 });
             else
             {
+                receivedMessage.Dispose();
                 Task.Run(() => sendMethodCallErrorAsync(
-                    replySerial,
-                    header.Sender,
+                    methodCallOptions,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 ));
-                body.Dispose();
             }
         }
 
-        private Task handlePropertyRequestAsync(uint replySerial, MessageHeader header, Decoder body)
+        private Task handlePropertyRequestAsync(MethodCallOptions methodCallOptions, ReceivedMessage receivedMessage)
         {
-            switch (header.Member)
+            switch (methodCallOptions.Member)
             {
                 case "GetAll":
-                    return handleGetAllAsync(replySerial, header, body);
+                    return handleGetAllAsync(methodCallOptions, receivedMessage);
                 case "Get":
-                    return handleGetAsync(replySerial, header, body);
+                    return handleGetAsync(methodCallOptions, receivedMessage);
                 default:
                     throw new DbusException(
                         DbusException.CreateErrorName("UnknownMethod"),
@@ -143,48 +125,47 @@ namespace Dbus
                     );
             }
         }
-        private Task handleGetAllAsync(uint replySerial, MessageHeader header, Decoder body)
+        private Task handleGetAllAsync(MethodCallOptions methodCallOptions, ReceivedMessage receivedMessage)
         {
-            header.BodySignature.AssertEqual("s");
-            var requestedInterfaces = body.GetString();
-            var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
+            receivedMessage.AssertSignature("s");
+            var requestedInterfaces = receivedMessage.Decoder.GetString();
+            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 var sendBody = new Encoder();
                 proxy.EncodeProperties(sendBody);
-                return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "a{sv}");
+                return SendMethodReturnAsync(methodCallOptions, sendBody, "a{sv}");
             }
             else
                 return sendMethodCallErrorAsync(
-                    replySerial,
-                    header.Sender,
+                    methodCallOptions,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 );
         }
 
-        private Task handleGetAsync(uint replySerial, MessageHeader header, Decoder body)
+        private Task handleGetAsync(MethodCallOptions methodCallOptions, ReceivedMessage receivedMessage)
         {
-            header.BodySignature.AssertEqual("ss");
-            var requestedInterfaces = body.GetString();
-            var requestedProperty = body.GetString();
-            var dictionaryEntry = header.Path + "\0" + requestedInterfaces;
+            receivedMessage.AssertSignature("ss");
+            var decoder = receivedMessage.Decoder;
+            var requestedInterfaces = decoder.GetString();
+            var requestedProperty = decoder.GetString();
+            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 var sendBody = new Encoder();
                 proxy.EncodeProperty(sendBody, requestedProperty);
-                return SendMethodReturnAsync(replySerial, header.Sender, sendBody, "v");
+                return SendMethodReturnAsync(methodCallOptions, sendBody, "v");
             }
             else
                 return sendMethodCallErrorAsync(
-                    replySerial,
-                    header.Sender,
+                    methodCallOptions,
                     DbusException.CreateErrorName("MethodCallTargetNotFound"),
                     "The requested method call isn't mapped to an actual object"
                 );
         }
 
-        private async Task sendMethodCallErrorAsync(uint replySerial, string destination, string error, string errorMessage)
+        private async Task sendMethodCallErrorAsync(MethodCallOptions methodCallOptions, string error, string errorMessage)
         {
             var body = new Encoder();
             body.Add(errorMessage);
@@ -203,9 +184,9 @@ namespace Dbus
 
             header.AddArray(() =>
             {
-                addHeader(header, 6, destination);
+                addHeader(header, 6, methodCallOptions.Sender);
                 addHeader(header, 4, error);
-                addHeader(header, replySerial);
+                addHeader(header, methodCallOptions.ReplySerial);
                 if (bodyLength > 0)
                     addHeader(header, (Signature)"s");
             });
