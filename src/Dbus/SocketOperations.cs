@@ -16,18 +16,17 @@ namespace Dbus
 
         public SocketOperations(byte[] sockaddr)
         {
-            var fd = socket((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
-            if (fd < 0)
-                throw new InvalidOperationException("Opening the socket failed");
-            handle = new ReceivedFileDescriptorSafeHandle(fd);
+            handle = socket((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
+            if (handle.IsInvalid)
+                throw new Win32Exception();
 
             var connectResult = connect(handle, sockaddr, sockaddr.Length);
             if (connectResult < 0)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                throw new Win32Exception();
         }
 
         [DllImport("libc")]
-        private static extern int socket(int domain, int type, int protocol);
+        private static extern ReceivedFileDescriptorSafeHandle socket(int domain, int type, int protocol);
 
         [DllImport("libc")]
         private static extern int shutdown(SafeHandle sockfd, int how);
@@ -96,7 +95,7 @@ namespace Dbus
         private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
         public unsafe void Send(Span<ReadOnlyMemory<byte>> segments, int numberOfSegments)
         {
-            var handlesMemoryOwner= MemoryPool<MemoryHandle>.Shared.Rent(numberOfSegments);
+            var handlesMemoryOwner = MemoryPool<MemoryHandle>.Shared.Rent(numberOfSegments);
             var handles = handlesMemoryOwner.Memory.Span;
             var iovecs = stackalloc iovec[numberOfSegments];
 
