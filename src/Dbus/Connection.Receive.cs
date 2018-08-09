@@ -59,7 +59,7 @@ namespace Dbus
             switch (messageType)
             {
                 case DbusMessageType.MethodCall:
-                    var methodCallOptions = new MethodCallOptions(header, shouldSendReply);
+                    var methodCallOptions = new MethodCallOptions(header, shouldSendReply, serial);
                     var receivedMessage = new ReceivedMessage(header, decoder);
                     handleMethodCall(
                         methodCallOptions,

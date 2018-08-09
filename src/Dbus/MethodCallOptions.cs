@@ -4,14 +4,15 @@
     {
         public MethodCallOptions(
             MessageHeader messageHeader,
-            bool shoudSendReply
+            bool shoudSendReply,
+            uint replySerial
         )
         {
             Sender = messageHeader.Sender;
             Path = messageHeader.Path;
             InterfaceName = messageHeader.InterfaceName;
             Member = messageHeader.Member;
-            ReplySerial = messageHeader.ReplySerial;
+            ReplySerial = replySerial;
             ShouldSendReply = shoudSendReply;
         }
 
