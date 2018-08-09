@@ -57,7 +57,7 @@ namespace Dbus
 
                         var fileDescriptorsBytes = controlBytes.Slice(
                             sizeofCmsghdr,
-                            cmsgHeader.Length - sizeofCmsghdr
+                            controlBytes.Length - sizeofCmsghdr
                         );
                         var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
 
