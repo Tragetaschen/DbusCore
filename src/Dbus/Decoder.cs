@@ -37,6 +37,9 @@ namespace Dbus
             index = 0;
         }
 
+        public void Dump()
+            => memoryOwner.Memory.Span.Slice(0, bufferLength).Dump();
+
         public bool IsFinished => index >= bufferLength;
         public void AdvanceToStruct() => advanceToAlignment(8);
         public void AdvanceToDictEntry() => advanceToAlignment(8);

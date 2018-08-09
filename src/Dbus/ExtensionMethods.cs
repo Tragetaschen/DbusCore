@@ -5,7 +5,23 @@ namespace Dbus
 {
     internal static class ExtensionMethods
     {
-        public static void Dump(this byte[] buffer)
+        public static void Dump(this ReadOnlySequence<byte> buffers)
+        {
+            foreach (var segment in buffers)
+            {
+                var buffer = segment.Span;
+                dump(buffer);
+            }
+            Console.WriteLine();
+        }
+
+        public static void Dump(this Span<byte> memory)
+        {
+            dump(memory);
+            Console.WriteLine();
+        }
+
+        private static void dump(this ReadOnlySpan<byte> buffer)
         {
             for (var i = 0; i < buffer.Length; ++i)
             {
@@ -18,10 +34,6 @@ namespace Dbus
                 else
                     Console.Write($"x{buffer[i]:X} ");
             }
-            Console.WriteLine();
         }
-
-        public static ReadOnlySpan<byte> Limit(this IMemoryOwner<byte> memoryOwner, int length)
-            => memoryOwner.Memory.Span.Slice(0, length);
     }
 }
