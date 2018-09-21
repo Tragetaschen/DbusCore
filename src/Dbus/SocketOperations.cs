@@ -77,9 +77,9 @@ namespace Dbus
             return toReturn;
         }
 
-        public unsafe int Read(SafeHandle sockfd, byte[] buffer, int offset, int count)
+        public unsafe int Read(SafeHandle sockfd, ReadOnlyMemory<byte> buffer, int offset, int count)
         {
-            fixed (byte* bufferP = buffer)
+            fixed (byte* bufferP = buffer.Span)
             {
                 var readBytes = recv(sockfd, bufferP + offset, count, 0);
                 if (readBytes >= 0)
@@ -129,7 +129,7 @@ namespace Dbus
         {
             var sendResult = send(sockfd, ref buffer[offset], count, 0);
             if (sendResult < 0)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                throw new Win32Exception();
             return (int)sendResult;
         }
 
