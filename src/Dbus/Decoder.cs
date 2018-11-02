@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,22 +9,21 @@ namespace Dbus
 {
     public class Decoder : IDisposable
     {
-        private static readonly Dictionary<string, Func<Decoder, object>> typeDecoders = new Dictionary<string, Func<Decoder, object>>
+        private static readonly Dictionary<string, (Func<Decoder, object> Decoder, Func<IList> ArrayFactory)> typeDecoders = new Dictionary<string, (Func<Decoder, object>, Func<IList>)>
         {
-            ["o"] = d => d.GetObjectPath(),
-            ["s"] = d => d.GetString(),
-            ["g"] = d => d.GetSignature(),
-            ["y"] = d => d.GetByte(),
-            ["b"] = d => d.GetBoolean(),
-            ["n"] = d => d.GetInt16(),
-            ["q"] = d => d.GetUInt16(),
-            ["i"] = d => d.GetInt32(),
-            ["u"] = d => d.GetUInt32(),
-            ["x"] = d => d.GetInt64(),
-            ["t"] = d => d.GetUInt64(),
-            ["d"] = d => d.GetDouble(),
-            ["a{sv}"] = d => d.getPropertyList(),
-            ["as"] = d => d.getStringArray(),
+            ["o"] = (d => d.GetObjectPath(), () => new List<ObjectPath>()),
+            ["s"] = (d => d.GetString(), () => new List<string>()),
+            ["g"] = (d => d.GetSignature(), () => new List<Signature>()),
+            ["y"] = (d => d.GetByte(), () => new List<byte>()),
+            ["b"] = (d => d.GetBoolean(), () => new List<bool>()),
+            ["n"] = (d => d.GetInt16(), () => new List<short>()),
+            ["q"] = (d => d.GetUInt16(), () => new List<ushort>()),
+            ["i"] = (d => d.GetInt32(), () => new List<int>()),
+            ["u"] = (d => d.GetUInt32(), () => new List<uint>()),
+            ["x"] = (d => d.GetInt64(), () => new List<long>()),
+            ["t"] = (d => d.GetUInt64(), () => new List<ulong>()),
+            ["d"] = (d => d.GetDouble(), () => new List<double>()),
+            ["a{sv}"] = (d => d.getPropertyList(), () => throw new NotImplementedException())
         };
 
         private readonly IMemoryOwner<byte> memoryOwner;
@@ -55,8 +55,6 @@ namespace Dbus
         public delegate T ElementDecoder<T>();
 
         private IDictionary<string, object> getPropertyList() => GetDictionary(GetString, GetObject);
-
-        private List<string> getStringArray() => GetArray(GetString);
 
         private unsafe string getStringFromBytes(int length)
         {
@@ -214,11 +212,21 @@ namespace Dbus
             var signature = GetSignature();
             var stringSignature = signature.ToString();
             if (typeDecoders.TryGetValue(stringSignature, out var elementDecoder))
-                return elementDecoder(this);
+                return elementDecoder.Decoder(this);
             else if (stringSignature.StartsWith("a"))
             {
                 if (typeDecoders.TryGetValue(stringSignature.Substring(1), out elementDecoder))
-                    return GetArray(() => elementDecoder(this));
+                {
+                    var result = elementDecoder.ArrayFactory();
+                    var arrayLength = GetInt32(); // Actually uint
+                    var startIndex = index;
+                    while (index - startIndex < arrayLength)
+                    {
+                        var element = elementDecoder.Decoder(this);
+                        result.Add(element);
+                    }
+                    return result;
+                }
             }
             throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
         }
