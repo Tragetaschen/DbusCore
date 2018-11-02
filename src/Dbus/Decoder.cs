@@ -9,21 +9,21 @@ namespace Dbus
 {
     public class Decoder : IDisposable
     {
-        private static readonly Dictionary<string, (Func<Decoder, object> Decoder, Func<IList> ArrayFactory)> typeDecoders = new Dictionary<string, (Func<Decoder, object>, Func<IList>)>
+        private static readonly Dictionary<char, (Func<Decoder, object> Decoder, Type Type)> typeDecoders = new Dictionary<char, (Func<Decoder, object>, Type)>
         {
-            ["o"] = (d => d.GetObjectPath(), () => new List<ObjectPath>()),
-            ["s"] = (d => d.GetString(), () => new List<string>()),
-            ["g"] = (d => d.GetSignature(), () => new List<Signature>()),
-            ["y"] = (d => d.GetByte(), () => new List<byte>()),
-            ["b"] = (d => d.GetBoolean(), () => new List<bool>()),
-            ["n"] = (d => d.GetInt16(), () => new List<short>()),
-            ["q"] = (d => d.GetUInt16(), () => new List<ushort>()),
-            ["i"] = (d => d.GetInt32(), () => new List<int>()),
-            ["u"] = (d => d.GetUInt32(), () => new List<uint>()),
-            ["x"] = (d => d.GetInt64(), () => new List<long>()),
-            ["t"] = (d => d.GetUInt64(), () => new List<ulong>()),
-            ["d"] = (d => d.GetDouble(), () => new List<double>()),
-            ["a{sv}"] = (d => d.getPropertyList(), () => throw new NotImplementedException())
+            ['o'] = (d => d.GetObjectPath(), typeof(ObjectPath)),
+            ['s'] = (d => d.GetString(), typeof(string)),
+            ['g'] = (d => d.GetSignature(), typeof(Signature)),
+            ['y'] = (d => d.GetByte(), typeof(byte)),
+            ['b'] = (d => d.GetBoolean(), typeof(bool)),
+            ['n'] = (d => d.GetInt16(), typeof(short)),
+            ['q'] = (d => d.GetUInt16(), typeof(ushort)),
+            ['i'] = (d => d.GetInt32(), typeof(int)),
+            ['u'] = (d => d.GetUInt32(), typeof(uint)),
+            ['x'] = (d => d.GetInt64(), typeof(long)),
+            ['t'] = (d => d.GetUInt64(), typeof(ulong)),
+            ['d'] = (d => d.GetDouble(), typeof(double)),
+            ['v'] = (d => d.GetObject(), typeof(object)),
         };
 
         private readonly IMemoryOwner<byte> memoryOwner;
@@ -53,8 +53,6 @@ namespace Dbus
         /// <param name="decoder">The decoder</param>
         /// <returns>The decoded type</returns>
         public delegate T ElementDecoder<T>();
-
-        private IDictionary<string, object> getPropertyList() => GetDictionary(GetString, GetObject);
 
         private unsafe string getStringFromBytes(int length)
         {
@@ -201,7 +199,6 @@ namespace Dbus
 
                 var key = keyDecoder();
                 var value = valueDecoder();
-
                 result.Add(key, value);
             }
             return result;
@@ -211,24 +208,88 @@ namespace Dbus
         {
             var signature = GetSignature();
             var stringSignature = signature.ToString();
-            if (typeDecoders.TryGetValue(stringSignature, out var elementDecoder))
-                return elementDecoder.Decoder(this);
-            else if (stringSignature.StartsWith("a"))
+            var consumed = 0;
+            var decoderInfo = createDecoder(stringSignature, ref consumed);
+            if (consumed != stringSignature.Length)
+                throw new InvalidOperationException($"Signature '{stringSignature}' was only parsed until index {consumed}");
+            return decoderInfo.Decode();
+        }
+
+        private (ElementDecoder<object>, Type) createArrayDecoder(string signature, ref int consumed)
+        {
+            var (elementDecoder, elementType) = createDecoder(signature, ref consumed);
+            var arrayType = typeof(List<>).MakeGenericType(elementType);
+
+            object decodeArray()
             {
-                if (typeDecoders.TryGetValue(stringSignature.Substring(1), out elementDecoder))
+                // See GetArray(…)
+                var result = (IList)Activator.CreateInstance(arrayType);
+                var arrayLength = GetInt32(); // Actually uint
+                var startIndex = index;
+                while (index - startIndex < arrayLength)
                 {
-                    var result = elementDecoder.ArrayFactory();
-                    var arrayLength = GetInt32(); // Actually uint
-                    var startIndex = index;
-                    while (index - startIndex < arrayLength)
-                    {
-                        var element = elementDecoder.Decoder(this);
-                        result.Add(element);
-                    }
-                    return result;
+                    var element = elementDecoder();
+                    result.Add(element);
                 }
+                return result;
             }
-            throw new InvalidOperationException($"Variant type isn't implemented: {signature}");
+
+            return (decodeArray, arrayType);
+        }
+
+        private (ElementDecoder<object>, Type) createDictionaryDecoder(string signature, ref int consumed)
+        {
+            var (keyDecoder, keyType) = createDecoder(signature, ref consumed);
+            var (valueDecoder, valueType) = createDecoder(signature, ref consumed);
+            var dictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+
+            object decodeDictionary()
+            {
+                // See GetDictionary(…)
+                var result = (IDictionary)Activator.CreateInstance(dictionaryType);
+                var arrayLength = GetInt32(); // Actually uint
+                AdvanceToDictEntry();
+                var startIndex = index;
+                while (index - startIndex < arrayLength)
+                {
+                    AdvanceToDictEntry();
+
+                    var key = keyDecoder();
+                    var value = valueDecoder();
+                    result.Add(key, value);
+                }
+                return result;
+            }
+
+            return (decodeDictionary, dictionaryType);
+        }
+
+        private (ElementDecoder<object> Decode, Type Type) createDecoder(string signature, ref int consumed)
+        {
+            if (signature[consumed] == 'a')
+                if (signature[consumed + 1] == '{')
+                {
+                    consumed += 2; // a{
+                    var dictionaryResult = createDictionaryDecoder(signature, ref consumed);
+                    if (signature[consumed] != '}')
+                        throw new InvalidOperationException($"Unbalanced dictionary in variant: '{signature}' at index {consumed}");
+                    consumed += 1; // }
+                    return dictionaryResult;
+                }
+                else
+                {
+                    consumed += 1; // a
+                    return createArrayDecoder(signature, ref consumed);
+                }
+            else if (typeDecoders.TryGetValue(signature[consumed], out var typeInfo))
+            {
+                consumed += 1;  // the type char
+                return (() => typeInfo.Decoder(this), typeInfo.Type);
+            }
+            else if (signature[consumed] == '(')
+                throw new InvalidOperationException($"Structs in variants are not supported. '{signature}' at index {consumed}");
+            else
+                throw new InvalidOperationException($"Unknown type in variant: '{signature}' at index {consumed}");
         }
 
         public void Dispose() => memoryOwner.Dispose();
