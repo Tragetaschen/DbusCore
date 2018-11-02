@@ -60,50 +60,51 @@ namespace Dbus
             ReceivedMessage receivedMessage
         )
         {
-            if (methodCallOptions.InterfaceName == "org.freedesktop.DBus.Properties")
+            async Task withExceptionHandling(Func<MethodCallOptions, ReceivedMessage, Task> work)
             {
-                Task.Run(() =>
+                try
                 {
                     using (receivedMessage)
-                        handlePropertyRequestAsync(methodCallOptions, receivedMessage);
-                });
+                        await work(methodCallOptions, receivedMessage);
+                }
+                catch (DbusException dbusException)
+                {
+                    await sendMethodCallErrorAsync(
+                        methodCallOptions,
+                        dbusException.ErrorName,
+                        dbusException.ErrorMessage
+                    );
+                }
+                catch (Exception e)
+                {
+                    await sendMethodCallErrorAsync(
+                        methodCallOptions,
+                        DbusException.CreateErrorName("General"),
+                        e.Message
+                    );
+                }
+            }
+
+
+            if (methodCallOptions.InterfaceName == "org.freedesktop.DBus.Properties")
+            {
+                Task.Run(() => withExceptionHandling(handlePropertyRequestAsync));
                 return;
             }
+
             var dictionaryEntry = methodCallOptions.Path + "\0" + methodCallOptions.InterfaceName;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        using (receivedMessage)
-                            return proxy.HandleMethodCallAsync(methodCallOptions, receivedMessage);
-                    }
-                    catch (DbusException dbusException)
-                    {
-                        return sendMethodCallErrorAsync(
-                            methodCallOptions,
-                            dbusException.ErrorName,
-                            dbusException.ErrorMessage
-                         );
-                    }
-                    catch (Exception e)
-                    {
-                        return sendMethodCallErrorAsync(
-                            methodCallOptions,
-                            DbusException.CreateErrorName("General"),
-                            e.Message
-                         );
-                    }
-                });
-            else
             {
-                receivedMessage.Dispose();
-                Task.Run(() => sendMethodCallErrorAsync(
-                    methodCallOptions,
-                    DbusException.CreateErrorName("MethodCallTargetNotFound"),
-                    "The requested method call isn't mapped to an actual object"
-                ));
+                Task.Run(() => withExceptionHandling(proxy.HandleMethodCallAsync));
+                return;
             }
+
+            receivedMessage.Dispose();
+            Task.Run(() => sendMethodCallErrorAsync(
+                methodCallOptions,
+                DbusException.CreateErrorName("MethodCallTargetNotFound"),
+                "The requested method call isn't mapped to an actual object"
+            ));
         }
 
         private Task handlePropertyRequestAsync(MethodCallOptions methodCallOptions, ReceivedMessage receivedMessage)
