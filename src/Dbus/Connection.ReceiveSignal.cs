@@ -47,12 +47,22 @@ namespace Dbus
         private void handleSignal(MessageHeader header, Decoder decoder)
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
-            if (signalHandlers.TryGetValue(dictionaryEntry, out var handler))
+            if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers))
                 Task.Run(() =>
                 {
                     var message = new ReceivedMessage(header, decoder);
                     using (message)
-                        handler(message);
+                        foreach (SignalHandler handler in handlers.GetInvocationList())
+                            try
+                            {
+                                handler(message);
+                            }
+                            catch(Exception e)
+                            {
+                                UnobservedException?.Invoke(
+                                    this, new UnobservedTaskExceptionEventArgs(new AggregateException(e))
+                                );
+                            }
                 });
             else
                 decoder.Dispose();

@@ -58,6 +58,8 @@ namespace Dbus
             return result;
         }
 
+        public static event EventHandler<UnobservedTaskExceptionEventArgs> UnobservedException;
+
         private Encoder createHeader(
             DbusMessageType type,
             DbusMessageFlags flags,
