@@ -59,9 +59,7 @@ namespace Dbus
                             }
                             catch(Exception e)
                             {
-                                UnobservedException?.Invoke(
-                                    this, new UnobservedTaskExceptionEventArgs(new AggregateException(e))
-                                );
+                                onUnobservedException(e);
                             }
                 });
             else

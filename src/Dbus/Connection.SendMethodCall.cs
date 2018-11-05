@@ -56,31 +56,45 @@ namespace Dbus
 
         private void handleMethodReturn(MessageHeader header, Decoder decoder)
         {
-            if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
+            try
             {
-                decoder.Dispose();
-                throw new InvalidOperationException("Couldn't find the method call for the method return");
-            }
+                if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
+                {
+                    decoder.Dispose();
+                    throw new InvalidOperationException("Couldn't find the method call for the method return");
+                }
 
-            var receivedMessage = new ReceivedMessage(header, decoder);
-            tcs.SetResult(receivedMessage);
+                var receivedMessage = new ReceivedMessage(header, decoder);
+                tcs.SetResult(receivedMessage);
+            }
+            catch(Exception e)
+            {
+                onUnobservedException(e);
+            }
         }
 
         private void handleError(MessageHeader header, Decoder decoder)
         {
-            using (decoder)
+            try
             {
-                if (header.ReplySerial == 0)
-                    throw new InvalidOperationException("Only errors for method calls are supported");
-                if (!header.BodySignature.ToString().StartsWith("s"))
-                    throw new InvalidOperationException("Errors are expected to start their body with a string");
+                using (decoder)
+                {
+                    if (header.ReplySerial == 0)
+                        throw new InvalidOperationException("Only errors for method calls are supported");
+                    if (!header.BodySignature.ToString().StartsWith("s"))
+                        throw new InvalidOperationException("Errors are expected to start their body with a string");
 
-                if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
-                    throw new InvalidOperationException("Couldn't find the method call for the error");
+                    if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
+                        throw new InvalidOperationException("Couldn't find the method call for the error");
 
-                var message = decoder.GetString();
-                var exception = new DbusException(header.ErrorName, message);
-                tcs.SetException(exception);
+                    var message = decoder.GetString();
+                    var exception = new DbusException(header.ErrorName, message);
+                    tcs.SetException(exception);
+                }
+            }
+            catch(Exception e)
+            {
+                onUnobservedException(e);
             }
         }
     }
