@@ -76,11 +76,11 @@ namespace Dbus
         public void Add(uint value)
             => addPrimitive(value, sizeof(uint));
 
-        public void Add(ulong value)
-            => addPrimitive(value, sizeof(ulong));
-
         public void Add(long value)
             => addPrimitive(value, sizeof(long));
+
+        public void Add(ulong value)
+            => addPrimitive(value, sizeof(ulong));
 
         public void Add(double value)
             => addPrimitive(value, sizeof(double));
@@ -128,10 +128,34 @@ namespace Dbus
             Add(value);
         }
 
+        public void AddVariant(Signature signature)
+        {
+            Add((Signature)"g");
+            Add(signature);
+        }
+
         public void AddVariant(ObjectPath value)
         {
             Add((Signature)"o");
             Add(value.ToString());
+        }
+
+        public void AddVariant(short value)
+        {
+            Add((Signature)"n");
+            Add(value);
+        }
+
+        public void AddVariant(ushort value)
+        {
+            Add((Signature)"q");
+            Add(value);
+        }
+
+        public void AddVariant(int value)
+        {
+            Add((Signature)"i");
+            Add(value);
         }
 
         public void AddVariant(uint value)
@@ -140,21 +164,33 @@ namespace Dbus
             Add(value);
         }
 
-        public void AddVariant(Signature signature)
+        public void AddVariant(long value)
         {
-            Add((Signature)"g");
-            Add(signature);
+            Add((Signature)"x");
+            Add(value);
+        }
+
+        public void AddVariant(ulong value)
+        {
+            Add((Signature)"t");
+            Add(value);
+        }
+
+        public void AddVariant(double value)
+        {
+            Add((Signature)"d");
+            Add(value);
+        }
+
+        public void AddVariant(byte value)
+        {
+            Add((Signature)"y");
+            Add(value);
         }
 
         public void AddVariant(bool value)
         {
             Add((Signature)"b");
-            Add(value);
-        }
-
-        public void AddVariant(ushort value)
-        {
-            Add((Signature)"q");
             Add(value);
         }
 
@@ -168,22 +204,40 @@ namespace Dbus
         {
             switch (value)
             {
-                case bool v:
-                    AddVariant(v);
-                    break;
                 case string v:
-                    AddVariant(v);
-                    break;
-                case ObjectPath v:
-                    AddVariant(v);
-                    break;
-                case uint v:
                     AddVariant(v);
                     break;
                 case Signature v:
                     AddVariant(v);
                     break;
+                case ObjectPath v:
+                    AddVariant(v);
+                    break;
+                case short v:
+                    AddVariant(v);
+                    break;
                 case ushort v:
+                    AddVariant(v);
+                    break;
+                case int v:
+                    AddVariant(v);
+                    break;
+                case uint v:
+                    AddVariant(v);
+                    break;
+                case long v:
+                    AddVariant(v);
+                    break;
+                case ulong v:
+                    AddVariant(v);
+                    break;
+                case double v:
+                    AddVariant(v);
+                    break;
+                case byte v:
+                    AddVariant(v);
+                    break;
+                case bool v:
                     AddVariant(v);
                     break;
                 case IEnumerable<string> v:
