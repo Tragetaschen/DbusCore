@@ -18,12 +18,12 @@ namespace Dbus.CodeGenerator
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
-                sendBody.StartDictEntry();
+                sendBody.StartCompoundValue();
                 sendBody.Add(""" + property.Name + @""");
                 Encode" + property.Name + @"(sendBody);");
             }
             propertyEncoder.Append(@"
-            }, true);
+            }, storesCompoundValues: true);
         }
 
         public void EncodeProperty(global::Dbus.Encoder sendBody, string propertyName)

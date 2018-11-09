@@ -99,29 +99,30 @@ namespace Dbus
         public void Add(bool value)
             => addPrimitive(value ? 1 : 0, sizeof(int));
 
-        public void Add<T>(IEnumerable<T> values, ElementWriter<T> writer)
+        public void Add<T>(IEnumerable<T> values, ElementWriter<T> writer, bool storesCompoundValues)
             => AddArray(() =>
             {
                 foreach (var value in values)
                     writer(value);
-            }, false);
+            }, storesCompoundValues);
 
         public void Add<TKey, TValue>(IDictionary<TKey, TValue> values, ElementWriter<TKey> keyWriter, ElementWriter<TValue> valueWriter)
             => AddArray(() =>
             {
                 foreach (var value in values)
                 {
-                    StartDictEntry();
+                    StartCompoundValue();
                     keyWriter(value.Key);
                     valueWriter(value.Value);
                 }
-            }, true);
+            }, storesCompoundValues: true);
 
-        public void AddArray(ElementWriter writer, bool alignment_8 = false)
+        public void AddArray(ElementWriter writer, bool storesCompoundValues)
         {
             ensureAlignment(4);
             var lengthSpan = MemoryMarshal.Cast<byte, int>(reserve(4));
-            ensureAlignment(alignment_8 ? 8 : 4);
+            if (storesCompoundValues)
+                StartCompoundValue();
             var arrayStart = index;
 
             writer();
@@ -205,7 +206,7 @@ namespace Dbus
         public void AddVariant(IEnumerable<string> value)
         {
             Add((Signature)"as");
-            Add(value, Add);
+            Add(value, Add, storesCompoundValues: false);
         }
 
         public void AddVariant(object value)
@@ -263,8 +264,7 @@ namespace Dbus
         }
 
         public void FinishHeader() => ensureAlignment(8);
-        public void StartStruct() => ensureAlignment(8);
-        public void StartDictEntry() => ensureAlignment(8);
+        public void StartCompoundValue() => ensureAlignment(8);
 
         private void ensureAlignment(int alignment)
         {

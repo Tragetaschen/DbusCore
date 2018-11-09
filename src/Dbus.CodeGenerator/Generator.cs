@@ -291,7 +291,7 @@ namespace Dbus.CodeGenerator
                 proxyClass.Append(@"
             sendBody.AddArray(() =>
             {
-                sendBody.StartDictEntry();
+                sendBody.StartCompoundValue();
                 sendBody.Add(e.PropertyName);
                 switch (e.PropertyName)
                 {");
@@ -310,7 +310,7 @@ namespace Dbus.CodeGenerator
                     default:
                         throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
                 }
-            }, true);");
+            }, storesCompoundValues: true);");
                 //This is actually an empty array, but the encoding per 0-integer is more efficient
                 proxyClass.Append(@"
             sendBody.Add(0);

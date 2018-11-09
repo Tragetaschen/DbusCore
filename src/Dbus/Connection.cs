@@ -78,7 +78,7 @@ namespace Dbus
             header.Add(bodyLength); // Actually uint
             header.Add(serial ?? getSerial());
 
-            header.AddArray(() => otherHeaders(header));
+            header.AddArray(() => otherHeaders(header), storesCompoundValues: false);
             header.FinishHeader();
 
             return header;
@@ -86,28 +86,28 @@ namespace Dbus
 
         private static void addHeader(Encoder encoder, ObjectPath path)
         {
-            encoder.StartStruct();
+            encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.Path);
             encoder.AddVariant(path);
         }
 
         private static void addHeader(Encoder encoder, uint replySerial)
         {
-            encoder.StartStruct();
+            encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.ReplySerial);
             encoder.AddVariant(replySerial);
         }
 
         private static void addHeader(Encoder encoder, Signature signature)
         {
-            encoder.StartStruct();
+            encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.Signature);
             encoder.AddVariant(signature);
         }
 
         private static void addHeader(Encoder encoder, DbusHeaderType type, string value)
         {
-            encoder.StartStruct();
+            encoder.StartCompoundValue();
             encoder.Add((byte)type);
             encoder.AddVariant(value);
         }

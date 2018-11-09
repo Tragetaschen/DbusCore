@@ -17,10 +17,11 @@ namespace Dbus.CodeGenerator
 
         public string Result => resultBuilder.ToString();
         public string Signature => signatureBuilder.ToString();
+        public bool IsCompoundValue { get; private set; }
 
         public void AddVariant(string name, Type type, string indent = Generator.Indent)
         {
-            var (signature, code) = encoder(name, name, type, Generator.Indent);
+            var (signature, code, _) = encoder(name, name, type, Generator.Indent);
 
             var innerGenerator = new EncoderGenerator(body);
             innerGenerator.add($@"(global::Dbus.Signature)""{signature}""", name, typeof(Signature), Generator.Indent);
@@ -34,60 +35,62 @@ namespace Dbus.CodeGenerator
 
         private void add(string value, string name, Type type, string indent)
         {
-            var (signature, code) = encoder(value, name, type, indent);
+            var (signature, code, isCompoundValue) = encoder(value, name, type, indent);
             signatureBuilder.Append(signature);
             resultBuilder.Append(indent);
             resultBuilder.AppendLine(code);
+            IsCompoundValue = isCompoundValue;
         }
 
-        private (string signature, string code) encoder(string value, string name, Type type, string indent)
+        private (string signature, string code, bool isCompoundValue) encoder(string value, string name, Type type, string indent)
         {
             if (type == typeof(object))
                 return (
                     SignatureString.For[type],
-                    body + ".AddVariant(" + value + ");"
+                    body + ".AddVariant(" + value + ");",
+                    false
                 );
-            else if (!type.IsConstructedGenericType)
-            {
-                if (SignatureString.For.ContainsKey(type))
-                    return (
-                        SignatureString.For[type],
-                        body + ".Add(" + value + ");"
-                    );
-                else
-                    return buildFromConstructor(value, name, type, indent);
-            }
-            else
+
+            if (SignatureString.For.ContainsKey(type))
+                return (
+                    SignatureString.For[type],
+                    body + ".Add(" + value + ");",
+                    false
+                );
+
+            if (type.IsConstructedGenericType)
             {
                 var genericType = type.GetGenericTypeDefinition();
                 if (genericType == typeof(IEnumerable<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var (elementSignature, elementCode) = createMethod(elementType, name + "_e", name + "_e", indent);
+                    var (elementSignature, elementCode, elementIsCompoundValue) = createMethod(elementType, name + "_e", name + "_e", indent);
+
                     return (
                         "a" + elementSignature,
-                        body + ".Add(" + value + ", " + elementCode + ");"
+                        body + ".Add(" + value + ", " + elementCode + ", storesCompoundValues: " + (elementIsCompoundValue ? "true" : "false") + ");",
+                        false
                     );
                 }
                 else if (genericType == typeof(IDictionary<,>))
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var (keySignature, keyCode) = createMethod(keyType, name + "_k", name + "_k", indent);
-                    var (valueSignature, valueCode) = createMethod(valueType, name + "_v", name + "_v", indent);
+                    var (keySignature, keyCode, _) = createMethod(keyType, name + "_k", name + "_k", indent);
+                    var (valueSignature, valueCode, _) = createMethod(valueType, name + "_v", name + "_v", indent);
 
                     return (
                         "a{" + keySignature + valueSignature + "}",
-                        body + ".Add(" + value + ", " + keyCode + ", " + valueCode + ");"
+                        body + ".Add(" + value + ", " + keyCode + ", " + valueCode + ");",
+                        false // ?
                     );
                 }
-                else
-                    throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
             }
 
+            return buildFromConstructor(value, name, type, indent);
         }
 
-        private (string signature, string code) buildFromConstructor(string value, string name, Type type, string indent)
+        private (string signature, string code, bool isCompoundValue) buildFromConstructor(string value, string name, Type type, string indent)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
@@ -96,7 +99,7 @@ namespace Dbus.CodeGenerator
                 .First()
             ;
             var builder = new StringBuilder();
-            builder.AppendLine(body + ".StartStruct();");
+            builder.AppendLine(body + ".StartCompoundValue();");
             var signature = "(";
 
             foreach (var p in constructorParameters)
@@ -111,20 +114,22 @@ namespace Dbus.CodeGenerator
 
             signature += ")";
 
-            return (signature, builder.ToString());
+            return (signature, builder.ToString(), true);
         }
 
-        private (string signature, string code) createMethod(Type type, string value, string name, string indent)
+        private (string signature, string code, bool isCompoundValue) createMethod(Type type, string value, string name, string indent)
         {
             if (type == typeof(object))
                 return (
                     SignatureString.For[type],
-                    body + ".AddVariant"
+                    body + ".AddVariant",
+                    false
                 );
             else if (SignatureString.For.ContainsKey(type))
                 return (
                     SignatureString.For[type],
-                    body + ".Add"
+                    body + ".Add",
+                    false
                 );
             else
             {
@@ -134,7 +139,8 @@ namespace Dbus.CodeGenerator
                     encoder.Signature,
                     "(" + Generator.BuildTypeString(type) + " " + name + @") =>
 " + indent + @"{
-" + encoder.Result + indent + "}"
+" + encoder.Result + indent + "}",
+                    encoder.IsCompoundValue
                 );
             }
         }
