@@ -28,6 +28,14 @@ namespace Dbus
             return result;
         }
 
+        public async Task Dump()
+        {
+            await pipe.Writer.FlushAsync();
+            pipe.Writer.Complete();
+            var readResult = await pipe.Reader.ReadAsync();
+            readResult.Buffer.Dump();
+        }
+
         public async Task<ReadOnlySequence<byte>> CompleteWritingAsync()
         {
             await pipe.Writer.FlushAsync();
