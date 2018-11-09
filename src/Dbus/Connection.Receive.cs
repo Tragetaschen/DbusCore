@@ -17,7 +17,16 @@ namespace Dbus
             var hasValidFixedHeader = false;
 
             while (true)
-                handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader);
+                try
+                {
+                    handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader);
+                }
+                catch (Exception e)
+                {
+                    foreach (var expectedMessage in expectedMessages)
+                        expectedMessage.Value.SetException(e);
+                    return;
+                }
         }
 
         private void handleOneMessage(Span<DbusFixedLengthHeader> fixedLengthHeaderSpan, Span<byte> control, ref bool hasValidFixedHeader)
