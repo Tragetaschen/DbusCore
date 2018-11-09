@@ -7,21 +7,23 @@ namespace Dbus
     {
         public static void Dump(this ReadOnlySequence<byte> buffers)
         {
+            var counter = 0;
             foreach (var segment in buffers)
             {
                 var buffer = segment.Span;
-                dump(buffer);
+                dump(buffer, ref counter);
             }
             Console.WriteLine();
         }
 
         public static void Dump(this Span<byte> memory)
         {
-            dump(memory);
+            var counter = 0;
+            dump(memory, ref counter);
             Console.WriteLine();
         }
 
-        private static void dump(this ReadOnlySpan<byte> buffer)
+        private static void dump(this ReadOnlySpan<byte> buffer, ref int counter)
         {
             for (var i = 0; i < buffer.Length; ++i)
             {
@@ -33,6 +35,10 @@ namespace Dbus
                     Console.Write($"{(char)buffer[i]} ");
                 else
                     Console.Write($"x{buffer[i]:X} ");
+
+                counter += 1;
+                if ((counter & 7) == 0)
+                    Console.Write("| ");
             }
         }
     }
