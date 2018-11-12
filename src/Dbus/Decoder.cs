@@ -41,8 +41,7 @@ namespace Dbus
             => memoryOwner.Memory.Span.Slice(0, bufferLength).Dump();
 
         public bool IsFinished => index >= bufferLength;
-        public void AdvanceToStruct() => advanceToAlignment(8);
-        public void AdvanceToDictEntry() => advanceToAlignment(8);
+        public void AdvanceToCompoundValue() => advanceToAlignment(8);
 
         private void advanceToAlignment(int alignment) => Alignment.Advance(ref index, alignment);
 
@@ -163,10 +162,12 @@ namespace Dbus
         /// <typeparam name="T">Type of the array elements</typeparam>
         /// <param name="decoder">The decoder for the elements</param>
         /// <returns>The decoded array</returns>
-        public List<T> GetArray<T>(ElementDecoder<T> decoder)
+        public List<T> GetArray<T>(ElementDecoder<T> decoder, bool storesCompoundValues)
         {
             var result = new List<T>();
             var arrayLength = GetInt32(); // Actually uint
+            if (storesCompoundValues)
+                AdvanceToCompoundValue();
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
@@ -191,11 +192,11 @@ namespace Dbus
         {
             var result = new Dictionary<TKey, TValue>();
             var arrayLength = GetInt32(); // Actually uint
-            AdvanceToDictEntry();
+            AdvanceToCompoundValue();
             var startIndex = index;
             while (index - startIndex < arrayLength)
             {
-                AdvanceToDictEntry();
+                AdvanceToCompoundValue();
 
                 var key = keyDecoder();
                 var value = valueDecoder();
@@ -215,9 +216,9 @@ namespace Dbus
             return decoderInfo.Decode();
         }
 
-        private (ElementDecoder<object>, Type) createArrayDecoder(string signature, ref int consumed)
+        private (ElementDecoder<object>, Type, bool) createArrayDecoder(string signature, ref int consumed)
         {
-            var (elementDecoder, elementType) = createDecoder(signature, ref consumed);
+            var (elementDecoder, elementType, isCompoundType) = createDecoder(signature, ref consumed);
             var arrayType = typeof(List<>).MakeGenericType(elementType);
 
             object decodeArray()
@@ -225,6 +226,8 @@ namespace Dbus
                 // See GetArray(…)
                 var result = (IList)Activator.CreateInstance(arrayType);
                 var arrayLength = GetInt32(); // Actually uint
+                if (isCompoundType)
+                    AdvanceToCompoundValue();
                 var startIndex = index;
                 while (index - startIndex < arrayLength)
                 {
@@ -234,13 +237,13 @@ namespace Dbus
                 return result;
             }
 
-            return (decodeArray, arrayType);
+            return (decodeArray, arrayType, false);
         }
 
-        private (ElementDecoder<object>, Type) createDictionaryDecoder(string signature, ref int consumed)
+        private (ElementDecoder<object>, Type, bool) createDictionaryDecoder(string signature, ref int consumed)
         {
-            var (keyDecoder, keyType) = createDecoder(signature, ref consumed);
-            var (valueDecoder, valueType) = createDecoder(signature, ref consumed);
+            var (keyDecoder, keyType, _) = createDecoder(signature, ref consumed);
+            var (valueDecoder, valueType, _) = createDecoder(signature, ref consumed);
             var dictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
 
             object decodeDictionary()
@@ -248,11 +251,11 @@ namespace Dbus
                 // See GetDictionary(…)
                 var result = (IDictionary)Activator.CreateInstance(dictionaryType);
                 var arrayLength = GetInt32(); // Actually uint
-                AdvanceToDictEntry();
+                AdvanceToCompoundValue();
                 var startIndex = index;
                 while (index - startIndex < arrayLength)
                 {
-                    AdvanceToDictEntry();
+                    AdvanceToCompoundValue();
 
                     var key = keyDecoder();
                     var value = valueDecoder();
@@ -261,10 +264,10 @@ namespace Dbus
                 return result;
             }
 
-            return (decodeDictionary, dictionaryType);
+            return (decodeDictionary, dictionaryType, false);
         }
 
-        private (ElementDecoder<object> Decode, Type Type) createDecoder(string signature, ref int consumed)
+        private (ElementDecoder<object> Decode, Type Type, bool isCompoundValue) createDecoder(string signature, ref int consumed)
         {
             if (signature[consumed] == 'a')
                 if (signature[consumed + 1] == '{')
@@ -284,7 +287,7 @@ namespace Dbus
             else if (typeDecoders.TryGetValue(signature[consumed], out var typeInfo))
             {
                 consumed += 1;  // the type char
-                return (() => typeInfo.Decoder(this), typeInfo.Type);
+                return (() => typeInfo.Decoder(this), typeInfo.Type, false);
             }
             else if (signature[consumed] == '(')
                 throw new InvalidOperationException($"Structs in variants are not supported. '{signature}' at index {consumed}");
