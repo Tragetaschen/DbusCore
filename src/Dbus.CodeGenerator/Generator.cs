@@ -209,6 +209,11 @@ namespace Dbus.CodeGenerator
             this.destination = destination ?? """ + consume.Destination + @""";
 " + eventSubscriptions + @"        }
 
+        public override string ToString()
+        {
+            return """ + consume.InterfaceName + @"@"" + this.path;
+        }
+
         public static " + BuildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
         {
             return new " + className + @"(connection, path, destination);
@@ -274,6 +279,11 @@ namespace Dbus.CodeGenerator
             target.PropertyChanged += HandlePropertyChangedEventAsync;");
 
             proxyClass.Append(@"
+        }
+
+        public override string ToString()
+        {
+            return this.InterfaceName + ""@"" + this.path;
         }
 
         public static " + type.Name + @"_Proxy Factory(global::Dbus.Connection connection, " + type.FullName + @" target, global::Dbus.ObjectPath path)
