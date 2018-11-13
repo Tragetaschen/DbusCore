@@ -2,6 +2,8 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -267,6 +269,60 @@ namespace Dbus
             return (decodeDictionary, dictionaryType, false);
         }
 
+        private (ElementDecoder<object>, Type, bool) createTupleDecoder(string signature, ref int consumed)
+        {
+            var tupleTypes = new List<(ElementDecoder<object> Decode, Type Type, bool isCompoundValue)>();
+            var origConsumed = consumed;
+
+            while (signature[consumed] != ')')
+            {
+                var tupleTypeDecoder = createDecoder(signature, ref consumed);
+                tupleTypes.Add(tupleTypeDecoder);
+            }
+            var types = tupleTypes.Select(x => x.Type).ToArray();
+            if (types.Length >= 8)
+                // System.Tuple only exists up until System.Tuple`7
+                // System.Tuple`8 explicitly has the documented semantics of using the last type parameter
+                // for another System.Tuple, to store more values, but that's not yet supported here
+                throw new InvalidOperationException("Structs in variants only support up to 8 elements: " + signature);
+
+            var (factoryMethod, tupleType) = buildTuple(types);
+
+            object decodeTuple()
+            {
+                AdvanceToCompoundValue();
+                var parameters = new object[tupleTypes.Count];
+                for (var i = 0; i < tupleTypes.Count; ++i)
+                    parameters[i] = tupleTypes[i].Decode();
+                return factoryMethod.Invoke(null, parameters);
+            }
+
+            return (decodeTuple, tupleType, true);
+        }
+
+        private static (MethodInfo, Type) buildTuple(Type[] types)
+        {
+            var factoryMethod = typeof(Tuple)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(x =>
+                    x.Name == "Create" &&
+                    x.GetGenericArguments().Length == types.Length
+                )
+                .Single()
+                .MakeGenericMethod(types);
+
+            var tupleTypeName = typeof(Tuple).AssemblyQualifiedName;
+            var indexOfFirstComma = tupleTypeName.IndexOf(',');
+            var genericTupleTypeName =
+                tupleTypeName.Substring(0, indexOfFirstComma)
+                + "`" + types.Length
+                + tupleTypeName.Substring(indexOfFirstComma)
+            ;
+            var tupleType = Type.GetType(genericTupleTypeName).MakeGenericType(types);
+
+            return (factoryMethod, tupleType);
+        }
+
         private (ElementDecoder<object> Decode, Type Type, bool isCompoundValue) createDecoder(string signature, ref int consumed)
         {
             if (signature[consumed] == 'a')
@@ -290,7 +346,12 @@ namespace Dbus
                 return (() => typeInfo.Decoder(this), typeInfo.Type, false);
             }
             else if (signature[consumed] == '(')
-                throw new InvalidOperationException($"Structs in variants are not supported. '{signature}' at index {consumed}");
+            {
+                consumed += 1; // (
+                var tupleResult = createTupleDecoder(signature, ref consumed);
+                consumed += 1; // )
+                return tupleResult;
+            }
             else
                 throw new InvalidOperationException($"Unknown type in variant: '{signature}' at index {consumed}");
         }
