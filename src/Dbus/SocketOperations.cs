@@ -179,6 +179,9 @@ namespace Dbus
                 const int iovecsLength = 3;
                 var iovecs = stackalloc iovec[iovecsLength];
 
+                var lengthTillBodyEnd = header.Length + body.Length;
+                var allReceivedLength = 0;
+
                 iovecs[0].iov_base = headerP;
                 iovecs[0].iov_len = header.Length;
                 iovecs[1].iov_base = bodyP;
@@ -192,13 +195,39 @@ namespace Dbus
                     control = controlP,
                     controllen = control.Length,
                 };
-                var length = recvmsg(handle, ref nextMsg, 0);
-                if (length == 0)
-                    throw new OperationCanceledException("Socket was shut down");
-                if (length < 0)
-                    throw new InvalidOperationException("recvmsg failed with " + length);
-                return length == header.Length + body.Length + fixedLengthHeader.Length;
+
+                allReceivedLength += receiveAndCheck(ref nextMsg);
+
+                if (allReceivedLength < lengthTillBodyEnd)
+                {
+                    // Did not receive an entire body, continue by moving the contents
+                    // in the iovecs "up"…
+                    iovecs[1].iov_base = iovecs[2].iov_base; // and the new header
+                    iovecs[1].iov_len = iovecs[2].iov_len;
+                    nextMsg.iovlen -= 1;
+                }
+                while (allReceivedLength < lengthTillBodyEnd)
+                {
+                    // …and by adapting the pointer and length of the body
+                    var offset = allReceivedLength - header.Length;
+                    iovecs[0].iov_base = bodyP + offset;
+                    iovecs[0].iov_len = lengthTillBodyEnd - allReceivedLength;
+
+                    allReceivedLength += receiveAndCheck(ref nextMsg);
+                }
+
+                return allReceivedLength == header.Length + body.Length + fixedLengthHeader.Length;
             }
+        }
+
+        private int receiveAndCheck(ref msghdr nextMsg)
+        {
+            var length = recvmsg(handle, ref nextMsg, 0);
+            if (length == 0)
+                throw new OperationCanceledException("Socket was shut down");
+            if (length < 0)
+                throw new InvalidOperationException("recvmsg failed with " + length);
+            return length;
         }
 
         private unsafe struct iovec
