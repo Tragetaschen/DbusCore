@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -7,7 +8,7 @@ namespace Dbus
     public interface IOrgFreedesktopDbusObjectManagerProvide : IDisposable
     {
         ObjectPath Root { get; }
-        Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync();
+        Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
         ObjectPath AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface;
     }
 }

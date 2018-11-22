@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -10,10 +11,11 @@ namespace Dbus
             string interfaceName,
             string methodName,
             Encoder body,
-            Signature signature
-            )
+            Signature signature,
+            CancellationToken cancellationToken
+        )
         {
-            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 
             if (path.ToString() == "")
                 throw new ArgumentException("Signal path must not be empty", nameof(path));
@@ -40,9 +42,9 @@ namespace Dbus
                 }
             );
 
-            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 
-            await serializedWriteToStream(headerSegments, bodySegments);
+            await serializedWriteToStream(headerSegments, bodySegments, cancellationToken);
 
             body.CompleteReading(bodySegments);
             header.CompleteReading(headerSegments);

@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Dbus
 {
@@ -19,17 +20,28 @@ namespace Dbus
             while (true)
                 try
                 {
-                    handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader);
+                    handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader, receiveCts.Token);
+                }
+                catch(OperationCanceledException)
+                {
+                    foreach (var expectedMessage in expectedMessages)
+                        expectedMessage.Value.TrySetCanceled();
+                    return;
                 }
                 catch (Exception e)
                 {
                     foreach (var expectedMessage in expectedMessages)
-                        expectedMessage.Value.SetException(e);
+                        expectedMessage.Value.TrySetException(e);
                     return;
                 }
         }
 
-        private void handleOneMessage(Span<DbusFixedLengthHeader> fixedLengthHeaderSpan, Span<byte> control, ref bool hasValidFixedHeader)
+        private void handleOneMessage(
+            Span<DbusFixedLengthHeader> fixedLengthHeaderSpan,
+            Span<byte> control,
+            ref bool hasValidFixedHeader,
+            CancellationToken cancellationToken
+        )
         {
             var fixedLengthHeaderBytes = MemoryMarshal.Cast<DbusFixedLengthHeader, byte>(fixedLengthHeaderSpan);
 
@@ -72,7 +84,8 @@ namespace Dbus
                     var receivedMessage = new ReceivedMessage(header, decoder);
                     handleMethodCall(
                         methodCallOptions,
-                        receivedMessage
+                        receivedMessage,
+                        cancellationToken
                     );
                     break;
                 case DbusMessageType.MethodReturn:
@@ -82,7 +95,7 @@ namespace Dbus
                     handleError(header, decoder);
                     break;
                 case DbusMessageType.Signal:
-                    handleSignal(header, decoder);
+                    handleSignal(header, decoder, cancellationToken);
                     break;
             }
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -51,7 +52,7 @@ namespace Dbus
             return rootString + pathString.Substring(1);
         }
 
-        public virtual Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync()
+        public virtual Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
             => Task.FromResult<IDictionary<ObjectPath, List<IProxy>>>(managedObjects);
 
         public void Dispose()

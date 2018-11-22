@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -28,19 +29,19 @@ namespace Dbus
             return result;
         }
 
-        public async Task Dump()
+        public async Task Dump(CancellationToken cancellationToken)
         {
-            await pipe.Writer.FlushAsync();
+            await pipe.Writer.FlushAsync(cancellationToken);
             pipe.Writer.Complete();
-            var readResult = await pipe.Reader.ReadAsync();
+            var readResult = await pipe.Reader.ReadAsync(cancellationToken);
             readResult.Buffer.Dump();
         }
 
-        public async Task<ReadOnlySequence<byte>> CompleteWritingAsync()
+        public async Task<ReadOnlySequence<byte>> CompleteWritingAsync(CancellationToken cancellationToken)
         {
-            await pipe.Writer.FlushAsync();
+            await pipe.Writer.FlushAsync(cancellationToken);
             pipe.Writer.Complete();
-            var readResult = await pipe.Reader.ReadAsync();
+            var readResult = await pipe.Reader.ReadAsync(cancellationToken);
             return readResult.Buffer;
         }
 

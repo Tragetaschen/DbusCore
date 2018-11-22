@@ -35,12 +35,15 @@ namespace Dbus
             );
         }
 
-        public async static Task<Connection> CreateAsync(DbusConnectionOptions options)
+        public async static Task<Connection> CreateAsync(
+            DbusConnectionOptions options,
+            CancellationToken cancellationToken = default
+        )
         {
             var sockaddr = createSockaddr(options.Address);
             var socketOperations = new SocketOperations(sockaddr);
 
-            await Task.Run(() => authenticate(socketOperations)).ConfigureAwait(false);
+            await Task.Run(() => authenticate(socketOperations), cancellationToken).ConfigureAwait(false);
 
             var result = new Connection(socketOperations);
 
@@ -48,7 +51,7 @@ namespace Dbus
             {
                 var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>();
                 result.orgFreedesktopDbus = orgFreedesktopDbus;
-                await orgFreedesktopDbus.HelloAsync().ConfigureAwait(false);
+                await orgFreedesktopDbus.HelloAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (KeyNotFoundException)
             {
@@ -120,7 +123,11 @@ namespace Dbus
                 Deregister = work,
             };
 
-        private async Task serializedWriteToStream(ReadOnlySequence<byte> header, ReadOnlySequence<byte> body)
+        private async Task serializedWriteToStream(
+            ReadOnlySequence<byte> header,
+            ReadOnlySequence<byte> body,
+            CancellationToken cancellationToken
+        )
         {
             var numberOfSegments = 0;
             foreach (var _ in header)
@@ -129,7 +136,7 @@ namespace Dbus
                 ++numberOfSegments;
 
             var segmentsOwnedMemory = fillSegments(header, body, numberOfSegments);
-            await semaphoreSend.WaitAsync().ConfigureAwait(false);
+            await semaphoreSend.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 socketOperations.Send(segmentsOwnedMemory.Memory.Span, numberOfSegments);

@@ -128,7 +128,7 @@ namespace Dbus.CodeGenerator
                 ""PropertiesChanged"",
                 this.handleProperties
             ));
-            PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(initProperties);
+            PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(() => initProperties(cancellationToken), cancellationToken);
 ");
                 propertyImplementations.Append(@"
         private void handleProperties(global::Dbus.ReceivedMessage receivedMessage)
@@ -140,7 +140,7 @@ namespace Dbus.CodeGenerator
             applyProperties(changed);
         }
 
-        private async global::System.Threading.Tasks.Task initProperties()
+        private async global::System.Threading.Tasks.Task initProperties(global::System.Threading.CancellationToken cancellationToken)
         {
             var sendBody = new global::Dbus.Encoder();
             sendBody.Add(""" + consume.InterfaceName + @""");
@@ -151,7 +151,8 @@ namespace Dbus.CodeGenerator
                 ""GetAll"",
                 this.destination,
                 sendBody,
-                ""s""
+                ""s"",
+                cancellationToken
             ).ConfigureAwait(false);
             using (receivedMessage)
             {
@@ -202,7 +203,7 @@ namespace Dbus.CodeGenerator
         private readonly string destination;
         private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
 
-        private " + className + @"(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        private " + className + @"(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination, global::System.Threading.CancellationToken cancellationToken)
         {
             this.connection = connection;
             this.path = path ?? """ + consume.Path + @""";
@@ -214,9 +215,9 @@ namespace Dbus.CodeGenerator
             return """ + consume.InterfaceName + @"@"" + this.path;
         }
 
-        public static " + BuildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination)
+        public static " + BuildTypeString(type) + @" Factory(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination, global::System.Threading.CancellationToken cancellationToken)
         {
-            return new " + className + @"(connection, path, destination);
+            return new " + className + @"(connection, path, destination, cancellationToken);
         }
 " + propertyImplementations + methodImplementations + @"
 " + eventImplementations + @"
@@ -276,7 +277,7 @@ namespace Dbus.CodeGenerator
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
                 proxyClass.Append(@"
 
-            target.PropertyChanged += HandlePropertyChangedEventAsync;");
+            target.PropertyChanged += handlePropertyChangedEventAsync;");
 
             proxyClass.Append(@"
         }
@@ -293,7 +294,7 @@ namespace Dbus.CodeGenerator
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
             {
                 proxyClass.Append(@"
-        private async void HandlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private async void handlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             var sendBody = new global::Dbus.Encoder();
             sendBody.Add(""" + provide.InterfaceName + @""");");
@@ -330,7 +331,8 @@ namespace Dbus.CodeGenerator
                 ""org.freedesktop.DBus.Properties"",
                 ""PropertiesChanged"",
                 sendBody,
-                ""sa{sv}as""
+                ""sa{sv}as"",
+                default(global::System.Threading.CancellationToken)
             ).ConfigureAwait(false);
         }");
             }
@@ -338,13 +340,13 @@ namespace Dbus.CodeGenerator
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-        public System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage)
+        public global::System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
         {
             switch (methodCallOptions.Member)
             {
                 " + string.Join(@"
                 ", knownMethods.Select(x => @"case """ + x + @""":
-                    return handle" + x + @"Async(methodCallOptions, receivedMessage);")) + @"");
+                    return handle" + x + @"Async(methodCallOptions, receivedMessage, cancellationToken);")) + @"");
             proxyClass.Append(@"
                 default:
                     throw new global::Dbus.DbusException(

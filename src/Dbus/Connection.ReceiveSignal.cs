@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -44,7 +45,11 @@ namespace Dbus
             }
         }
 
-        private void handleSignal(MessageHeader header, Decoder decoder)
+        private void handleSignal(
+            MessageHeader header,
+            Decoder decoder,
+            CancellationToken cancellationToken
+        )
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers))
@@ -57,11 +62,11 @@ namespace Dbus
                             {
                                 handler(message);
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
                                 onUnobservedException(e);
                             }
-                });
+                }, cancellationToken);
             else
                 decoder.Dispose();
         }

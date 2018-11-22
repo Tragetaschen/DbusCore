@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus.CodeGenerator
@@ -19,42 +21,50 @@ namespace Dbus.CodeGenerator
             var methodImplementation = new StringBuilder();
 
             methodImplementation.Append(@"
-        private global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage)
+        private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
         {
 ");
             var decoder = new DecoderGenerator("receivedMessage.Decoder", "receivedMessage");
             var parameters = method.GetParameters();
+            var methodParameters = new List<string>();
             foreach (var parameter in method.GetParameters())
-                decoder.Add(parameter.Name, parameter.ParameterType);
+            {
+                if (parameter.ParameterType == typeof(CancellationToken))
+                    methodParameters.Add("cancellationToken");
+                else
+                {
+                    decoder.Add(parameter.Name, parameter.ParameterType);
+                    methodParameters.Add(parameter.Name);
+                }
+            }
 
-            var continueIndent = Indent + "        ";
             var encoder = new EncoderGenerator("sendBody");
             if (method.ReturnType != typeof(Task)) // Task<T>
             {
                 var returnType = method.ReturnType.GenericTypeArguments[0];
-                encoder.Add("x.Result", returnType, continueIndent);
+                encoder.Add("methodResult", returnType, Indent);
             }
 
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine(@"receivedMessage.AssertSignature(""" + decoder.Signature + @""");");
             methodImplementation.Append(decoder.Result);
             methodImplementation.Append(Indent);
-            methodImplementation.Append("return target." + method.Name + "(");
-            methodImplementation.Append(string.Join(", ", parameters.Select(x => x.Name)));
-            methodImplementation.AppendLine(@")
-                .ContinueWith(async x =>
-                {");
-            methodImplementation.Append(continueIndent);
-            methodImplementation.AppendLine(@"if (!methodCallOptions.ShouldSendReply)
-                        return;");
-            methodImplementation.Append(continueIndent);
+            if (encoder.Signature != "")
+                methodImplementation.Append("var methodResult = ");
+            methodImplementation.Append("await target." + method.Name + "(");
+            methodImplementation.Append(string.Join(", ", methodParameters));
+            methodImplementation.AppendLine(");");
+            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine("if (!methodCallOptions.ShouldSendReply)");
+            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine("    return;");
+            methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = new global::Dbus.Encoder();");
             if (encoder.Signature != "")
                 methodImplementation.Append(encoder.Result);
-            methodImplementation.Append(continueIndent);
-            methodImplementation.Append(@"await connection.SendMethodReturnAsync(methodCallOptions, sendBody, """ + encoder.Signature + @""").ConfigureAwait(false);");
-            methodImplementation.AppendLine(@"
-                });
+            methodImplementation.Append(Indent);
+            methodImplementation.AppendLine(@"await connection.SendMethodReturnAsync(methodCallOptions, sendBody, """ + encoder.Signature + @""", cancellationToken).ConfigureAwait(false);");
+            methodImplementation.Append(@"
         }");
 
             return (methodName, methodImplementation.ToString());

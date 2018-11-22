@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -15,12 +16,13 @@ namespace Dbus
             string methodName,
             string destination,
             Encoder body,
-            Signature signature
+            Signature signature,
+            CancellationToken cancellationToken
         )
         {
             var serial = getSerial();
 
-            var bodySegments = await body.CompleteWritingAsync().ConfigureAwait(false);
+            var bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
             var bodyLength = 0;
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
@@ -41,17 +43,24 @@ namespace Dbus
                 serial
             );
 
-            var headerSegments = await header.CompleteWritingAsync().ConfigureAwait(false);
+            var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 
             var tcs = new TaskCompletionSource<ReceivedMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
-            await serializedWriteToStream(headerSegments, bodySegments).ConfigureAwait(false);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await serializedWriteToStream(
+                    headerSegments,
+                    bodySegments,
+                    cancellationToken
+                ).ConfigureAwait(false);
 
-            body.CompleteReading(bodySegments);
-            header.CompleteReading(headerSegments);
+                body.CompleteReading(bodySegments);
+                header.CompleteReading(headerSegments);
 
-            return await tcs.Task.ConfigureAwait(false);
+                return await tcs.Task.ConfigureAwait(false);
+            }
         }
 
         private void handleMethodReturn(MessageHeader header, Decoder decoder)
@@ -65,7 +74,7 @@ namespace Dbus
                 }
 
                 var receivedMessage = new ReceivedMessage(header, decoder);
-                tcs.SetResult(receivedMessage);
+                tcs.TrySetResult(receivedMessage);
             }
             catch(Exception e)
             {
@@ -90,7 +99,7 @@ namespace Dbus
                         message = decoder.GetString();
 
                     var exception = new DbusException(header.ErrorName, message);
-                    tcs.SetException(exception);
+                    tcs.TrySetException(exception);
                 }
             }
             catch(Exception e)

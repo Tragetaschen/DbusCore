@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -32,12 +33,16 @@ namespace Dbus
         public void Encode(Encoder encoder)
             => encoder.Add(0); // empty array
 
-        public Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, ReceivedMessage message)
+        public Task HandleMethodCallAsync(
+            MethodCallOptions methodCallOptions,
+            ReceivedMessage message,
+            CancellationToken cancellationToken
+        )
         {
             switch (methodCallOptions.Member)
             {
                 case "GetManagedObjects":
-                    return handleGetManagedObjectsAsync(methodCallOptions, message);
+                    return handleGetManagedObjectsAsync(methodCallOptions, message, cancellationToken);
                 default:
                     throw new DbusException(
                         DbusException.CreateErrorName("UnknownMethod"),
@@ -46,10 +51,14 @@ namespace Dbus
             }
         }
 
-        private async Task handleGetManagedObjectsAsync(MethodCallOptions methodCallOptions, ReceivedMessage message)
+        private async Task handleGetManagedObjectsAsync(
+            MethodCallOptions methodCallOptions,
+            ReceivedMessage message,
+            CancellationToken cancellationToken
+        )
         {
             message.AssertSignature("");
-            var managedObjects = await target.GetManagedObjectsAsync().ConfigureAwait(false);
+            var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
             var sendBody = new Encoder();
             if (!methodCallOptions.ShouldSendReply)
                 return;
@@ -73,7 +82,12 @@ namespace Dbus
                     }, storesCompoundValues: true);
                 }
             }, storesCompoundValues: true);
-            await connection.SendMethodReturnAsync(methodCallOptions, sendBody, "a{oa{sa{sv}}}").ConfigureAwait(false);
+            await connection.SendMethodReturnAsync(
+                methodCallOptions,
+                sendBody,
+                "a{oa{sa{sv}}}",
+                cancellationToken
+            ).ConfigureAwait(false);
         }
 
         public void EncodeProperties(Encoder encoder)

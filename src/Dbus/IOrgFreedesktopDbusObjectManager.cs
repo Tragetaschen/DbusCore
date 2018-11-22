@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
@@ -8,7 +9,7 @@ namespace Dbus
     public interface IOrgFreedesktopDbusObjectManager : IDisposable
     {
         [DbusMethod]
-        Task<IDictionary<ObjectPath, IDictionary<string, IDictionary<string, object>>>> GetManagedObjectsAsync();
+        Task<IDictionary<ObjectPath, IDictionary<string, IDictionary<string, object>>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
         event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded;
         event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved;
     }

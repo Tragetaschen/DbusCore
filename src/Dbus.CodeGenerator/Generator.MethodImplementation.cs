@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus.CodeGenerator
@@ -34,6 +35,7 @@ namespace Dbus.CodeGenerator
                     isProperty &= parameters.Length == 1;
 
             var encoder = new EncoderGenerator("sendBody");
+            var cancellationTokenName = "default(global::System.Threading.CancellationToken)";
 
             if (parameters.Length > 0 || isProperty)
             {
@@ -48,7 +50,10 @@ namespace Dbus.CodeGenerator
                 }
                 else
                     foreach (var parameter in parameters)
-                        encoder.Add(parameter.Name, parameter.ParameterType);
+                        if (parameter.ParameterType == typeof(CancellationToken))
+                            cancellationTokenName = parameter.Name;
+                        else
+                            encoder.Add(parameter.Name, parameter.ParameterType);
             }
 
             string returnStatement;
@@ -90,7 +95,8 @@ namespace Dbus.CodeGenerator
                 """ + callName + @""",
                 this.destination,
                 sendBody,
-                """ + encoder.Signature + @"""
+                """ + encoder.Signature + @""",
+                " + cancellationTokenName + @"
             ).ConfigureAwait(false);
 " + (returnType == typeof(Task) ? "" : createFunction) + @"
             using (receivedMessage)
