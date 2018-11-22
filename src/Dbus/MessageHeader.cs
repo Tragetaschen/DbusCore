@@ -57,10 +57,9 @@ namespace Dbus
 
                         var fileDescriptorsBytes = controlBytes.Slice(
                             sizeofCmsghdr,
-                            controlBytes.Length - sizeofCmsghdr
+                            (int)cmsgHeader[0].len - sizeofCmsghdr
                         );
                         var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
-
                         System.Diagnostics.Debug.Assert(numberOfFds == fileDescriptors.Length);
 
                         UnixFds = new SafeHandle[numberOfFds];
