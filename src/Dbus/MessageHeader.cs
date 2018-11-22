@@ -1,4 +1,5 @@
 ﻿using DotNetCross.NativeInts;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -64,7 +65,7 @@ namespace Dbus
 
                         UnixFds = new SafeHandle[numberOfFds];
                         for (var i = 0; i < numberOfFds; ++i)
-                            UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
+                            UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
                         break;
                 }
                 header.AdvanceToCompoundValue();

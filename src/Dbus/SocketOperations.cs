@@ -1,4 +1,5 @@
 ﻿using DotNetCross.NativeInts;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.ComponentModel;
@@ -26,7 +27,7 @@ namespace Dbus
         }
 
         [DllImport("libc")]
-        private static extern ReceivedFileDescriptorSafeHandle socket(int domain, int type, int protocol);
+        private static extern SafeFileHandle socket(int domain, int type, int protocol);
 
         [DllImport("libc")]
         private static extern int shutdown(SafeHandle sockfd, int how);
