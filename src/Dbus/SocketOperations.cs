@@ -77,16 +77,40 @@ namespace Dbus
             return toReturn;
         }
 
+        [DllImport("libc", SetLastError = true)]
+        private static extern unsafe nint read(SafeHandle sockfd, byte* buf, nint len);
         public unsafe int Read(SafeHandle sockfd, ReadOnlyMemory<byte> buffer, int offset, int count)
         {
             fixed (byte* bufferP = buffer.Span)
             {
-                var readBytes = recv(sockfd, bufferP + offset, count, 0);
+                var readBytes = read(sockfd, bufferP + offset, count);
                 if (readBytes >= 0)
                     return (int)readBytes;
                 else
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+            }
+        }
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern unsafe nint write(SafeHandle sockfd, byte* buf, nint len);
+        public unsafe void Write(SafeHandle sockfd, ReadOnlyMemory<byte> buffer, int offset, int count)
+        {
+            nint theOffset = offset;
+            nint theCount = count;
+            fixed (byte* bufferP = buffer.Span)
+            {
+                while (theCount > 0)
+                {
+                    var written = write(sockfd, bufferP + theOffset, theCount);
+                    if (written >= 0)
+                    {
+                        theOffset += written;
+                        theCount -= written;
+                    }
+                    else
+                        throw new Win32Exception();
                 }
             }
         }

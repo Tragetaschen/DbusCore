@@ -23,7 +23,7 @@ namespace Dbus
         public override int Read(byte[] buffer, int offset, int count) => socketOperations.Read(safeHandle, buffer, offset, count);
 
         public override bool CanWrite => true;
-        public override void Write(byte[] buffer, int offset, int count) => socketOperations.Send(safeHandle, buffer, offset, count);
+        public override void Write(byte[] buffer, int offset, int count) => socketOperations.Write(safeHandle, buffer, offset, count);
         public override void Flush() { }
 
         // The Stream base class implementations of Begin*/End* and *Async
