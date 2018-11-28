@@ -23,10 +23,10 @@ namespace Dbus
 
         public ObjectPath Root { get; }
 
-        public ObjectPath AddObject<TInterface, TImplementation>(TImplementation instance, ObjectPath path) where TImplementation : TInterface
+        public ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath path)
         {
             var fullPath = buildFullPath(path);
-            var proxy = (IProxy)connection.Publish<TInterface>(instance, fullPath);
+            var proxy = (IProxy)connection.Publish(instance, fullPath);
             lock (managedObjects)
             {
                 if (managedObjects.ContainsKey(fullPath))
