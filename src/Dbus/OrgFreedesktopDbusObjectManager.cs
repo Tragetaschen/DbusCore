@@ -9,13 +9,14 @@ namespace Dbus
     {
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
+        private readonly IProxy thisProxy;
 
         protected OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
             this.connection = connection;
             Root = root;
             managedObjects = new Dictionary<ObjectPath, List<IProxy>>();
-            connection.Publish<IOrgFreedesktopDbusObjectManagerProvide>(this, Root);
+            thisProxy = connection.Publish<IOrgFreedesktopDbusObjectManagerProvide>(this, Root);
         }
 
         public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
@@ -58,8 +59,9 @@ namespace Dbus
         public void Dispose()
         {
             foreach (var proxies in managedObjects)
-                foreach (var proxy in proxies.Value)
-                    proxy.Dispose();
+                foreach (var managedProxy in proxies.Value)
+                    managedProxy.Dispose();
+            thisProxy.Dispose();
         }
     }
 }
