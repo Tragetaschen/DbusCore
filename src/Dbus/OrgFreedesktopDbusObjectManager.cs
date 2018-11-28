@@ -26,7 +26,7 @@ namespace Dbus
         public ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath path)
         {
             var fullPath = buildFullPath(path);
-            var proxy = (IProxy)connection.Publish(instance, fullPath);
+            var proxy = connection.Publish(instance, fullPath);
             lock (managedObjects)
             {
                 if (managedObjects.ContainsKey(fullPath))
