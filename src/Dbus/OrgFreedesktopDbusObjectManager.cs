@@ -10,6 +10,7 @@ namespace Dbus
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
         private readonly IProxy thisProxy;
+        private readonly SemaphoreSlim syncRoot = new SemaphoreSlim(1);
 
         protected OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
@@ -28,12 +29,17 @@ namespace Dbus
         {
             var fullPath = buildFullPath(path);
             var proxy = connection.Publish(instance, fullPath);
-            lock (managedObjects)
+            syncRoot.Wait();
+            try
             {
                 if (managedObjects.ContainsKey(fullPath))
                     managedObjects[fullPath].Add(proxy);
                 else
                     managedObjects.Add(fullPath, new List<IProxy>() { proxy });
+            }
+            finally
+            {
+                syncRoot.Release();
             }
             return fullPath;
         }
@@ -53,15 +59,43 @@ namespace Dbus
             return rootString + pathString.Substring(1);
         }
 
+        public void RemoveObject<TInterface>(TInterface instance, ObjectPath path)
+        {
+            var removedProxy = removeProxy(instance, path);
+            removedProxy?.Dispose();
+        }
+
+        private IProxy removeProxy<TInterface>(TInterface instance, ObjectPath path)
+        {
+            syncRoot.Wait();
+            try
+            {
+                if (managedObjects.TryGetValue(path, out var proxies))
+                {
+                    var proxy = proxies.SingleOrDefault(x => ReferenceEquals(x.Target, instance));
+                    proxies.Remove(proxy);
+                    if (proxies.Count == 0)
+                        managedObjects.Remove(path);
+                    return proxy;
+                }
+                return null;
+            }
+            finally
+            {
+                syncRoot.Release();
+            }
+        }
+
         public virtual Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
             => Task.FromResult<IDictionary<ObjectPath, List<IProxy>>>(managedObjects);
 
         public void Dispose()
         {
             foreach (var proxies in managedObjects)
-                foreach (var managedProxy in proxies.Value)
-                    managedProxy.Dispose();
+                foreach (var proxy in proxies.Value)
+                    proxy.Dispose();
             thisProxy.Dispose();
+            syncRoot.Dispose();
         }
     }
 }
