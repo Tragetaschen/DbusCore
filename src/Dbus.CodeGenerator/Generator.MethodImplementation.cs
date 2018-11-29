@@ -30,9 +30,23 @@ namespace Dbus.CodeGenerator
 
             if (isProperty)
                 if (callName.StartsWith("Get"))
-                    isProperty &= parameters.Length == 0;
+                {
+                    if (parameters.Length == 0)
+                        isProperty &= true;
+                    else if (parameters[0].ParameterType == typeof(CancellationToken))
+                        isProperty &= true;
+                    else
+                        isProperty = false;
+                }
                 else if (callName.StartsWith("Set"))
-                    isProperty &= parameters.Length == 1;
+                {
+                    if (parameters.Length == 1 && parameters[0].ParameterType != typeof(CancellationToken))
+                        isProperty &= true;
+                    else if (parameters.Length == 2 && parameters[1].ParameterType == typeof(CancellationToken))
+                        isProperty &= true;
+                    else
+                        isProperty = false;
+                }
 
             var encoder = new EncoderGenerator("sendBody");
             var cancellationTokenName = "default(global::System.Threading.CancellationToken)";
@@ -46,7 +60,10 @@ namespace Dbus.CodeGenerator
                     interfaceName = "org.freedesktop.DBus.Properties";
                     callName = callName.Substring(0, 3); // "Get" or "Set"
                     foreach (var parameter in parameters)
-                        encoder.AddVariant(parameter.Name, parameter.ParameterType);
+                        if (parameter.ParameterType == typeof(CancellationToken))
+                            cancellationTokenName = parameter.Name;
+                        else
+                            encoder.AddVariant(parameter.Name, parameter.ParameterType);
                 }
                 else
                     foreach (var parameter in parameters)
