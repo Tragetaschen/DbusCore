@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,8 +87,21 @@ namespace Dbus
             }
         }
 
-        public virtual Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
-            => Task.FromResult<IDictionary<ObjectPath, List<IProxy>>>(managedObjects);
+        public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
+        {
+            await syncRoot.WaitAsync();
+            try
+            {
+                // Deep copy of the internal data structure.
+                // That way the data structure can be modified
+                // while the message is constructed
+                return managedObjects.ToDictionary(x => x.Key, x => x.Value.ToList());
+            }
+            finally
+            {
+                syncRoot.Release();
+            }
+        }
 
         public void Dispose()
         {
