@@ -6,6 +6,7 @@ namespace Dbus
 {
     public interface IProxy : IDisposable
     {
+        object Target { get; }
         string InterfaceName { get; }
         void EncodeProperties(Encoder sendBody);
         Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, ReceivedMessage message, CancellationToken cancellationToken);

@@ -282,6 +282,8 @@ namespace Dbus.CodeGenerator
             proxyClass.Append(@"
         }
 
+        public object Target => target;
+
         public override string ToString()
         {
             return this.InterfaceName + ""@"" + this.path;

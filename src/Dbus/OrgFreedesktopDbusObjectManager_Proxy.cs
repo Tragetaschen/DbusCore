@@ -27,8 +27,11 @@ namespace Dbus
             );
         }
 
+
         public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
             => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
+
+        public object Target => target;
 
         public void Encode(Encoder encoder)
             => encoder.Add(0); // empty array
