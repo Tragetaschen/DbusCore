@@ -259,8 +259,7 @@ namespace Dbus.CodeGenerator
         private readonly global::Dbus.Connection connection;
         private readonly " + BuildTypeString(type) + @" target;
         private readonly global::Dbus.ObjectPath path;
-
-        private global::System.IDisposable registration;
+        private readonly global::System.IDisposable registration;
 
         private " + type.Name + @"_Proxy(global::Dbus.Connection connection, " + BuildTypeString(type) + @" target, global::Dbus.ObjectPath path)
         {
