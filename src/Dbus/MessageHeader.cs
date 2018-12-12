@@ -15,7 +15,8 @@ namespace Dbus
         public MessageHeader(
             SocketOperations socketOperations,
             Decoder header,
-            ReadOnlySpan<byte> controlBytes
+            ReadOnlySpan<byte> controlBytes,
+            bool isMonoRuntime
         )
         {
             this.socketOperations = socketOperations;
@@ -65,7 +66,10 @@ namespace Dbus
 
                         UnixFds = new SafeHandle[numberOfFds];
                         for (var i = 0; i < numberOfFds; ++i)
-                            UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
+                            if (isMonoRuntime)
+                                UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
+                            else
+                                UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
                         break;
                 }
                 header.AdvanceToCompoundValue();

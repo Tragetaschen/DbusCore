@@ -17,6 +17,7 @@ namespace Dbus
         private int serialCounter;
         private IOrgFreedesktopDbus orgFreedesktopDbus;
 
+        private readonly bool isMonoRuntime = Type.GetType("Mono.Runtime") != null;
         private readonly SocketOperations socketOperations;
 
         private Connection(SocketOperations socketOperations)
