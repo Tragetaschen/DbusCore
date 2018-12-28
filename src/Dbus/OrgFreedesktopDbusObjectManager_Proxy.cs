@@ -33,9 +33,6 @@ namespace Dbus
 
         public object Target => target;
 
-        public void Encode(Encoder encoder)
-            => encoder.Add(0); // empty array
-
         public Task HandleMethodCallAsync(
             MethodCallOptions methodCallOptions,
             ReceivedMessage message,
@@ -62,9 +59,9 @@ namespace Dbus
         {
             message.AssertSignature("");
             var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
-            var sendBody = new Encoder();
             if (!methodCallOptions.ShouldSendReply)
                 return;
+            var sendBody = new Encoder();
             sendBody.AddArray(() =>
             {
                 foreach (var managedObject in managedObjects)
@@ -73,11 +70,11 @@ namespace Dbus
                     sendBody.Add(managedObject.Key);
                     sendBody.AddArray(() =>
                     {
-                        foreach (var interfaceInstance in managedObject.Value)
+                        foreach (var proxy in managedObject.Value)
                         {
                             sendBody.StartCompoundValue();
-                            sendBody.Add(interfaceInstance.InterfaceName);
-                            interfaceInstance.EncodeProperties(sendBody);
+                            sendBody.Add(proxy.InterfaceName);
+                            proxy.EncodeProperties(sendBody);
                         }
                         sendBody.StartCompoundValue();
                         sendBody.Add("org.freedesktop.DBus.Properties");
