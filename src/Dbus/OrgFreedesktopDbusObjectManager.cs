@@ -62,29 +62,25 @@ namespace Dbus
 
         public void RemoveObject<TInterface>(TInterface instance, ObjectPath path)
         {
-            var removedProxy = removeProxy(instance, path);
-            removedProxy?.Dispose();
-        }
-
-        private IProxy removeProxy<TInterface>(TInterface instance, ObjectPath path)
-        {
+            var fullPath = buildFullPath(path);
+            IProxy removedProxy = null;
             syncRoot.Wait();
             try
             {
-                if (managedObjects.TryGetValue(path, out var proxies))
+                if (managedObjects.TryGetValue(fullPath, out var proxies))
                 {
                     var proxy = proxies.SingleOrDefault(x => ReferenceEquals(x.Target, instance));
                     proxies.Remove(proxy);
                     if (proxies.Count == 0)
-                        managedObjects.Remove(path);
-                    return proxy;
+                        managedObjects.Remove(fullPath);
+                    removedProxy = proxy;
                 }
-                return null;
             }
             finally
             {
                 syncRoot.Release();
             }
+            removedProxy?.Dispose();
         }
 
         public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
