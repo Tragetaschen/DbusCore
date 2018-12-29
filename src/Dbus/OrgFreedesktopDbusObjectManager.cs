@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public abstract class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
+    public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
     {
         private readonly Connection connection;
         private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
         private readonly IProxy thisProxy;
         private readonly SemaphoreSlim syncRoot = new SemaphoreSlim(1);
 
-        protected OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
+        public OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
         {
             this.connection = connection;
             Root = root;
