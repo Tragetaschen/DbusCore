@@ -61,7 +61,7 @@ namespace Dbus.CodeGenerator
             if (type.IsConstructedGenericType)
             {
                 var genericType = type.GetGenericTypeDefinition();
-                if (genericType == typeof(IEnumerable<>))
+                if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var (elementSignature, elementCode, elementIsCompoundValue) = createMethod(elementType, name + "_e", name + "_e", indent);
@@ -85,6 +85,7 @@ namespace Dbus.CodeGenerator
                         false // ?
                     );
                 }
+                // All other generic types are built from their constructor
             }
 
             return buildFromConstructor(value, name, type, indent);

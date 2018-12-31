@@ -68,7 +68,7 @@ namespace Dbus.CodeGenerator
             else
             {
                 var genericType = type.GetGenericTypeDefinition();
-                if (genericType == typeof(IEnumerable<>))
+                if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var (signature, code, isCompoundValue) = createMethod(elementType, name + "_e", indent);
@@ -92,7 +92,7 @@ namespace Dbus.CodeGenerator
                     );
                 }
                 else
-                    throw new InvalidOperationException("Only IEnumerable and IDictionary are supported as generic type");
+                    throw new InvalidOperationException("Only IEnumerable, IList and IDictionary are supported as generic type");
             }
 
         }
