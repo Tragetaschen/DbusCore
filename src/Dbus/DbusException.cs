@@ -4,6 +4,13 @@ namespace Dbus
 {
     public class DbusException : Exception
     {
+        public DbusException(string errorName)
+            : base(errorName)
+        {
+            ErrorName = errorName;
+            ErrorMessage = null;
+        }
+
         public DbusException(string errorName, string errorMessage)
             : base($"[{errorName}] {errorMessage}")
         {

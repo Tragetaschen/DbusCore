@@ -94,11 +94,15 @@ namespace Dbus
                     if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
                         throw new InvalidOperationException("Couldn't find the method call for the error");
 
-                    var message = "";
+                    DbusException exception;
                     if (header.BodySignature.ToString().StartsWith("s"))
-                        message = decoder.GetString();
+                    {
+                        var message = decoder.GetString();
+                        exception = new DbusException(header.ErrorName, message);
+                    }
+                    else
+                        exception = new DbusException(header.ErrorName);
 
-                    var exception = new DbusException(header.ErrorName, message);
                     tcs.TrySetException(exception);
                 }
             }

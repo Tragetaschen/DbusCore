@@ -208,7 +208,8 @@ namespace Dbus
         )
         {
             var body = new Encoder();
-            body.Add(errorMessage);
+            if (errorMessage != null)
+                body.Add(errorMessage);
             var bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
             var bodyLength = 0;
             foreach (var segment in bodySegments)
