@@ -28,15 +28,20 @@ namespace Dbus
 
             var match = $"type='signal',interface='{interfaceName}',member={member},path='{path}'";
             var canRegister = orgFreedesktopDbus != null;
+            var addMatchTask = Task.CompletedTask;
             if (canRegister)
-                Task.Run(() => orgFreedesktopDbus.AddMatchAsync(match));
+                addMatchTask = orgFreedesktopDbus.AddMatchAsync(match);
 
             return deregisterVia(deregister);
 
             void deregister()
             {
                 if (canRegister)
-                    Task.Run(() => orgFreedesktopDbus.RemoveMatchAsync(match));
+                    Task.Run(async () =>
+                    {
+                        await addMatchTask;
+                        await orgFreedesktopDbus.RemoveMatchAsync(match);
+                    });
                 SignalHandler current;
                 do
                 {
