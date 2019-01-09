@@ -91,9 +91,6 @@ namespace Dbus
                     if (header.ReplySerial == 0)
                         throw new InvalidOperationException("Only errors for method calls are supported");
 
-                    if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
-                        throw new InvalidOperationException("Couldn't find the method call for the error");
-
                     DbusException exception;
                     if (header.BodySignature.ToString().StartsWith("s"))
                     {
@@ -102,6 +99,9 @@ namespace Dbus
                     }
                     else
                         exception = new DbusException(header.ErrorName);
+
+                    if (!expectedMessages.TryRemove(header.ReplySerial, out var tcs))
+                        throw new InvalidOperationException("Couldn't find the method call for the error", exception);
 
                     tcs.TrySetException(exception);
                 }
