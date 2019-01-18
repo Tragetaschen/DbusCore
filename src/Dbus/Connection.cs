@@ -63,7 +63,13 @@ namespace Dbus
         }
 
         public static event EventHandler<UnobservedTaskExceptionEventArgs> UnobservedException;
-        private void onUnobservedException(Exception e) => UnobservedException?.Invoke(this, new UnobservedTaskExceptionEventArgs(new AggregateException(e)));
+        private void onUnobservedException(Exception e)
+        {
+            var eventArgs = new UnobservedTaskExceptionEventArgs(new AggregateException(e));
+            UnobservedException?.Invoke(this, eventArgs);
+            if (!eventArgs.Observed)
+                Environment.FailFast("Unobserved exception in Dbus handling", e);
+        }
 
         private Encoder createHeader(
             DbusMessageType type,
