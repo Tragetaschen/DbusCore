@@ -66,6 +66,7 @@ namespace Dbus
                             try
                             {
                                 handler(message);
+                                decoder.Reset();
                             }
                             catch (Exception e)
                             {

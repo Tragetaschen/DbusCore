@@ -45,6 +45,8 @@ namespace Dbus
         public bool IsFinished => index >= bufferLength;
         public void AdvanceToCompoundValue() => advanceToAlignment(8);
 
+        public void Reset() => index = 0;
+
         private void advanceToAlignment(int alignment) => Alignment.Advance(ref index, alignment);
 
         /// <summary>
