@@ -136,6 +136,8 @@ namespace Dbus.CodeGenerator
             receivedMessage.AssertSignature(""sa{sv}as"");
             var decoder = receivedMessage.Decoder;
             var interfaceName = decoder.GetString();
+            if (interfaceName != """ + consume.InterfaceName + @""")
+                return;
             var changed = decoder.GetDictionary(decoder.GetString, decoder.GetObject);
             applyProperties(changed);
         }
