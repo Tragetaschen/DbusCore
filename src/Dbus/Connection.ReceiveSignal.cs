@@ -20,29 +20,38 @@ namespace Dbus
         )
         {
             var dictionaryEntry = path + "\0" + interfaceName + "\0" + member;
-            signalHandlers.AddOrUpdate(
+            var newHandler = signalHandlers.AddOrUpdate(
                 dictionaryEntry,
                 handler,
                 (_, existingHandler) => existingHandler + handler
             );
 
             var match = $"type='signal',interface='{interfaceName}',member={member},path='{path}'";
-            var addMatchTask = orgFreedesktopDbus.AddMatchAsync(match, default);
+            var addMatchTask = Task.CompletedTask;
+            if (newHandler == handler)
+            {
+                // AddOrUpdate added a new key
+                addMatchTask = orgFreedesktopDbus.AddMatchAsync(match, default);
+            }
 
             return deregisterVia(deregister);
 
             void deregister()
             {
-                Task.Run(async () =>
-                {
-                    await addMatchTask;
-                    await orgFreedesktopDbus.RemoveMatchAsync(match, default);
-                });
                 SignalHandler current;
+                SignalHandler updated;
                 do
                 {
                     signalHandlers.TryGetValue(dictionaryEntry, out current);
-                } while (!signalHandlers.TryUpdate(dictionaryEntry, current - handler, current));
+                    updated = current - handler;
+                } while (!signalHandlers.TryUpdate(dictionaryEntry, updated, current));
+                if (updated == null)
+                    // TryUpdate set the key's value to null thus removing the last entry
+                    Task.Run(async () =>
+                    {
+                        await addMatchTask;
+                        await orgFreedesktopDbus.RemoveMatchAsync(match, default);
+                    });
             }
         }
 
@@ -53,7 +62,7 @@ namespace Dbus
         )
         {
             var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
-            if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers))
+            if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers) && handlers != null)
                 Task.Run(() =>
                 {
                     var message = new ReceivedMessage(header, decoder);
