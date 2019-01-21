@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,10 +11,10 @@ namespace Dbus
 
         private readonly CancellationTokenSource receiveCts;
         private readonly Task receiveTask;
+        private readonly OrgFreedesktopDbus orgFreedesktopDbus;
 
         private SemaphoreSlim semaphoreSend;
         private int serialCounter;
-        private IOrgFreedesktopDbus orgFreedesktopDbus;
 
         private readonly bool isMonoRuntime = Type.GetType("Mono.Runtime") != null;
         private readonly SocketOperations socketOperations;
@@ -26,7 +25,7 @@ namespace Dbus
 
             semaphoreSend = new SemaphoreSlim(1);
             receiveCts = new CancellationTokenSource();
-
+            orgFreedesktopDbus = new OrgFreedesktopDbus(this);
 
             receiveTask = Task.Factory.StartNew(
                 receive,
@@ -47,17 +46,7 @@ namespace Dbus
             await Task.Run(() => authenticate(socketOperations), cancellationToken).ConfigureAwait(false);
 
             var result = new Connection(socketOperations);
-
-            try
-            {
-                var orgFreedesktopDbus = result.Consume<IOrgFreedesktopDbus>();
-                result.orgFreedesktopDbus = orgFreedesktopDbus;
-                await orgFreedesktopDbus.HelloAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (KeyNotFoundException)
-            {
-                throw new InvalidOperationException("Could not find the generated implementation of 'IOrgFreedesktopDbus'. Did you run the DoInit method of the generated code?");
-            }
+            await result.orgFreedesktopDbus.HelloAsync(cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -169,7 +158,6 @@ namespace Dbus
 
         public void Dispose()
         {
-            orgFreedesktopDbus.Dispose();
             receiveCts.Cancel();
             socketOperations.Shutdown();
             try

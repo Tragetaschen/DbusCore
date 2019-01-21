@@ -15,7 +15,6 @@ namespace Dbus.CodeGenerator
             var entry = Assembly.GetEntryAssembly();
             var alwaysIncludeTypes = new[]
             {
-                typeof(IOrgFreedesktopDbus),
                 typeof(IOrgFreedesktopDbusObjectManager)
             };
             var candidateTypes = alwaysIncludeTypes
