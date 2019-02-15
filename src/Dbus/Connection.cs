@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -54,6 +55,8 @@ namespace Dbus
         public static event EventHandler<UnobservedTaskExceptionEventArgs> UnobservedException;
         private void onUnobservedException(Exception e)
         {
+            if (Debugger.IsAttached)
+                Debugger.Break();
             var eventArgs = new UnobservedTaskExceptionEventArgs(new AggregateException(e));
             UnobservedException?.Invoke(this, eventArgs);
             if (!eventArgs.Observed)
