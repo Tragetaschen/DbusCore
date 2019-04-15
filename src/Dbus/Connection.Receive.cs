@@ -22,7 +22,7 @@ namespace Dbus
                 {
                     handleOneMessage(fixedLengthHeader, control, ref hasValidFixedHeader, receiveCts.Token);
                 }
-                catch(OperationCanceledException)
+                catch (OperationCanceledException)
                 {
                     foreach (var expectedMessage in expectedMessages)
                         expectedMessage.Value.TrySetCanceled();

@@ -9,7 +9,7 @@ namespace Dbus.CodeGenerator
 {
     public static partial class Generator
     {
-        private static Regex propertyName = new Regex("^(Get|Set)[A-Z].+");
+        private static readonly Regex propertyName = new Regex("^(Get|Set)[A-Z].+");
 
         private static string generateMethodImplementation(MethodInfo methodInfo, string interfaceName)
         {

@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
         public string Signature => signatureBuilder.ToString();
         public bool IsCompoundValue { get; private set; }
 
-        public void AddVariant(string name, Type type, string indent = Generator.Indent)
+        public void AddVariant(string name, Type type)
         {
             var (signature, code, _) = encoder(name, name, type, Generator.Indent);
 

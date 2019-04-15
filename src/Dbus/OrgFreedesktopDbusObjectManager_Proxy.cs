@@ -6,31 +6,25 @@ namespace Dbus
 {
     public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
     {
-        public string InterfaceName { get; }
-
         private readonly Connection connection;
         private readonly IOrgFreedesktopDbusObjectManagerProvide target;
-        private readonly ObjectPath path;
-
-        private IDisposable registration;
+        private readonly IDisposable registration;
 
         private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
         {
             this.connection = connection;
             this.target = target;
-            this.path = path ?? throw new ArgumentNullException(nameof(path));
-            InterfaceName = "org.freedesktop.DBus.ObjectManager";
             registration = connection.RegisterObjectProxy(
-                path,
+                path ?? throw new ArgumentNullException(nameof(path)),
                 InterfaceName,
                 this
             );
         }
 
-
         public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
             => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
 
+        public string InterfaceName => "org.freedesktop.DBus.ObjectManager";
         public object Target => target;
 
         public Task HandleMethodCallAsync(

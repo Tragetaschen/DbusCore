@@ -24,7 +24,7 @@ namespace Dbus
             while (!header.IsFinished)
             {
                 var typeCode = (DbusHeaderType)header.GetByte();
-                var signature = header.GetSignature();
+                header.GetSignature(); // variant signature
                 switch (typeCode)
                 {
                     case DbusHeaderType.Path:

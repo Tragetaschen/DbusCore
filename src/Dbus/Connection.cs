@@ -10,15 +10,15 @@ namespace Dbus
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
+        private readonly SocketOperations socketOperations;
+        private readonly SemaphoreSlim semaphoreSend;
         private readonly CancellationTokenSource receiveCts;
-        private readonly Task receiveTask;
         private readonly OrgFreedesktopDbus orgFreedesktopDbus;
+        private readonly Task receiveTask;
 
-        private SemaphoreSlim semaphoreSend;
         private int serialCounter;
 
         private readonly bool isMonoRuntime = Type.GetType("Mono.Runtime") != null;
-        private readonly SocketOperations socketOperations;
 
         private Connection(SocketOperations socketOperations)
         {

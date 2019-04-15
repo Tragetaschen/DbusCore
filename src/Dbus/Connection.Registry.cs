@@ -6,8 +6,8 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private static Dictionary<Type, Func<Connection, object, ObjectPath, IProxy>> publishFactories = new Dictionary<Type, Func<Connection, object, ObjectPath, IProxy>>();
-        private static Dictionary<Type, Func<Connection, ObjectPath, string, CancellationToken, object>> consumeFactories = new Dictionary<Type, Func<Connection, ObjectPath, string, CancellationToken, object>>();
+        private static readonly Dictionary<Type, Func<Connection, object, ObjectPath, IProxy>> publishFactories = new Dictionary<Type, Func<Connection, object, ObjectPath, IProxy>>();
+        private static readonly Dictionary<Type, Func<Connection, ObjectPath, string, CancellationToken, object>> consumeFactories = new Dictionary<Type, Func<Connection, ObjectPath, string, CancellationToken, object>>();
 
         public static void AddPublishProxy<T>(Func<Connection, T, ObjectPath, IProxy> factory)
             => publishFactories.Add(typeof(T), (Connection connection, object target, ObjectPath path) =>

@@ -15,7 +15,7 @@ namespace Dbus
             if (!address.StartsWith(unix))
                 throw new InvalidOperationException("Only unix sockets are supported");
 
-            var startIndex = 0;
+            int startIndex;
 
             address = address.Substring(unix.Length);
             if (address.StartsWith(pathKey))

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -25,7 +24,6 @@ namespace Dbus.CodeGenerator
         {
 ");
             var decoder = new DecoderGenerator("receivedMessage.Decoder", "receivedMessage");
-            var parameters = method.GetParameters();
             var methodParameters = new List<string>();
             foreach (var parameter in method.GetParameters())
             {

@@ -76,7 +76,7 @@ namespace Dbus
                 var receivedMessage = new ReceivedMessage(header, decoder);
                 tcs.TrySetResult(receivedMessage);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 onUnobservedException(e);
             }
@@ -106,7 +106,7 @@ namespace Dbus
                     tcs.TrySetException(exception);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 onUnobservedException(e);
             }

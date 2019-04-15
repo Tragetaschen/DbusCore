@@ -6,7 +6,7 @@ namespace Dbus
 {
     public class ReceivedMessage : IDisposable
     {
-        private MessageHeader messageHeader;
+        private readonly MessageHeader messageHeader;
 
         public ReceivedMessage(
             MessageHeader messageHeader,
