@@ -17,12 +17,12 @@ namespace Dbus
             Decoder = decoder;
         }
 
-        public SafeHandle[] UnixFds => messageHeader.UnixFds;
+        public SafeHandle[]? UnixFds => messageHeader.UnixFds;
         public Stream GetStream(int index) => messageHeader.GetStream(index);
         public Decoder Decoder { get; }
 
         public void AssertSignature(Signature signature)
-            => signature.AssertEqual(messageHeader.BodySignature);
+            => signature.AssertEqual(messageHeader.BodySignature!);
 
         public void Dispose() => Decoder.Dispose();
     }

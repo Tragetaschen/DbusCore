@@ -8,10 +8,10 @@
             uint replySerial
         )
         {
-            Sender = messageHeader.Sender;
-            Path = messageHeader.Path;
-            InterfaceName = messageHeader.InterfaceName;
-            Member = messageHeader.Member;
+            Sender = messageHeader.Sender!;
+            Path = messageHeader.Path!;
+            InterfaceName = messageHeader.InterfaceName!;
+            Member = messageHeader.Member!;
             ReplySerial = replySerial;
             ShouldSendReply = shoudSendReply;
         }

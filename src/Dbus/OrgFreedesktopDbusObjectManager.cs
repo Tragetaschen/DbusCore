@@ -26,7 +26,8 @@ namespace Dbus
 
         public ObjectPath Root { get; }
 
-        public ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath path = null)
+        public ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath? path = null)
+             where TInterface : notnull
         {
             var fullPath = buildFullPath(path);
             var proxy = connection.Publish(instance, fullPath);
@@ -45,9 +46,9 @@ namespace Dbus
             return fullPath;
         }
 
-        private ObjectPath buildFullPath(ObjectPath path)
+        private ObjectPath buildFullPath(ObjectPath? path)
         {
-            if (path == null)
+            if (path is null)
                 return Root;
 
             var rootString = Root.ToString();
@@ -63,10 +64,11 @@ namespace Dbus
             return rootString + pathString.Substring(1);
         }
 
-        public void RemoveObject<TInterface>(TInterface instance, ObjectPath path = null)
+        public void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null)
+            where TInterface : notnull
         {
             var fullPath = buildFullPath(path);
-            IProxy removedProxy = null;
+            IProxy? removedProxy = null;
             syncRoot.Wait();
             try
             {

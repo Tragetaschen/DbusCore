@@ -92,7 +92,9 @@ namespace Dbus
                         throw new InvalidOperationException("Only errors for method calls are supported");
 
                     DbusException exception;
-                    if (header.BodySignature.ToString().StartsWith("s"))
+                    if (header.BodySignature is null || header.ErrorName is null)
+                        exception = new DbusException("Invalid message");
+                    else if (header.BodySignature.ToString().StartsWith("s"))
                     {
                         var message = decoder.GetString();
                         exception = new DbusException(header.ErrorName, message);

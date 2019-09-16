@@ -21,10 +21,10 @@ namespace Dbus
         /// <summary>
         /// Standard path if not overridden
         /// </summary>
-        public string Path { get; set; }
+        public string? Path { get; set; }
         /// <summary>
         /// Standard destination if not overridden
         /// </summary>
-        public string Destination { get; set; }
+        public string? Destination { get; set; }
     }
 }

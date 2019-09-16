@@ -203,7 +203,7 @@ namespace Dbus
         private async Task sendMethodCallErrorAsync(
             MethodCallOptions methodCallOptions,
             string error,
-            string errorMessage,
+            string? errorMessage,
             CancellationToken cancellationToken
         )
         {

@@ -75,21 +75,25 @@ namespace Dbus
                 header.AdvanceToCompoundValue();
             }
         }
-        public ObjectPath Path { get; }
-        public string InterfaceName { get; }
-        public string Member { get; }
-        public string ErrorName { get; }
+        public ObjectPath? Path { get; }
+        public string? InterfaceName { get; }
+        public string? Member { get; }
+        public string? ErrorName { get; }
         public uint ReplySerial { get; }
-        public string Destination { get; }
-        public string Sender { get; }
-        public Signature BodySignature { get; }
-        public SafeHandle[] UnixFds { get; }
+        public string? Destination { get; }
+        public string? Sender { get; }
+        public Signature? BodySignature { get; }
+        public SafeHandle[]? UnixFds { get; }
 
         public override string ToString()
             => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
 
-        public Stream GetStream(int index) =>
-            new UnixFdStream(UnixFds[index], socketOperations);
+        public Stream GetStream(int index)
+        {
+            if (UnixFds == null)
+                throw new InvalidOperationException("Now file descriptors received");
+            return new UnixFdStream(UnixFds[index], socketOperations);
+        }
 
         private struct cmsghdr
         {

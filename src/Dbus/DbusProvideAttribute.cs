@@ -21,6 +21,6 @@ namespace Dbus
         /// <summary>
         /// Default path
         /// </summary>
-        public string Path { get; set; }
+        public string? Path { get; set; }
     }
 }

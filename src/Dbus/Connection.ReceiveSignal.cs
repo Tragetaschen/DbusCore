@@ -9,8 +9,8 @@ namespace Dbus
     {
         public delegate void SignalHandler(ReceivedMessage message);
 
-        private readonly ConcurrentDictionary<string, SignalHandler> signalHandlers =
-            new ConcurrentDictionary<string, SignalHandler>();
+        private readonly ConcurrentDictionary<string, SignalHandler?> signalHandlers =
+            new ConcurrentDictionary<string, SignalHandler?>();
 
         public IDisposable RegisterSignalHandler(
             ObjectPath path,
@@ -38,8 +38,8 @@ namespace Dbus
 
             void deregister()
             {
-                SignalHandler current;
-                SignalHandler updated;
+                SignalHandler? current;
+                SignalHandler? updated;
                 do
                 {
                     signalHandlers.TryGetValue(dictionaryEntry, out current);

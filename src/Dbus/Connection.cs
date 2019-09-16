@@ -41,6 +41,8 @@ namespace Dbus
             CancellationToken cancellationToken = default
         )
         {
+            if (options.Address == null)
+                throw new ArgumentException("No dbus address specified", nameof(options));
             var sockaddr = createSockaddr(options.Address);
             var socketOperations = new SocketOperations(sockaddr);
 
@@ -52,7 +54,7 @@ namespace Dbus
             return result;
         }
 
-        public static event EventHandler<UnobservedTaskExceptionEventArgs> UnobservedException;
+        public static event EventHandler<UnobservedTaskExceptionEventArgs>? UnobservedException;
         private void onUnobservedException(Exception e)
         {
             if (Debugger.IsAttached)
@@ -174,9 +176,9 @@ namespace Dbus
 
         private class deregistration : IDisposable
         {
-            public Action Deregister;
+            public Action? Deregister;
 
-            public void Dispose() => Deregister();
+            public void Dispose() => Deregister?.Invoke();
         }
     }
 }
