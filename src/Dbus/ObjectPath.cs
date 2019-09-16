@@ -12,7 +12,7 @@ namespace Dbus
         public static implicit operator ObjectPath(string objectPath) =>
             new ObjectPath(objectPath);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj == null || GetType() != obj.GetType())
                 return false;

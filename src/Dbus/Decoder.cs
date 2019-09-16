@@ -192,7 +192,7 @@ namespace Dbus
         public IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
             ElementDecoder<TKey> keyDecoder,
             ElementDecoder<TValue> valueDecoder
-        )
+        ) where TKey : notnull
         {
             var result = new Dictionary<TKey, TValue>();
             var arrayLength = GetInt32(); // Actually uint
@@ -228,7 +228,7 @@ namespace Dbus
             object decodeArray()
             {
                 // See GetArray(…)
-                var result = (IList)Activator.CreateInstance(arrayType);
+                var result = (IList)Activator.CreateInstance(arrayType)!;
                 var arrayLength = GetInt32(); // Actually uint
                 if (isCompoundType)
                     AdvanceToCompoundValue();
@@ -253,7 +253,7 @@ namespace Dbus
             object decodeDictionary()
             {
                 // See GetDictionary(…)
-                var result = (IDictionary)Activator.CreateInstance(dictionaryType);
+                var result = (IDictionary)Activator.CreateInstance(dictionaryType)!;
                 var arrayLength = GetInt32(); // Actually uint
                 AdvanceToCompoundValue();
                 var startIndex = index;
@@ -296,7 +296,7 @@ namespace Dbus
                 var parameters = new object[tupleTypes.Count];
                 for (var i = 0; i < tupleTypes.Count; ++i)
                     parameters[i] = tupleTypes[i].Decode();
-                return factoryMethod.Invoke(null, parameters);
+                return factoryMethod.Invoke(null, parameters)!;
             }
 
             return (decodeTuple, tupleType, true);
@@ -313,14 +313,14 @@ namespace Dbus
                 .Single()
                 .MakeGenericMethod(types);
 
-            var tupleTypeName = typeof(Tuple).AssemblyQualifiedName;
+            var tupleTypeName = typeof(Tuple).AssemblyQualifiedName!;
             var indexOfFirstComma = tupleTypeName.IndexOf(',');
             var genericTupleTypeName =
                 tupleTypeName.Substring(0, indexOfFirstComma)
                 + "`" + types.Length
                 + tupleTypeName.Substring(indexOfFirstComma)
             ;
-            var tupleType = Type.GetType(genericTupleTypeName).MakeGenericType(types);
+            var tupleType = Type.GetType(genericTupleTypeName)!.MakeGenericType(types);
 
             return (factoryMethod, tupleType);
         }

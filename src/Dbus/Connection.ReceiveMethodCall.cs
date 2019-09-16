@@ -125,21 +125,16 @@ namespace Dbus
             MethodCallOptions methodCallOptions,
             ReceivedMessage receivedMessage,
             CancellationToken cancellationToken
-        )
+        ) => methodCallOptions.Member switch
         {
-            switch (methodCallOptions.Member)
-            {
-                case "GetAll":
-                    return handleGetAllAsync(methodCallOptions, receivedMessage, cancellationToken);
-                case "Get":
-                    return handleGetAsync(methodCallOptions, receivedMessage, cancellationToken);
-                default:
-                    throw new DbusException(
-                        DbusException.CreateErrorName("UnknownMethod"),
-                        "Method not supported"
-                    );
-            }
-        }
+            "GetAll" => handleGetAllAsync(methodCallOptions, receivedMessage, cancellationToken),
+            "Get" => handleGetAsync(methodCallOptions, receivedMessage, cancellationToken),
+            _ => throw new DbusException(
+                DbusException.CreateErrorName("UnknownMethod"),
+                "Method not supported"
+            ),
+        };
+
         private Task handleGetAllAsync(
             MethodCallOptions methodCallOptions,
             ReceivedMessage receivedMessage,

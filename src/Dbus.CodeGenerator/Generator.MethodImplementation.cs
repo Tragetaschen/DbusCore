@@ -61,16 +61,16 @@ namespace Dbus.CodeGenerator
                     callName = callName.Substring(0, 3); // "Get" or "Set"
                     foreach (var parameter in parameters)
                         if (parameter.ParameterType == typeof(CancellationToken))
-                            cancellationTokenName = parameter.Name;
+                            cancellationTokenName = parameter.Name!;
                         else
-                            encoder.AddVariant(parameter.Name, parameter.ParameterType);
+                            encoder.AddVariant(parameter.Name!, parameter.ParameterType);
                 }
                 else
                     foreach (var parameter in parameters)
                         if (parameter.ParameterType == typeof(CancellationToken))
-                            cancellationTokenName = parameter.Name;
+                            cancellationTokenName = parameter.Name!;
                         else
-                            encoder.Add(parameter.Name, parameter.ParameterType);
+                            encoder.Add(parameter.Name!, parameter.ParameterType);
             }
 
             string returnStatement;

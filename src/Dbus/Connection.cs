@@ -172,6 +172,8 @@ namespace Dbus
             catch (OperationCanceledException)
             { }
             socketOperations.Dispose();
+            receiveCts.Dispose();
+            semaphoreSend.Dispose();
         }
 
         private class deregistration : IDisposable

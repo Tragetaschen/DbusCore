@@ -107,7 +107,11 @@ namespace Dbus
                     writer(value);
             }, storesCompoundValues);
 
-        public void Add<TKey, TValue>(IDictionary<TKey, TValue> values, ElementWriter<TKey> keyWriter, ElementWriter<TValue> valueWriter)
+        public void Add<TKey, TValue>(
+            IDictionary<TKey, TValue> values,
+            ElementWriter<TKey> keyWriter,
+            ElementWriter<TValue> valueWriter
+        ) where TKey : notnull
             => AddArray(() =>
             {
                 foreach (var value in values)

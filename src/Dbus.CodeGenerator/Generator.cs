@@ -13,6 +13,8 @@ namespace Dbus.CodeGenerator
         public static string Run()
         {
             var entry = Assembly.GetEntryAssembly();
+            if (entry == null)
+                throw new InvalidOperationException("No entry assembly");
             var alwaysIncludeTypes = new[]
             {
                 typeof(IOrgFreedesktopDbusObjectManager)
@@ -373,8 +375,8 @@ namespace Dbus.CodeGenerator
             if (!type.IsConstructedGenericType)
                 return "global::" + type.FullName;
 
-            var genericName = type.GetGenericTypeDefinition().FullName;
-            var withoutSuffix = genericName.Substring(0, genericName.Length - 2);
+            var genericName = type.GetGenericTypeDefinition().FullName ?? throw new InvalidOperationException("Now full name");
+            var withoutSuffix = genericName[0..^2];
             var result = "global::" + withoutSuffix + "<" +
                 string.Join(", ", type.GenericTypeArguments.Select(BuildTypeString)) +
                 ">"

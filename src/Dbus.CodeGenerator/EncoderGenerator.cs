@@ -105,7 +105,7 @@ namespace Dbus.CodeGenerator
 
             foreach (var p in constructorParameters)
             {
-                var parameterName = p.Name;
+                var parameterName = p.Name!;
                 var propertyName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
                 var encoder = new EncoderGenerator(body);
                 encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent);

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
@@ -8,6 +9,9 @@ namespace Dbus.CodeGenerator
     {
         public static (string subscription, string implementation) GenerateEventImplementation(EventInfo eventInfo, string interfaceName)
         {
+            if (eventInfo.EventHandlerType == null)
+                throw new InvalidOperationException("EventInfo has no handler type");
+
             var subscription = new StringBuilder();
             subscription.Append(Indent);
             subscription.AppendLine("eventSubscriptions.Add(connection.RegisterSignalHandler(");
