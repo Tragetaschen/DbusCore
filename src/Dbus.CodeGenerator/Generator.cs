@@ -10,7 +10,7 @@ namespace Dbus.CodeGenerator
     {
         public const string Indent = "            ";
 
-        public static string Run()
+        public static string Run(Func<IEnumerable<string>, StringBuilder>? registerServices = null)
         {
             var entry = Assembly.GetEntryAssembly();
             if (entry == null)
@@ -33,6 +33,8 @@ namespace Dbus.CodeGenerator
             var services = new List<string>();
             var result = new StringBuilder();
 
+            registrations.Add("global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);");
+
             foreach (var type in candidateTypes.Distinct().OrderBy(x => x.FullName))
             {
                 var consume = type.GetTypeInfo().GetCustomAttribute<DbusConsumeAttribute>();
@@ -53,28 +55,29 @@ namespace Dbus.CodeGenerator
                 }
             }
 
-            var initClass = "";
-            if (!shouldGenerateServiceCollectionExtension)
-                initClass = @"
+            var initClass = new StringBuilder();
+            initClass.Append(@"
     public static partial class DbusImplementations
     {
-        static partial void DoInit()
+        private static void initRegistrations()
         {
-            global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);
-            " + string.Join(@"
-            ", registrations) + @"
+            ");
+            initClass.AppendJoin(@"
+            ", registrations);
+            initClass.Append(@"
         }
-    }
-";
+");
+
+            if (registerServices != null)
+                initClass.Append(registerServices(services));
+            else if (!shouldGenerateServiceCollectionExtension)
+                initClass.Append(@"
+        static partial void DoInit() => initRegistrations();");
             else
-                initClass = @"
-    public static partial class DbusImplementations
-    {
+                initClass.Append(@"
         static partial void DoAddDbus(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
-            global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);
-            " + string.Join(@"
-            ", registrations) + @"
+            initRegistrations();
             global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, serviceProvider =>
             {
                 var options = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::Microsoft.Extensions.Options.IOptions<global::Dbus.DbusConnectionOptions>>(serviceProvider);
@@ -85,10 +88,11 @@ namespace Dbus.CodeGenerator
                 var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider).ConfigureAwait(false);
                 return connection.Consume<" + x + @">();
             });")) + @"
-        }
+        }");
+            initClass.Append(@"
     }
-";
-            return initClass + result.ToString();
+");
+            return initClass.Append(result).ToString();
         }
 
         private static (string implementation, string registration) generateConsumeImplementation(Type type, DbusConsumeAttribute consume)
