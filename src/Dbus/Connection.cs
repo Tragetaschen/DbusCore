@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public partial class Connection : IDisposable
+    public partial class Connection : IDisposable, IAsyncDisposable
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 
@@ -118,12 +118,6 @@ namespace Dbus
 
         private uint getSerial() => (uint)Interlocked.Increment(ref serialCounter);
 
-        private static IDisposable deregisterVia(Action work)
-            => new deregistration
-            {
-                Deregister = work,
-            };
-
         private async Task serializedWriteToStream(
             ReadOnlySequence<byte> header,
             ReadOnlySequence<byte> body,
@@ -161,26 +155,21 @@ namespace Dbus
             return segmentsOwnedMemory;
         }
 
-        public void Dispose()
+        public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
+
+        public async ValueTask DisposeAsync()
         {
             receiveCts.Cancel();
             socketOperations.Shutdown();
             try
             {
-                receiveTask.GetAwaiter().GetResult();
+                await receiveTask;
             }
             catch (OperationCanceledException)
             { }
             socketOperations.Dispose();
             receiveCts.Dispose();
             semaphoreSend.Dispose();
-        }
-
-        private class deregistration : IDisposable
-        {
-            public Action? Deregister;
-
-            public void Dispose() => Deregister?.Invoke();
         }
     }
 }

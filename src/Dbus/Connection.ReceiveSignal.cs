@@ -12,7 +12,7 @@ namespace Dbus
         private readonly ConcurrentDictionary<string, SignalHandler?> signalHandlers =
             new ConcurrentDictionary<string, SignalHandler?>();
 
-        public IDisposable RegisterSignalHandler(
+        public IAsyncDisposable RegisterSignalHandler(
             ObjectPath path,
             string interfaceName,
             string member,
@@ -34,24 +34,53 @@ namespace Dbus
                 addMatchTask = orgFreedesktopDbus.AddMatchAsync(match, default);
             }
 
-            return deregisterVia(deregister);
+            return new signalHandle(
+                this,
+                dictionaryEntry,
+                match,
+                addMatchTask,
+                handler
+            );
+        }
 
-            void deregister()
+        private class signalHandle : IAsyncDisposable
+        {
+            private readonly Connection connection;
+            private readonly string entry;
+            private readonly string match;
+            private readonly Task addMatchTask;
+            private readonly SignalHandler handler;
+
+            public signalHandle(
+                Connection connection,
+                string entry,
+                string match,
+                Task addMatchTask,
+                SignalHandler handler
+            )
+            {
+                this.connection = connection;
+                this.entry = entry;
+                this.match = match;
+                this.addMatchTask = addMatchTask;
+                this.handler = handler;
+            }
+
+            public async ValueTask DisposeAsync()
             {
                 SignalHandler? current;
                 SignalHandler? updated;
                 do
                 {
-                    signalHandlers.TryGetValue(dictionaryEntry, out current);
+                    connection.signalHandlers.TryGetValue(entry, out current);
                     updated = current - handler;
-                } while (!signalHandlers.TryUpdate(dictionaryEntry, updated, current));
+                } while (!connection.signalHandlers.TryUpdate(entry, updated, current));
                 if (updated == null)
+                {
+                    await addMatchTask;
                     // TryUpdate set the key's value to null thus removing the last entry
-                    Task.Run(async () =>
-                    {
-                        await addMatchTask;
-                        await orgFreedesktopDbus.RemoveMatchAsync(match, default);
-                    });
+                    await connection.orgFreedesktopDbus.RemoveMatchAsync(match, default);
+                }
             }
         }
 

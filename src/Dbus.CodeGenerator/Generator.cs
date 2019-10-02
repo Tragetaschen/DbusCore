@@ -99,6 +99,8 @@ namespace Dbus.CodeGenerator
         {
             if (!typeof(IDisposable).GetTypeInfo().IsAssignableFrom(type))
                 throw new InvalidOperationException("The interface " + type.Name + " is meant to be consumed, but does not extend IDisposable");
+            if (!typeof(IAsyncDisposable).GetTypeInfo().IsAssignableFrom(type))
+                throw new InvalidOperationException("The interface " + type.Name + " is meant to be consumed, but does not extend IAsyncDisposable");
 
             var className = type.Name + "_Implementation";
             var eventSubscriptions = new StringBuilder();
@@ -208,7 +210,7 @@ namespace Dbus.CodeGenerator
         private readonly global::Dbus.Connection connection;
         private readonly global::Dbus.ObjectPath path;
         private readonly string destination;
-        private readonly global::System.Collections.Generic.List<System.IDisposable> eventSubscriptions = new global::System.Collections.Generic.List<System.IDisposable>();
+        private readonly global::System.Collections.Generic.List<global::System.IAsyncDisposable> eventSubscriptions = new global::System.Collections.Generic.List<global::System.IAsyncDisposable>();
 
         private " + className + @"(global::Dbus.Connection connection, global::Dbus.ObjectPath path, string destination, global::System.Threading.CancellationToken cancellationToken)
         {
@@ -228,9 +230,13 @@ namespace Dbus.CodeGenerator
         }
 " + propertyImplementations + methodImplementations + @"
 " + eventImplementations + @"
-        public void Dispose()
+
+        public void Dispose() => global::System.Threading.Tasks.Task.Run(DisposeAsync);
+
+        public async global::System.Threading.Tasks.ValueTask DisposeAsync()
         {
-            eventSubscriptions.ForEach(x => x.Dispose());
+            foreach (var eventSubscription in eventSubscriptions)
+                await eventSubscription.DisposeAsync();
         }
     }
 ";

@@ -19,13 +19,22 @@ namespace Dbus
             var dictionaryEntry = path + "\0" + interfaceName;
             if (!objectProxies.TryAdd(dictionaryEntry, proxy))
                 throw new InvalidOperationException("Attempted to register an object proxy twice");
+            return new proxyHandle(this, dictionaryEntry);
+        }
 
-            return deregisterVia(deregister);
+        private class proxyHandle : IDisposable
+        {
+            private readonly Connection connection;
+            private readonly string entry;
 
-            void deregister()
+            public proxyHandle(Connection connection, string entry)
             {
-                objectProxies.TryRemove(dictionaryEntry, out var _);
+                this.connection = connection;
+                this.entry = entry;
             }
+
+            public void Dispose()
+                => connection.objectProxies.TryRemove(entry, out var _);
         }
 
         public async Task SendMethodReturnAsync(
