@@ -31,7 +31,7 @@ namespace Dbus.CodeGenerator
                     methodParameters.Add("cancellationToken");
                 else
                 {
-                    decoder.Add(parameter.Name!, parameter.ParameterType);
+                    decoder.Add(parameter.Name!, parameter.ParameterType, Indent);
                     methodParameters.Add(parameter.Name!);
                 }
             }

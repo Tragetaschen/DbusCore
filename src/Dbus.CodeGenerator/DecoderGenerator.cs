@@ -26,10 +26,7 @@ namespace Dbus.CodeGenerator
         public string Signature => signatureBuilder.ToString();
         public bool IsCompoundValue { get; private set; }
 
-        public void Add(string name, Type type, string indent = Generator.Indent)
-            => add(name, type, indent);
-
-        private void add(string name, Type type, string indent)
+        public void Add(string name, Type type, string indent)
         {
             var (signature, code, isCompoundValue) = generateDecoder(name, type, indent);
             IsCompoundValue = isCompoundValue;
@@ -118,7 +115,7 @@ namespace Dbus.CodeGenerator
             foreach (var p in constructorParameters)
             {
                 var decoderGenerator = new DecoderGenerator(decoder, message);
-                decoderGenerator.add(name + "_" + p.Name, p.ParameterType, indent);
+                decoderGenerator.Add(name + "_" + p.Name, p.ParameterType, indent);
                 signature += decoderGenerator.Signature;
                 builder.Append(decoderGenerator.Result);
             }
@@ -145,7 +142,7 @@ namespace Dbus.CodeGenerator
             else
             {
                 var decoderGenerator = new DecoderGenerator(decoder, message);
-                decoderGenerator.add(name + "_inner", type, indent + "    ");
+                decoderGenerator.Add(name + "_inner", type, indent + "    ");
                 return (
                     decoderGenerator.Signature,
                     @"() =>

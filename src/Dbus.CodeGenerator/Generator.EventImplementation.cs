@@ -40,7 +40,7 @@ namespace Dbus.CodeGenerator
                 for (var i = 0; i < arguments.Length; ++i)
                 {
                     var invocationParameter = "decoded" + i;
-                    decoder.Add(invocationParameter, arguments[i]);
+                    decoder.Add(invocationParameter, arguments[i], Indent);
                     invocationParameters.Add(invocationParameter);
                 }
             }
