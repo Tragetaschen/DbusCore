@@ -21,8 +21,8 @@ namespace Dbus
         public Stream GetStream(int index) => messageHeader.GetStream(index);
         public Decoder Decoder { get; }
 
-        public void AssertSignature(Signature signature)
-            => signature.AssertEqual(messageHeader.BodySignature!);
+        public void AssertSignature(Signature expectedSignature)
+            => messageHeader.BodySignature!.AssertEqual(expectedSignature);
 
         public void Dispose() => Decoder.Dispose();
     }
