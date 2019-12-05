@@ -105,9 +105,15 @@ namespace Dbus.CodeGenerator
                 .OrderByDescending(x => x.Length)
                 .First()
             ;
+            var isStruct = type.GetCustomAttribute<NoDbusStructAttribute>() == null;
             var builder = new StringBuilder();
-            builder.AppendLine(decoder + ".AdvanceToCompoundValue();");
-            var signature = "(";
+            var signature = "";
+
+            if (isStruct)
+            {
+                builder.AppendLine(decoder + ".AdvanceToCompoundValue();");
+                signature += "(";
+            }
 
             foreach (var p in constructorParameters)
             {
@@ -117,7 +123,9 @@ namespace Dbus.CodeGenerator
                 builder.Append(decoderGenerator.Result);
             }
 
-            signature += ")";
+            if (isStruct)
+                signature += ")";
+
             builder.Append(indent);
             builder.Append("var " + name + " = new " + Generator.BuildTypeString(type) + "(");
             builder.Append(string.Join(", ", constructorParameters.Select(x => name + "_" + x.Name)));
