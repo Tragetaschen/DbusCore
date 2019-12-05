@@ -31,7 +31,6 @@ namespace Dbus.CodeGenerator
             var (signature, code, isCompoundValue) = generateDecoder(name, type, indent);
             IsCompoundValue = isCompoundValue;
             signatureBuilder.Append(signature);
-            resultBuilder.Append(indent);
             resultBuilder.AppendLine(code);
         }
 
@@ -42,21 +41,21 @@ namespace Dbus.CodeGenerator
                 if (SignatureString.For.ContainsKey(type))
                     return (
                         SignatureString.For[type],
-                        "var " + name + " = " + decoder + ".Get" + type.Name + "();",
+                        indent + "var " + name + " = " + decoder + ".Get" + type.Name + "();",
                         false
                     );
                 else if (type == typeof(SafeHandle))
                     return (
                         "h",
-                        @"var " + name + @"_index = " + decoder + @".GetInt32();
-" + indent + @"var " + name + @" = " + message + ".UnixFds[" + name + @"_index];",
+                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();\n" +
+                        indent + @"var " + name + @" = " + message + ".UnixFds[" + name + @"_index];",
                         false
                     );
                 else if (type == typeof(Stream))
                     return (
                         "h",
-                        @"var " + name + @"_index = " + decoder + @".GetInt32();
-" + indent + @"var " + name + @" = " + message + ".GetStream(" + name + @"_index);",
+                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();\n" +
+                        indent + @"var " + name + @" = " + message + ".GetStream(" + name + @"_index);",
                         false
                     );
                 else
@@ -71,7 +70,7 @@ namespace Dbus.CodeGenerator
                     var (signature, code, isCompoundValue) = createMethod(elementType, name + "_e", indent);
                     return (
                         "a" + signature,
-                        "var " + name + " = " + decoder + ".GetArray(" + code + ", " + (isCompoundValue ? "true" : "false") + ");",
+                        indent + "var " + name + " = " + decoder + ".GetArray(" + code + ", " + (isCompoundValue ? "true" : "false") + ");",
                         false
                     );
                 }
@@ -84,7 +83,7 @@ namespace Dbus.CodeGenerator
 
                     return (
                         "a{" + keySignature + valueSignature + "}",
-                        "var " + name + " = " + decoder + ".GetDictionary(" + keyCode + ", " + valueCode + ");",
+                        indent + "var " + name + " = " + decoder + ".GetDictionary(" + keyCode + ", " + valueCode + ");",
                         false
                     );
                 }
@@ -108,6 +107,7 @@ namespace Dbus.CodeGenerator
 
             if (isStruct)
             {
+                builder.Append(indent);
                 builder.AppendLine(decoder + ".AdvanceToCompoundValue();");
                 signature += "(";
             }
@@ -148,7 +148,7 @@ namespace Dbus.CodeGenerator
                     @"() =>
 " + indent + @"{
 " + decoderGenerator.Result + @"
-    " + indent + "return " + name + @"_inner;
+" + indent + "    " + @"return " + name + @"_inner;
 " + indent + "}",
                     decoderGenerator.IsCompoundValue
                 );
