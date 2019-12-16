@@ -47,14 +47,14 @@ namespace Dbus.CodeGenerator
                 else if (type == typeof(SafeHandle))
                     return (
                         "h",
-                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();\n" +
+                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();" + Environment.NewLine +
                         indent + @"var " + name + @" = " + message + ".UnixFds[" + name + @"_index];",
                         false
                     );
                 else if (type == typeof(Stream))
                     return (
                         "h",
-                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();\n" +
+                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();" + Environment.NewLine +
                         indent + @"var " + name + @" = " + message + ".GetStream(" + name + @"_index);",
                         false
                     );
