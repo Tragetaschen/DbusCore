@@ -44,6 +44,16 @@ namespace Dbus.CodeGenerator
                 encoder.Add("methodResult", returnType, Indent);
             }
 
+            if (encoder.Signature != "")
+            {
+                methodImplementation.Append(@"
+        private static void encode_" + method.Name + @"(global::Dbus.Encoder sendBody, " + BuildTypeString(method.ReturnType.GenericTypeArguments[0]) + @" methodResult)
+        {
+");
+                methodImplementation.Append(encoder.Result);
+                methodImplementation.AppendLine("        }");
+            }
+
             methodImplementation.Append(@"
         private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.Decoder decoder, global::System.Threading.CancellationToken cancellationToken)
         {
@@ -70,7 +80,10 @@ namespace Dbus.CodeGenerator
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("var sendBody = new global::Dbus.Encoder();");
             if (encoder.Signature != "")
-                methodImplementation.Append(encoder.Result);
+            {
+                methodImplementation.Append(Indent);
+                methodImplementation.AppendLine("encode_" + method.Name + "(sendBody, methodResult);");
+            }
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine(@"await connection.SendMethodReturnAsync(methodCallOptions, sendBody, """ + encoder.Signature + @""", cancellationToken).ConfigureAwait(false);");
             methodImplementation.Append(@"

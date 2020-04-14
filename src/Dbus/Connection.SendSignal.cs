@@ -6,6 +6,36 @@ namespace Dbus
 {
     public partial class Connection
     {
+        private Encoder buildSignalHeader(
+            int bodyLength,
+            ObjectPath path,
+            string interfaceName,
+            string methodName,
+            Signature signature
+        )
+        {
+            var encoder = new Encoder();
+
+            standardHeaders(
+                encoder,
+                DbusMessageType.Signal,
+                DbusMessageFlags.None,
+                bodyLength,
+                getSerial()
+            );
+
+            var state = encoder.StartArray(storesCompoundValues: false);
+            addHeader(encoder, path);
+            addHeader(encoder, DbusHeaderType.InterfaceName, interfaceName);
+            addHeader(encoder, DbusHeaderType.Member, methodName);
+            if (bodyLength > 0)
+                addHeader(encoder, signature);
+            encoder.FinishArray(state);
+
+            encoder.FinishHeader();
+            return encoder;
+        }
+
         public async Task SendSignalAsync(
             ObjectPath path,
             string interfaceName,
@@ -28,18 +58,12 @@ namespace Dbus
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
 
-            var header = createHeader(
-                DbusMessageType.Signal,
-                DbusMessageFlags.None,
+            var header = buildSignalHeader(
                 bodyLength,
-                e =>
-                {
-                    addHeader(e, path);
-                    addHeader(e, DbusHeaderType.InterfaceName, interfaceName);
-                    addHeader(e, DbusHeaderType.Member, methodName);
-                    if (bodyLength > 0)
-                        addHeader(e, signature);
-                }
+                path,
+                interfaceName,
+                methodName,
+                signature
             );
 
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);

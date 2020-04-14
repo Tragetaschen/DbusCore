@@ -93,13 +93,21 @@ namespace Dbus.CodeGenerator
                 returnStatement = "return " + decoderGenerator.DelegateName + "(decoder);";
             }
 
-
-            return @"
-" + string.Join("", decoderGenerator.Delegates) + @"
+            var result = "";
+            result += string.Join("", decoderGenerator.Delegates);
+            if (encoder.Signature != "")
+            {
+                result += @"
+        private static void encode_" + methodInfo.Name + "(global::Dbus.Encoder sendBody, " + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
+        {
+" + encoder.Result + @"        }
+";
+            }
+            result += @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
             var sendBody = new global::Dbus.Encoder();
-" + encoder.Result + @"
+" + (encoder.Signature != "" ? "            encode_" + methodInfo.Name + "(sendBody, " + string.Join(", ", methodInfo.GetParameters().Select(x => x.Name)) + ");" : "") + @"
             var decoder = await connection.SendMethodCall(
                 this.path,
                 """ + interfaceName + @""",
@@ -116,6 +124,7 @@ namespace Dbus.CodeGenerator
             }
         }
 ";
+            return result;
         }
     }
 }

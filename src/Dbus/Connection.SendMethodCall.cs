@@ -10,6 +10,39 @@ namespace Dbus
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<Decoder>> expectedMessages =
             new ConcurrentDictionary<uint, TaskCompletionSource<Decoder>>();
 
+        private Encoder buildMethodCallHeader(
+            int bodyLength,
+            uint serial,
+            ObjectPath path,
+            string interfaceName,
+            string methodName,
+            string destination,
+            Signature signature
+        )
+        {
+            var encoder = new Encoder();
+
+            standardHeaders(
+                encoder,
+                DbusMessageType.MethodCall,
+                DbusMessageFlags.None,
+                bodyLength,
+                serial
+            );
+
+            var state = encoder.StartArray(storesCompoundValues: false);
+            addHeader(encoder, path);
+            addHeader(encoder, DbusHeaderType.InterfaceName, interfaceName);
+            addHeader(encoder, DbusHeaderType.Member, methodName);
+            addHeader(encoder, DbusHeaderType.Destination, destination);
+            if (bodyLength > 0)
+                addHeader(encoder, signature);
+            encoder.FinishArray(state);
+
+            encoder.FinishHeader();
+            return encoder;
+        }
+
         public async Task<Decoder> SendMethodCall(
             ObjectPath path,
             string interfaceName,
@@ -27,20 +60,14 @@ namespace Dbus
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
 
-            var header = createHeader(
-                DbusMessageType.MethodCall,
-                DbusMessageFlags.None,
+            var header = buildMethodCallHeader(
                 bodyLength,
-                e =>
-                {
-                    addHeader(e, path);
-                    addHeader(e, DbusHeaderType.InterfaceName, interfaceName);
-                    addHeader(e, DbusHeaderType.Member, methodName);
-                    addHeader(e, DbusHeaderType.Destination, destination);
-                    if (bodyLength > 0)
-                        addHeader(e, signature);
-                },
-                serial
+                serial,
+                path,
+                interfaceName,
+                methodName,
+                destination,
+                signature
             );
 
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);

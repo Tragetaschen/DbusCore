@@ -11,9 +11,6 @@ namespace Dbus
 {
     public class Encoder
     {
-        public delegate void ElementWriter<T>(T value);
-        public delegate void ElementWriter();
-
         private readonly Pipe pipe = new Pipe(new PipeOptions(
             // There's no reader until the entire message is built in memory.
             // That means we cannot tolerate a pause for the writer to wait for the non-existant reader
@@ -100,172 +97,86 @@ namespace Dbus
         public void Add(bool value)
             => addPrimitive(value ? 1 : 0, sizeof(int));
 
-        public void Add<T>(IEnumerable<T> values, ElementWriter<T> writer, bool storesCompoundValues)
-            => AddArray(() =>
-            {
-                foreach (var value in values)
-                    writer(value);
-            }, storesCompoundValues);
-
-        public void Add<TKey, TValue>(
-            IDictionary<TKey, TValue> values,
-            ElementWriter<TKey> keyWriter,
-            ElementWriter<TValue> valueWriter
-        ) where TKey : notnull
-            => AddArray(() =>
-            {
-                foreach (var value in values)
-                {
-                    StartCompoundValue();
-                    keyWriter(value.Key);
-                    valueWriter(value.Value);
-                }
-            }, storesCompoundValues: true);
-
-        public void AddArray(ElementWriter writer, bool storesCompoundValues)
+        public EncoderArrayState StartArray(bool storesCompoundValues)
         {
             ensureAlignment(4);
-            var lengthSpan = MemoryMarshal.Cast<byte, int>(reserve(4));
+            var lengthSpan = reserve(4);
             if (storesCompoundValues)
                 StartCompoundValue();
             var arrayStart = index;
 
-            writer();
+            return new EncoderArrayState(arrayStart, lengthSpan);
+        }
 
-            var arrayLength = index - arrayStart;
+        public void FinishArray(EncoderArrayState encoderArrayState)
+        {
+            var arrayLength = index - encoderArrayState.ArrayStart;
+            var lengthSpan = MemoryMarshal.Cast<byte, int>(encoderArrayState.LengthSpan);
             lengthSpan[0] = arrayLength;
         }
 
-        public void AddVariant(string value)
-        {
-            Add((Signature)"s");
-            Add(value);
-        }
-
-        public void AddVariant(Signature signature)
-        {
-            Add((Signature)"g");
-            Add(signature);
-        }
-
-        public void AddVariant(ObjectPath value)
-        {
-            Add((Signature)"o");
-            Add(value.ToString());
-        }
-
-        public void AddVariant(short value)
-        {
-            Add((Signature)"n");
-            Add(value);
-        }
-
-        public void AddVariant(ushort value)
-        {
-            Add((Signature)"q");
-            Add(value);
-        }
-
-        public void AddVariant(int value)
-        {
-            Add((Signature)"i");
-            Add(value);
-        }
-
-        public void AddVariant(uint value)
-        {
-            Add((Signature)"u");
-            Add(value);
-        }
-
-        public void AddVariant(long value)
-        {
-            Add((Signature)"x");
-            Add(value);
-        }
-
-        public void AddVariant(ulong value)
-        {
-            Add((Signature)"t");
-            Add(value);
-        }
-
-        public void AddVariant(double value)
-        {
-            Add((Signature)"d");
-            Add(value);
-        }
-
-        public void AddVariant(byte value)
-        {
-            Add((Signature)"y");
-            Add(value);
-        }
-
-        public void AddVariant(bool value)
-        {
-            Add((Signature)"b");
-            Add(value);
-        }
-
-        public void AddVariant(IEnumerable<string> value)
-        {
-            Add((Signature)"as");
-            Add(value, Add, storesCompoundValues: false);
-        }
-
-        public void AddVariant(object value)
+        public void Add(object value)
         {
             switch (value)
             {
                 case string v:
-                    AddVariant(v);
+                    Add((Signature)"s");
+                    Add(v);
                     break;
                 case Signature v:
-                    AddVariant(v);
+                    Add((Signature)"g");
+                    Add(v);
                     break;
                 case ObjectPath v:
-                    AddVariant(v);
+                    Add((Signature)"o");
+                    Add(v);
                     break;
                 case short v:
-                    AddVariant(v);
+                    Add((Signature)"n");
+                    Add(v);
                     break;
                 case ushort v:
-                    AddVariant(v);
+                    Add((Signature)"q");
+                    Add(v);
                     break;
                 case int v:
-                    AddVariant(v);
+                    Add((Signature)"i");
+                    Add(v);
                     break;
                 case uint v:
-                    AddVariant(v);
+                    Add((Signature)"u");
+                    Add(v);
                     break;
                 case long v:
-                    AddVariant(v);
+                    Add((Signature)"x");
+                    Add(v);
                     break;
                 case ulong v:
-                    AddVariant(v);
+                    Add((Signature)"t");
+                    Add(v);
                     break;
                 case double v:
-                    AddVariant(v);
+                    Add((Signature)"d");
+                    Add(v);
                     break;
                 case byte v:
-                    AddVariant(v);
+                    Add((Signature)"y");
+                    Add(v);
                     break;
                 case bool v:
-                    AddVariant(v);
+                    Add((Signature)"b");
+                    Add(v);
                     break;
                 case IEnumerable<string> v:
-                    AddVariant(v);
+                    Add((Signature)"as");
+                    var state = StartArray(storesCompoundValues: false);
+                    foreach (var element in v)
+                        Add(element);
+                    FinishArray(state);
                     break;
                 default:
                     throw new InvalidOperationException("Unsupported Type for Variant");
             }
-        }
-
-        public void AddVariant(IDictionary<string, object> value)
-        {
-            Add((Signature)"a{sv}");
-            Add(value, Add, AddVariant);
         }
 
         public void FinishHeader() => ensureAlignment(8);

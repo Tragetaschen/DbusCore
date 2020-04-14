@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,6 +46,37 @@ namespace Dbus
             }
         }
 
+        private Encoder encodeManagedObjects(IDictionary<ObjectPath, List<IProxy>> managedObjects)
+        {
+            var encoder = new Encoder();
+            var dictionaryState = encoder.StartArray(storesCompoundValues: true);
+
+            foreach (var managedObject in managedObjects)
+            {
+                encoder.StartCompoundValue();
+                encoder.Add(managedObject.Key);
+                var objectState = encoder.StartArray(storesCompoundValues: true);
+                foreach (var proxy in managedObject.Value)
+                {
+                    encoder.StartCompoundValue();
+                    encoder.Add(proxy.InterfaceName);
+                    proxy.EncodeProperties(encoder);
+                }
+
+                encoder.StartCompoundValue();
+                encoder.Add("org.freedesktop.DBus.Properties");
+                var emptyState = encoder.StartArray(storesCompoundValues: true);
+                // empty properties for the properties interface
+                encoder.FinishArray(emptyState);
+
+                encoder.FinishArray(objectState);
+            }
+
+            encoder.FinishArray(dictionaryState);
+
+            return encoder;
+        }
+
         private async Task handleGetManagedObjectsAsync(
             MethodCallOptions methodCallOptions,
             Decoder decoder,
@@ -55,30 +87,10 @@ namespace Dbus
             var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
             if (!methodCallOptions.ShouldSendReply)
                 return;
-            var sendBody = new Encoder();
-            sendBody.AddArray(() =>
-            {
-                foreach (var managedObject in managedObjects)
-                {
-                    sendBody.StartCompoundValue();
-                    sendBody.Add(managedObject.Key);
-                    sendBody.AddArray(() =>
-                    {
-                        foreach (var proxy in managedObject.Value)
-                        {
-                            sendBody.StartCompoundValue();
-                            sendBody.Add(proxy.InterfaceName);
-                            proxy.EncodeProperties(sendBody);
-                        }
-                        sendBody.StartCompoundValue();
-                        sendBody.Add("org.freedesktop.DBus.Properties");
-                        sendBody.AddArray(() => { }, storesCompoundValues: true);  // empty properties for the properties interface
-                    }, storesCompoundValues: true);
-                }
-            }, storesCompoundValues: true);
+            var encoder = encodeManagedObjects(managedObjects);
             await connection.SendMethodReturnAsync(
                 methodCallOptions,
-                sendBody,
+                encoder,
                 "a{oa{sa{sv}}}",
                 cancellationToken
             ).ConfigureAwait(false);

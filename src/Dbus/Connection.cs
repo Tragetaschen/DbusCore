@@ -65,55 +65,52 @@ namespace Dbus
                 Environment.FailFast("Unobserved exception in Dbus handling", e);
         }
 
-        private Encoder createHeader(
+        private void standardHeaders(
+            Encoder header,
             DbusMessageType type,
             DbusMessageFlags flags,
             int bodyLength,
-            Action<Encoder> otherHeaders,
-            uint? serial = null
+            uint serial
         )
         {
-            var header = new Encoder();
-
             header.Add((byte)DbusEndianess.LittleEndian);
             header.Add((byte)type);
             header.Add((byte)flags);
             header.Add((byte)DbusProtocolVersion.Default);
             header.Add(bodyLength); // Actually uint
-            header.Add(serial ?? getSerial());
-
-            header.AddArray(() => otherHeaders(header), storesCompoundValues: false);
-            header.FinishHeader();
-
-            return header;
+            header.Add(serial);
         }
 
         private static void addHeader(Encoder encoder, ObjectPath path)
         {
             encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.Path);
-            encoder.AddVariant(path);
+            encoder.Add((Signature)"o");
+            encoder.Add(path);
         }
 
         private static void addHeader(Encoder encoder, uint replySerial)
         {
             encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.ReplySerial);
-            encoder.AddVariant(replySerial);
+            encoder.Add((Signature)"u");
+            encoder.Add(replySerial);
         }
 
         private static void addHeader(Encoder encoder, Signature signature)
         {
             encoder.StartCompoundValue();
             encoder.Add((byte)DbusHeaderType.Signature);
-            encoder.AddVariant(signature);
+            encoder.Add((Signature)"g");
+            encoder.Add(signature);
         }
 
         private static void addHeader(Encoder encoder, DbusHeaderType type, string value)
         {
             encoder.StartCompoundValue();
             encoder.Add((byte)type);
-            encoder.AddVariant(value);
+            encoder.Add((Signature)"s");
+            encoder.Add(value);
         }
 
         private uint getSerial() => (uint)Interlocked.Increment(ref serialCounter);

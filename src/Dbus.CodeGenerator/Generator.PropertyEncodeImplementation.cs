@@ -12,18 +12,19 @@ namespace Dbus.CodeGenerator
             propertyEncoder.Append(@"
         public void EncodeProperties(global::Dbus.Encoder sendBody)
         {
-            sendBody.AddArray(() =>
-            {");
+            var state = sendBody.StartArray(storesCompoundValues: true);
+");
 
             foreach (var property in type.GetTypeInfo().GetProperties())
             {
                 propertyEncoder.Append(@"
-                sendBody.StartCompoundValue();
-                sendBody.Add(""" + property.Name + @""");
-                Encode" + property.Name + @"(sendBody);");
+            sendBody.StartCompoundValue();
+            sendBody.Add(""" + property.Name + @""");
+            encode" + property.Name + @"(sendBody);
+");
             }
             propertyEncoder.Append(@"
-            }, storesCompoundValues: true);
+            sendBody.FinishArray(state);
         }
 
         public void EncodeProperty(global::Dbus.Encoder sendBody, string propertyName)
@@ -34,7 +35,7 @@ namespace Dbus.CodeGenerator
             {
                 propertyEncoder.Append(@"
                 case """ + property.Name + @""":
-                    Encode" + property.Name + @"(sendBody);
+                    encode" + property.Name + @"(sendBody);
                     break;");
             }
             propertyEncoder.Append(@"
@@ -51,7 +52,7 @@ namespace Dbus.CodeGenerator
                 encoder.AddVariant("value", property.PropertyType);
                 propertyEncoder.Append(@"
 
-        private void Encode" + property.Name + @"(global::Dbus.Encoder sendBody)
+        private void encode" + property.Name + @"(global::Dbus.Encoder sendBody)
         {
             var value = target." + property.Name + @";
 " + encoder.Result + @"

@@ -37,6 +37,31 @@ namespace Dbus
                 => connection.objectProxies.TryRemove(entry, out var _);
         }
 
+        private Encoder buildMethodReturnHeaders(
+            int bodyLength,
+            MethodCallOptions methodCallOptions,
+            Signature signature
+        )
+        {
+            var encoder = new Encoder();
+            standardHeaders(
+                encoder,
+                DbusMessageType.MethodReturn,
+                DbusMessageFlags.NoReplyExpected,
+                bodyLength,
+                getSerial()
+            );
+            var state = encoder.StartArray(false);
+            addHeader(encoder, DbusHeaderType.Destination, methodCallOptions.Sender);
+            addHeader(encoder, methodCallOptions.ReplySerial);
+            if (bodyLength > 0)
+                addHeader(encoder, signature);
+            encoder.FinishArray(state);
+
+            encoder.FinishHeader();
+            return encoder;
+        }
+
         public async Task SendMethodReturnAsync(
             MethodCallOptions methodCallOptions,
             Encoder body,
@@ -49,19 +74,7 @@ namespace Dbus
             foreach (var bodySegment in bodySegments)
                 bodyLength += bodySegment.Length;
 
-            var header = createHeader(
-                DbusMessageType.MethodReturn,
-                DbusMessageFlags.NoReplyExpected,
-                bodyLength,
-                e =>
-                {
-                    addHeader(e, DbusHeaderType.Destination, methodCallOptions.Sender);
-                    addHeader(e, methodCallOptions.ReplySerial);
-                    if (bodyLength > 0)
-                        addHeader(e, signature);
-                }
-            );
-
+            var header = buildMethodReturnHeaders(bodyLength, methodCallOptions, signature);
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 
             await serializedWriteToStream(
@@ -203,6 +216,33 @@ namespace Dbus
                 );
         }
 
+        private Encoder buildMethodCallErrorHeader(
+            int bodyLength,
+            MethodCallOptions methodCallOptions,
+            string error
+        )
+        {
+            var encoder = new Encoder();
+            standardHeaders(
+                encoder,
+                DbusMessageType.Error,
+                DbusMessageFlags.NoReplyExpected,
+                bodyLength,
+                getSerial()
+            );
+
+            var state = encoder.StartArray(storesCompoundValues: false);
+            addHeader(encoder, DbusHeaderType.Destination, methodCallOptions.Sender);
+            addHeader(encoder, DbusHeaderType.ErrorName, error);
+            addHeader(encoder, methodCallOptions.ReplySerial);
+            if (bodyLength > 0)
+                addHeader(encoder, (Signature)"s");
+            encoder.FinishArray(state);
+
+            encoder.FinishHeader();
+            return encoder;
+        }
+
         private async Task sendMethodCallErrorAsync(
             MethodCallOptions methodCallOptions,
             string error,
@@ -218,19 +258,7 @@ namespace Dbus
             foreach (var segment in bodySegments)
                 bodyLength += segment.Length;
 
-            var header = createHeader(
-                DbusMessageType.Error,
-                DbusMessageFlags.NoReplyExpected,
-                bodyLength,
-                e =>
-                {
-                    addHeader(e, DbusHeaderType.Destination, methodCallOptions.Sender);
-                    addHeader(e, DbusHeaderType.ErrorName, error);
-                    addHeader(e, methodCallOptions.ReplySerial);
-                    if (bodyLength > 0)
-                        addHeader(e, (Signature)"s");
-                }
-            );
+            var header = buildMethodCallErrorHeader(bodyLength, methodCallOptions, error);
 
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 

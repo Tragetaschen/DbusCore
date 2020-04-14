@@ -27,7 +27,7 @@ namespace Dbus.CodeGenerator
             innerGenerator.add($@"(global::Dbus.Signature)""{signature}""", name, typeof(Signature), Generator.Indent);
             signatureBuilder.Append("v");
             resultBuilder.Append(innerGenerator.Result);
-            resultBuilder.AppendLine(Generator.Indent + code);
+            resultBuilder.AppendLine(code);
         }
 
         public void Add(string name, Type type, string indent = Generator.Indent)
@@ -37,24 +37,16 @@ namespace Dbus.CodeGenerator
         {
             var (signature, code, isCompoundValue) = encoder(value, name, type, indent);
             signatureBuilder.Append(signature);
-            resultBuilder.Append(indent);
             resultBuilder.AppendLine(code);
             IsCompoundValue = isCompoundValue;
         }
 
         private (string signature, string code, bool isCompoundValue) encoder(string value, string name, Type type, string indent)
         {
-            if (type == typeof(object))
-                return (
-                    SignatureString.For[type],
-                    body + ".AddVariant(" + value + ");",
-                    false
-                );
-
             if (SignatureString.For.ContainsKey(type))
                 return (
                     SignatureString.For[type],
-                    body + ".Add(" + value + ");",
+                    indent + body + ".Add(" + value + ");",
                     false
                 );
 
@@ -64,11 +56,17 @@ namespace Dbus.CodeGenerator
                 if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var (elementSignature, elementCode, elementIsCompoundValue) = createMethod(elementType, name + "_e", name + "_e", indent);
+                    var encoder = new EncoderGenerator(body);
+                    encoder.add(name + "_e", name + "_e", elementType, indent + "    ");
 
                     return (
-                        "a" + elementSignature,
-                        body + ".Add(" + value + ", " + elementCode + ", storesCompoundValues: " + (elementIsCompoundValue ? "true" : "false") + ");",
+                        "a" + encoder.Signature,
+                        indent + "var " + name + "_state = " + body + ".StartArray(storesCompoundValues: " + (encoder.IsCompoundValue ? "true" : "false") + @");" + Environment.NewLine +
+                        indent + "foreach (var " + name + "_e in " + value + ")" + Environment.NewLine +
+                        indent + "{" + Environment.NewLine +
+                        encoder.Result +
+                        indent + "}" + Environment.NewLine +
+                        indent + body + ".FinishArray(" + name + "_state);",
                         false
                     );
                 }
@@ -76,12 +74,21 @@ namespace Dbus.CodeGenerator
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var (keySignature, keyCode, _) = createMethod(keyType, name + "_k", name + "_k", indent);
-                    var (valueSignature, valueCode, _) = createMethod(valueType, name + "_v", name + "_v", indent);
+                    var keyEncoder = new EncoderGenerator(body);
+                    keyEncoder.add(name + "_kv.Key", name + "_k", keyType, indent + "    ");
+                    var valueEncoder = new EncoderGenerator(body);
+                    valueEncoder.add(name + "_kv.Value", name + "_v", valueType, indent + "    ");
 
                     return (
-                        "a{" + keySignature + valueSignature + "}",
-                        body + ".Add(" + value + ", " + keyCode + ", " + valueCode + ");",
+                        "a{" + keyEncoder.Signature + valueEncoder.Signature + "}",
+                        indent + "var " + name + "_state = " + body + ".StartArray(storesCompoundValues: true);" + Environment.NewLine +
+                        indent + "foreach (var " + name + "_kv in " + value + ")" + Environment.NewLine +
+                        indent + "{" + Environment.NewLine +
+                        indent + "    " + body + ".StartCompoundValue();" + Environment.NewLine +
+                        keyEncoder.Result +
+                        valueEncoder.Result +
+                        indent + "}" + Environment.NewLine +
+                        indent + body + ".FinishArray(" + name + "_state);" + Environment.NewLine,
                         false // ?
                     );
                 }
@@ -105,7 +112,7 @@ namespace Dbus.CodeGenerator
             var signature = "";
             if (isStruct)
             {
-                builder.AppendLine(body + ".StartCompoundValue();");
+                builder.AppendLine(indent + body + ".StartCompoundValue();");
                 signature += "(";
             }
 
@@ -123,34 +130,6 @@ namespace Dbus.CodeGenerator
                 signature += ")";
 
             return (signature, builder.ToString(), true);
-        }
-
-        private (string signature, string code, bool isCompoundValue) createMethod(Type type, string value, string name, string indent)
-        {
-            if (type == typeof(object))
-                return (
-                    SignatureString.For[type],
-                    body + ".AddVariant",
-                    false
-                );
-            else if (SignatureString.For.ContainsKey(type))
-                return (
-                    SignatureString.For[type],
-                    body + ".Add",
-                    false
-                );
-            else
-            {
-                var encoder = new EncoderGenerator(body);
-                encoder.add(value, name, type, indent + "    ");
-                return (
-                    encoder.Signature,
-                    "(" + Generator.BuildTypeString(type) + " " + name + @") =>
-" + indent + @"{
-" + encoder.Result + indent + "}",
-                    encoder.IsCompoundValue
-                );
-            }
         }
     }
 }

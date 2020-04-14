@@ -307,38 +307,43 @@ namespace Dbus.CodeGenerator
         }");
             if (typeof(System.ComponentModel.INotifyPropertyChanged).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo()))
             {
-                proxyClass.Append(@"
-        private async void handlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            var sendBody = new global::Dbus.Encoder();
-            sendBody.Add(""" + provide.InterfaceName + @""");");
                 //Only one property is changed at a time, so no foreach loop is necessary
                 proxyClass.Append(@"
-            sendBody.AddArray(() =>
-            {
-                sendBody.StartCompoundValue();
-                sendBody.Add(e.PropertyName);
-                switch (e.PropertyName)
-                {");
+        private void encodeChangedProperty(global::Dbus.Encoder sendBody, string propertyName)
+        {
+            sendBody.Add(""" + provide.InterfaceName + @""");
+            var state = sendBody.StartArray(storesCompoundValues: true);
+            sendBody.StartCompoundValue();
+            sendBody.Add(propertyName);
+            switch (propertyName)
+            {");
                 foreach (var property in type.GetTypeInfo().GetProperties())
                 {
                     if (property.GetCustomAttribute<DbusPropertiesChanged>() != null)
                     {
                         proxyClass.Append(@"
-                    case """ + property.Name + @""":
-                        Encode" + property.Name + @"(sendBody);
-                        break;
+                case """ + property.Name + @""":
+                    encode" + property.Name + @"(sendBody);
+                    break;
 ");
                     }
                 }
                 proxyClass.Append(@"
-                    default:
-                        throw new System.NotSupportedException(""Property encoding not supported for the given property"" + e.PropertyName);
-                }
-            }, storesCompoundValues: true);");
+                default:
+                    throw new System.NotSupportedException(""Property encoding not supported for the given property"" + propertyName);
+            }
+            sendBody.FinishArray(state);
+");
                 //This is actually an empty array, but the encoding per 0-integer is more efficient
                 proxyClass.Append(@"
             sendBody.Add(0);
+        }
+");
+                proxyClass.Append(@"
+        private async void handlePropertyChangedEventAsync(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var sendBody = new global::Dbus.Encoder();
+            encodeChangedProperty(sendBody, e.PropertyName);
 
             await connection.SendSignalAsync(
                 path,
