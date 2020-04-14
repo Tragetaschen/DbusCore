@@ -17,8 +17,6 @@ namespace Dbus
             Decoder = decoder;
         }
 
-        public SafeHandle[]? UnixFds => messageHeader.UnixFds;
-        public Stream GetStream(int index) => messageHeader.GetStream(index);
         public Decoder Decoder { get; }
 
         public void AssertSignature(Signature expectedSignature)

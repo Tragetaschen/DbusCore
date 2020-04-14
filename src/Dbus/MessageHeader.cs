@@ -10,8 +10,6 @@ namespace Dbus
     {
         private static readonly int sizeofCmsghdr = Marshal.SizeOf<cmsghdr>();
 
-        private readonly SocketOperations socketOperations;
-
         public MessageHeader(
             SocketOperations socketOperations,
             Decoder header,
@@ -19,7 +17,7 @@ namespace Dbus
             bool isMonoRuntime
         )
         {
-            this.socketOperations = socketOperations;
+            SocketOperations = socketOperations;
             BodySignature = "";
             while (!header.IsFinished)
             {
@@ -84,16 +82,10 @@ namespace Dbus
         public string? Sender { get; }
         public Signature? BodySignature { get; }
         public SafeHandle[]? UnixFds { get; }
+        internal SocketOperations SocketOperations { get; }
 
         public override string ToString()
             => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
-
-        public Stream GetStream(int index)
-        {
-            if (UnixFds == null)
-                throw new InvalidOperationException("Now file descriptors received");
-            return new UnixFdStream(UnixFds[index], socketOperations);
-        }
 
         private struct cmsghdr
         {

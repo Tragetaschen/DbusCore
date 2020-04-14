@@ -152,20 +152,21 @@ namespace Dbus
         /// </summary>
         public static readonly ElementDecoder<double> GetDouble = decoder => decoder.getPrimitive<double>(3);
 
-        public static SafeHandle GetSafeHandle(Decoder decoder)
+        public static readonly ElementDecoder<SafeHandle> GetSafeHandle = decoder =>
         {
             var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
             var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
             var index = GetInt32(decoder);
             return unixFds[index];
-        }
+        };
 
-        public static Stream GetStream(Decoder decoder)
+        public static readonly ElementDecoder<Stream> GetStream = decoder =>
         {
             var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
+            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
             var index = GetInt32(decoder);
-            return header.GetStream(index);
-        }
+            return new UnixFdStream(unixFds[index], header.SocketOperations);
+        };
 
         /// <summary>
         /// Decodes an array from the buffer and advances the index
