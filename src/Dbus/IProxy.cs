@@ -9,7 +9,7 @@ namespace Dbus
         object Target { get; }
         string InterfaceName { get; }
         void EncodeProperties(Encoder sendBody);
-        Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, ReceivedMessage message, CancellationToken cancellationToken);
+        Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, Decoder decoder, CancellationToken cancellationToken);
         void EncodeProperty(Encoder sendBody, string propertyName);
     }
 }

@@ -138,10 +138,9 @@ namespace Dbus.CodeGenerator
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(() => initProperties(cancellationToken), cancellationToken);
 ");
                 propertyImplementations.Append(@"
-        private void handleProperties(global::Dbus.ReceivedMessage receivedMessage)
+        private void handleProperties(global::Dbus.Decoder decoder)
         {
-            receivedMessage.AssertSignature(""sa{sv}as"");
-            var decoder = receivedMessage.Decoder;
+            decoder.AssertSignature(""sa{sv}as"");
             var interfaceName = global::Dbus.Decoder.GetString(decoder);
             if (interfaceName != """ + consume.InterfaceName + @""")
                 return;
@@ -154,7 +153,7 @@ namespace Dbus.CodeGenerator
             var sendBody = new global::Dbus.Encoder();
             sendBody.Add(""" + consume.InterfaceName + @""");
 
-            var receivedMessage = await connection.SendMethodCall(
+            var decoder = await connection.SendMethodCall(
                 this.path,
                 ""org.freedesktop.DBus.Properties"",
                 ""GetAll"",
@@ -163,11 +162,11 @@ namespace Dbus.CodeGenerator
                 ""s"",
                 cancellationToken
             ).ConfigureAwait(false);
-            using (receivedMessage)
+            using (decoder)
             {
-                receivedMessage.AssertSignature(""a{sv}"");
+                decoder.AssertSignature(""a{sv}"");
                 var properties = global::Dbus.Decoder.GetDictionary(
-                    receivedMessage.Decoder,
+                    decoder,
                     global::Dbus.Decoder.GetString,
                     global::Dbus.Decoder.GetObject
                 );
@@ -355,13 +354,13 @@ namespace Dbus.CodeGenerator
 "
             + generatePropertyEncodeImplementation(type) + @"
 
-        public global::System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
+        public global::System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.Decoder decoder, global::System.Threading.CancellationToken cancellationToken)
         {
             switch (methodCallOptions.Member)
             {
                 " + string.Join(@"
                 ", knownMethods.Select(x => @"case """ + x + @""":
-                    return handle" + x + @"Async(methodCallOptions, receivedMessage, cancellationToken);")) + @"");
+                    return handle" + x + @"Async(methodCallOptions, decoder, cancellationToken);")) + @"");
             proxyClass.Append(@"
                 default:
                     throw new global::Dbus.DbusException(

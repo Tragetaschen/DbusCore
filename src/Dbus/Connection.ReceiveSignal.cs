@@ -7,7 +7,7 @@ namespace Dbus
 {
     public partial class Connection
     {
-        public delegate void SignalHandler(ReceivedMessage message);
+        public delegate void SignalHandler(Decoder decoder);
 
         private readonly ConcurrentDictionary<string, SignalHandler?> signalHandlers =
             new ConcurrentDictionary<string, SignalHandler?>();
@@ -94,12 +94,11 @@ namespace Dbus
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers) && handlers != null)
                 Task.Run(() =>
                 {
-                    var message = new ReceivedMessage(header, decoder);
-                    using (message)
+                    using (decoder)
                         foreach (SignalHandler handler in handlers.GetInvocationList())
                             try
                             {
-                                handler(message);
+                                handler(decoder);
                                 decoder.Reset();
                             }
                             catch (Exception e)

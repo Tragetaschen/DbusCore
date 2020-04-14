@@ -7,10 +7,10 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private readonly ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMessage>> expectedMessages =
-            new ConcurrentDictionary<uint, TaskCompletionSource<ReceivedMessage>>();
+        private readonly ConcurrentDictionary<uint, TaskCompletionSource<Decoder>> expectedMessages =
+            new ConcurrentDictionary<uint, TaskCompletionSource<Decoder>>();
 
-        public async Task<ReceivedMessage> SendMethodCall(
+        public async Task<Decoder> SendMethodCall(
             ObjectPath path,
             string interfaceName,
             string methodName,
@@ -45,7 +45,7 @@ namespace Dbus
 
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
 
-            var tcs = new TaskCompletionSource<ReceivedMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<Decoder>(TaskCreationOptions.RunContinuationsAsynchronously);
             expectedMessages[serial] = tcs;
 
             using (cancellationToken.Register(() => tcs.TrySetCanceled()))
@@ -73,8 +73,7 @@ namespace Dbus
                     throw new InvalidOperationException("Couldn't find the method call for the method return");
                 }
 
-                var receivedMessage = new ReceivedMessage(header, decoder);
-                tcs.TrySetResult(receivedMessage);
+                tcs.TrySetResult(decoder);
             }
             catch (Exception e)
             {

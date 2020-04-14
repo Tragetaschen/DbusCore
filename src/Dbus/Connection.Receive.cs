@@ -81,10 +81,9 @@ namespace Dbus
             {
                 case DbusMessageType.MethodCall:
                     var methodCallOptions = new MethodCallOptions(header, shouldSendReply, serial);
-                    var receivedMessage = new ReceivedMessage(header, decoder);
                     handleMethodCall(
                         methodCallOptions,
-                        receivedMessage,
+                        decoder,
                         cancellationToken
                     );
                     break;

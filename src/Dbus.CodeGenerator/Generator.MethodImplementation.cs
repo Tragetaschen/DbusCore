@@ -85,12 +85,12 @@ namespace Dbus.CodeGenerator
             {
                 // must be "Get"
                 decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, typeof(object));
-                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")" + decoderGenerator.DelegateName + "(receivedMessage.Decoder);";
+                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")" + decoderGenerator.DelegateName + "(decoder);";
             }
             else // Task<T>
             {
                 decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, returnType.GenericTypeArguments[0]);
-                returnStatement = "return " + decoderGenerator.DelegateName + "(receivedMessage.Decoder);";
+                returnStatement = "return " + decoderGenerator.DelegateName + "(decoder);";
             }
 
 
@@ -100,7 +100,7 @@ namespace Dbus.CodeGenerator
         {
             var sendBody = new global::Dbus.Encoder();
 " + encoder.Result + @"
-            var receivedMessage = await connection.SendMethodCall(
+            var decoder = await connection.SendMethodCall(
                 this.path,
                 """ + interfaceName + @""",
                 """ + callName + @""",
@@ -109,9 +109,9 @@ namespace Dbus.CodeGenerator
                 """ + encoder.Signature + @""",
                 " + cancellationTokenName + @"
             ).ConfigureAwait(false);
-            using (receivedMessage)
+            using (decoder)
             {
-                receivedMessage.AssertSignature(""" + decoderGenerator.Signature + @""");
+                decoder.AssertSignature(""" + decoderGenerator.Signature + @""");
                 " + returnStatement + @"
             }
         }

@@ -42,6 +42,12 @@ namespace Dbus
             index = 0;
         }
 
+        public void AssertSignature(Signature expectedSignature)
+        {
+            var bodySignature = header?.BodySignature ?? throw new InvalidOperationException("No header or body signature");
+            bodySignature.AssertEqual(expectedSignature);
+        }
+
         public void Dump()
             => memoryOwner.Memory.Span.Slice(0, bufferLength).Dump();
 

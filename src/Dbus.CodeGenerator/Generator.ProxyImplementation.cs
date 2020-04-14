@@ -32,7 +32,7 @@ namespace Dbus.CodeGenerator
                     methodImplementation.AppendJoin(@"
 ", decoder.Delegates);
                     methodParameters.Add(parameter.Name!);
-                    var variable = "var " + parameter.Name! + " = " + decoder.DelegateName + "(receivedMessage.Decoder);";
+                    var variable = "var " + parameter.Name! + " = " + decoder.DelegateName + "(decoder);";
                     decoded.Add((decoder.Signature, variable));
                 }
             }
@@ -45,11 +45,11 @@ namespace Dbus.CodeGenerator
             }
 
             methodImplementation.Append(@"
-        private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
+        private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.Decoder decoder, global::System.Threading.CancellationToken cancellationToken)
         {
 ");
             methodImplementation.Append(Indent);
-            methodImplementation.Append(@"receivedMessage.AssertSignature(""");
+            methodImplementation.Append(@"decoder.AssertSignature(""");
             methodImplementation.AppendJoin("", decoded.Select(x => x.signature));
             methodImplementation.AppendLine(@""");");
             foreach (var (_, variable) in decoded)

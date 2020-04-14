@@ -29,14 +29,14 @@ namespace Dbus
 
         public Task HandleMethodCallAsync(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage message,
+            Decoder decoder,
             CancellationToken cancellationToken
         )
         {
             switch (methodCallOptions.Member)
             {
                 case "GetManagedObjects":
-                    return handleGetManagedObjectsAsync(methodCallOptions, message, cancellationToken);
+                    return handleGetManagedObjectsAsync(methodCallOptions, decoder, cancellationToken);
                 default:
                     throw new DbusException(
                         DbusException.CreateErrorName("UnknownMethod"),
@@ -47,11 +47,11 @@ namespace Dbus
 
         private async Task handleGetManagedObjectsAsync(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage message,
+            Decoder decoder,
             CancellationToken cancellationToken
         )
         {
-            message.AssertSignature("");
+            decoder.AssertSignature("");
             var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
             if (!methodCallOptions.ShouldSendReply)
                 return;

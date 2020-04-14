@@ -60,17 +60,17 @@ namespace Dbus.CodeGenerator
             implementation.Append("        ");
             implementation.Append("private void handle");
             implementation.Append(eventInfo.Name);
-            implementation.AppendLine("(global::Dbus.ReceivedMessage receivedMessage)");
+            implementation.AppendLine("(global::Dbus.Decoder decoder)");
             implementation.Append("        ");
             implementation.AppendLine("{");
             implementation.Append(Indent);
-            implementation.Append(@"receivedMessage.AssertSignature(""");
+            implementation.Append(@"decoder.AssertSignature(""");
             implementation.AppendJoin("", parameters.Select(x => x.decoder.Signature));
             implementation.AppendLine(@""");");
             foreach (var (invocationParameter, decoder) in parameters)
             {
                 implementation.Append("            ");
-                implementation.AppendLine("var " + invocationParameter + " = " + decoder.DelegateName + "(receivedMessage.Decoder);");
+                implementation.AppendLine("var " + invocationParameter + " = " + decoder.DelegateName + "(decoder);");
             }
             implementation.Append(Indent);
             implementation.Append(eventInfo.Name + "?.Invoke(");

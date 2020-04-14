@@ -76,16 +76,16 @@ namespace Dbus
 
         private void handleMethodCall(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage receivedMessage,
+            Decoder decoder,
             CancellationToken cancellationToken
         )
         {
-            async Task withExceptionHandling(Func<MethodCallOptions, ReceivedMessage, CancellationToken, Task> work, CancellationToken localCancellationToken)
+            async Task withExceptionHandling(Func<MethodCallOptions, Decoder, CancellationToken, Task> work, CancellationToken localCancellationToken)
             {
                 try
                 {
-                    using (receivedMessage)
-                        await work(methodCallOptions, receivedMessage, localCancellationToken);
+                    using (decoder)
+                        await work(methodCallOptions, decoder, localCancellationToken);
                 }
                 catch (DbusException dbusException)
                 {
@@ -121,7 +121,7 @@ namespace Dbus
                 return;
             }
 
-            receivedMessage.Dispose();
+            decoder.Dispose();
             Task.Run(() => sendMethodCallErrorAsync(
                 methodCallOptions,
                 DbusException.CreateErrorName("MethodCallTargetNotFound"),
@@ -132,12 +132,12 @@ namespace Dbus
 
         private Task handlePropertyRequestAsync(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage receivedMessage,
+            Decoder decoder,
             CancellationToken cancellationToken
         ) => methodCallOptions.Member switch
         {
-            "GetAll" => handleGetAllAsync(methodCallOptions, receivedMessage, cancellationToken),
-            "Get" => handleGetAsync(methodCallOptions, receivedMessage, cancellationToken),
+            "GetAll" => handleGetAllAsync(methodCallOptions, decoder, cancellationToken),
+            "Get" => handleGetAsync(methodCallOptions, decoder, cancellationToken),
             _ => throw new DbusException(
                 DbusException.CreateErrorName("UnknownMethod"),
                 "Method not supported"
@@ -146,12 +146,12 @@ namespace Dbus
 
         private Task handleGetAllAsync(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage receivedMessage,
+            Decoder decoder,
             CancellationToken cancellationToken
         )
         {
-            receivedMessage.AssertSignature("s");
-            var requestedInterfaces = Decoder.GetString(receivedMessage.Decoder);
+            decoder.AssertSignature("s");
+            var requestedInterfaces = Decoder.GetString(decoder);
             var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
@@ -175,12 +175,11 @@ namespace Dbus
 
         private Task handleGetAsync(
             MethodCallOptions methodCallOptions,
-            ReceivedMessage receivedMessage,
+            Decoder decoder,
             CancellationToken cancellationToken
         )
         {
-            receivedMessage.AssertSignature("ss");
-            var decoder = receivedMessage.Decoder;
+            decoder.AssertSignature("ss");
             var requestedInterfaces = Decoder.GetString(decoder);
             var requestedProperty = Decoder.GetString(decoder);
             var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
