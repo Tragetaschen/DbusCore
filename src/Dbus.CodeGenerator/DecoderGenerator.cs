@@ -1,65 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Dbus.CodeGenerator
 {
     public class DecoderGenerator
     {
-        private readonly string decoder;
-        private readonly string message;
-
-        private readonly StringBuilder resultBuilder = new StringBuilder();
-        private readonly StringBuilder signatureBuilder = new StringBuilder();
-
-        public DecoderGenerator(string decoder, string message)
+        private DecoderGenerator(
+            string signature,
+            IEnumerable<string> delegates,
+            string delegateName,
+            bool isCompoundValue
+        )
         {
-            this.decoder = decoder;
-            this.message = message;
-        }
-
-        public string Result => resultBuilder.ToString();
-        public string Signature => signatureBuilder.ToString();
-        public bool IsCompoundValue { get; private set; }
-
-        public void Add(string name, Type type, string indent)
-        {
-            var (signature, code, isCompoundValue) = generateDecoder(name, type, indent);
+            Signature = signature;
+            Delegates = delegates;
+            DelegateName = delegateName;
             IsCompoundValue = isCompoundValue;
-            signatureBuilder.Append(signature);
-            resultBuilder.AppendLine(code);
         }
 
-        private (string signature, string code, bool isCompoundValue) generateDecoder(string name, Type type, string indent)
+        public string Signature { get; }
+        public IEnumerable<string> Delegates { get; }
+        public string DelegateName { get; }
+        public bool IsCompoundValue { get; }
+
+        public static DecoderGenerator Empty() => new DecoderGenerator(
+            "",
+            new List<string>(),
+            "",
+            false
+        );
+
+        public static DecoderGenerator Create(string name, Type type)
         {
             if (!type.IsConstructedGenericType)
             {
-                if (SignatureString.For.ContainsKey(type))
-                    return (
-                        SignatureString.For[type],
-                        indent + "var " + name + " = " + decoder + ".Get" + type.Name + "();",
-                        false
-                    );
-                else if (type == typeof(SafeHandle))
-                    return (
-                        "h",
-                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();" + Environment.NewLine +
-                        indent + @"var " + name + @" = " + message + ".UnixFds[" + name + @"_index];",
-                        false
-                    );
-                else if (type == typeof(Stream))
-                    return (
-                        "h",
-                        indent + @"var " + name + @"_index = " + decoder + ".GetInt32();" + Environment.NewLine +
-                        indent + @"var " + name + @" = " + message + ".GetStream(" + name + @"_index);",
+                if (SignatureString.For.TryGetValue(type, out var signature))
+                    return new DecoderGenerator(
+                        signature,
+                        Enumerable.Empty<string>(),
+                        "global::Dbus.Decoder.Get" + type.Name,
                         false
                     );
                 else
-                    return buildFromConstructor(name, type, indent);
+                    return buildFromConstructor(name, type);
             }
             else
             {
@@ -67,10 +53,18 @@ namespace Dbus.CodeGenerator
                 if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
-                    var (signature, code, isCompoundValue) = createMethod(elementType, name + "_e", indent);
-                    return (
-                        "a" + signature,
-                        indent + "var " + name + " = " + decoder + ".GetArray(" + code + ", " + (isCompoundValue ? "true" : "false") + ");",
+                    var elementDecoder = Create(name + "_e", elementType);
+                    var delegates = new List<string>(elementDecoder.Delegates)
+                    {
+                        @"
+        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder)
+            => global::Dbus.Decoder.GetArray(decoder, " + elementDecoder.DelegateName + ", " + (elementDecoder.IsCompoundValue ? "true" : "false") + @");
+"
+                    };
+                    return new DecoderGenerator(
+                        "a" + elementDecoder.Signature,
+                        delegates,
+                        "decode_" + name,
                         false
                     );
                 }
@@ -78,22 +72,30 @@ namespace Dbus.CodeGenerator
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
-                    var (keySignature, keyCode, _) = createMethod(keyType, name + "_k", indent);
-                    var (valueSignature, valueCode, _) = createMethod(valueType, name + "_v", indent);
+                    var keyDecoder = Create(name + "_k", keyType);
+                    var valueDecoder = Create(name + "_v", valueType);
 
-                    return (
-                        "a{" + keySignature + valueSignature + "}",
-                        indent + "var " + name + " = " + decoder + ".GetDictionary(" + keyCode + ", " + valueCode + ");",
+                    var functions = new List<string>();
+                    functions.AddRange(keyDecoder.Delegates);
+                    functions.AddRange(valueDecoder.Delegates);
+                    functions.Add(@"
+        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder)
+            => global::Dbus.Decoder.GetDictionary(decoder, " + keyDecoder.DelegateName + ", " + valueDecoder.DelegateName + @");
+");
+
+                    return new DecoderGenerator(
+                        "a{" + keyDecoder.Signature + valueDecoder.Signature + "}",
+                        functions,
+                        "decode_" + name,
                         false
                     );
                 }
                 else
                     throw new InvalidOperationException("Only IEnumerable, IList and IDictionary are supported as generic type");
             }
-
         }
 
-        private (string signature, string code, bool isCompoundValue) buildFromConstructor(string name, Type type, string indent)
+        private static DecoderGenerator buildFromConstructor(string name, Type type)
         {
             var constructorParameters = type.GetTypeInfo()
                 .GetConstructors()
@@ -102,57 +104,46 @@ namespace Dbus.CodeGenerator
                 .First()
             ;
             var isStruct = type.GetCustomAttribute<NoDbusStructAttribute>() == null;
-            var builder = new StringBuilder();
-            var signature = "";
+            var delegates = new List<string>();
+            var delegateBuilder = new StringBuilder();
+            var signatureBuilder = new StringBuilder();
+
+            delegateBuilder.Append(@"
+        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder) =>
+        {");
 
             if (isStruct)
             {
-                builder.Append(indent);
-                builder.AppendLine(decoder + ".AdvanceToCompoundValue();");
-                signature += "(";
+                delegateBuilder.Append(@"
+            global::Dbus.Decoder.AdvanceToCompoundValue(decoder);
+");
+                signatureBuilder.Append("(");
             }
 
             foreach (var p in constructorParameters)
             {
-                var decoderGenerator = new DecoderGenerator(decoder, message);
-                decoderGenerator.Add(name + "_" + p.Name, p.ParameterType, indent);
-                signature += decoderGenerator.Signature;
-                builder.Append(decoderGenerator.Result);
+                var parameterDecoder = Create(name + "_" + p.Name, p.ParameterType);
+                signatureBuilder.Append(parameterDecoder.Signature);
+                delegates.AddRange(parameterDecoder.Delegates);
+                delegateBuilder.Append(@"
+            var " + p.Name + " = " + parameterDecoder.DelegateName + "(decoder);");
             }
 
             if (isStruct)
-                signature += ")";
+                signatureBuilder.Append(")");
 
-            builder.Append(indent);
-            builder.Append("var " + name + " = new " + Generator.BuildTypeString(type) + "(");
-            builder.Append(string.Join(", ", constructorParameters.Select(x => name + "_" + x.Name)));
-            builder.Append(");");
+            delegateBuilder.Append(@"
+            return new " + Generator.BuildTypeString(type) + "(" + string.Join(", ", constructorParameters.Select(x => x.Name)) + @");
+        };
+");
 
-            return (signature, builder.ToString(), true);
-        }
-
-        private (string signature, string code, bool isCompoundValue) createMethod(Type type, string name, string indent)
-        {
-            if (SignatureString.For.ContainsKey(type))
-                return (
-                    SignatureString.For[type],
-                    decoder + ".Get" + type.Name,
-                    false
-                );
-            else
-            {
-                var decoderGenerator = new DecoderGenerator(decoder, message);
-                decoderGenerator.Add(name + "_inner", type, indent + "    ");
-                return (
-                    decoderGenerator.Signature,
-                    @"() =>
-" + indent + @"{
-" + decoderGenerator.Result + @"
-" + indent + "    " + @"return " + name + @"_inner;
-" + indent + "}",
-                    decoderGenerator.IsCompoundValue
-                );
-            }
+            delegates.Add(delegateBuilder.ToString());
+            return new DecoderGenerator(
+                signatureBuilder.ToString(),
+                delegates,
+                "decode_" + name,
+                true
+            );
         }
     }
 }

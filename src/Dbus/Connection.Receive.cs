@@ -75,7 +75,7 @@ namespace Dbus
                 control
             );
 
-            var decoder = new Decoder(bodyMemoryOwner, bodyLength);
+            var decoder = new Decoder(header, bodyMemoryOwner, bodyLength);
 
             switch (messageType)
             {
@@ -119,7 +119,7 @@ namespace Dbus
                 control
             );
 
-            var decoder = new Decoder(headerBytesOwnedMemory, receivedArrayLength);
+            var decoder = new Decoder(null, headerBytesOwnedMemory, receivedArrayLength);
             try
             {
                 return new MessageHeader(socketOperations, decoder, control, isMonoRuntime);

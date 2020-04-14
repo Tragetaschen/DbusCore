@@ -142,10 +142,10 @@ namespace Dbus.CodeGenerator
         {
             receivedMessage.AssertSignature(""sa{sv}as"");
             var decoder = receivedMessage.Decoder;
-            var interfaceName = decoder.GetString();
+            var interfaceName = global::Dbus.Decoder.GetString(decoder);
             if (interfaceName != """ + consume.InterfaceName + @""")
                 return;
-            var changed = decoder.GetDictionary(decoder.GetString, decoder.GetObject);
+            var changed = global::Dbus.Decoder.GetDictionary(decoder, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
             applyProperties(changed);
         }
 
@@ -166,9 +166,10 @@ namespace Dbus.CodeGenerator
             using (receivedMessage)
             {
                 receivedMessage.AssertSignature(""a{sv}"");
-                var properties = receivedMessage.Decoder.GetDictionary(
-                    receivedMessage.Decoder.GetString,
-                    receivedMessage.Decoder.GetObject
+                var properties = global::Dbus.Decoder.GetDictionary(
+                    receivedMessage.Decoder,
+                    global::Dbus.Decoder.GetString,
+                    global::Dbus.Decoder.GetObject
                 );
                 applyProperties(properties);
             }

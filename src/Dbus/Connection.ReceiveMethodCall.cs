@@ -151,7 +151,7 @@ namespace Dbus
         )
         {
             receivedMessage.AssertSignature("s");
-            var requestedInterfaces = receivedMessage.Decoder.GetString();
+            var requestedInterfaces = Decoder.GetString(receivedMessage.Decoder);
             var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
@@ -181,8 +181,8 @@ namespace Dbus
         {
             receivedMessage.AssertSignature("ss");
             var decoder = receivedMessage.Decoder;
-            var requestedInterfaces = decoder.GetString();
-            var requestedProperty = decoder.GetString();
+            var requestedInterfaces = Decoder.GetString(decoder);
+            var requestedProperty = Decoder.GetString(decoder);
             var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {

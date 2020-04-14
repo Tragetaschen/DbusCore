@@ -73,35 +73,29 @@ namespace Dbus.CodeGenerator
                             encoder.Add(parameter.Name!, parameter.ParameterType);
             }
 
+            DecoderGenerator decoderGenerator;
             string returnStatement;
-            var decoder = new DecoderGenerator("decoder", "receivedMessage");
 
             if (returnType == typeof(Task))
+            {
+                decoderGenerator = DecoderGenerator.Empty();
                 returnStatement = "return;";
+            }
             else if (isProperty)
             {
                 // must be "Get"
-                decoder.Add("result", typeof(object), Indent + "    ");
-                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")result;";
+                decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, typeof(object));
+                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")" + decoderGenerator.DelegateName + "(receivedMessage.Decoder);";
             }
             else // Task<T>
             {
-                decoder.Add("result", returnType.GenericTypeArguments[0], Indent + "    ");
-                returnStatement = "return result;";
+                decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, returnType.GenericTypeArguments[0]);
+                returnStatement = "return " + decoderGenerator.DelegateName + "(receivedMessage.Decoder);";
             }
 
-            var createFunction = "";
-
-            if (returnType != typeof(Task))
-                createFunction = @"
-            " + BuildTypeString(methodInfo.ReturnType.GenericTypeArguments[0]) + @" decode(global::Dbus.Decoder decoder)
-            {
-" + decoder.Result + @"
-                " + returnStatement + @"
-            }
-";
 
             return @"
+" + string.Join("", decoderGenerator.Delegates) + @"
         public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
         {
             var sendBody = new global::Dbus.Encoder();
@@ -115,11 +109,10 @@ namespace Dbus.CodeGenerator
                 """ + encoder.Signature + @""",
                 " + cancellationTokenName + @"
             ).ConfigureAwait(false);
-" + (returnType == typeof(Task) ? "" : createFunction) + @"
             using (receivedMessage)
             {
-                receivedMessage.AssertSignature(""" + decoder.Signature + @""");
-                " + (returnType == typeof(Task) ? "return;" : "return decode(receivedMessage.Decoder);") + @"
+                receivedMessage.AssertSignature(""" + decoderGenerator.Signature + @""");
+                " + returnStatement + @"
             }
         }
 ";

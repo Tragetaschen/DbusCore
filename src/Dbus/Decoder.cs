@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -13,27 +14,29 @@ namespace Dbus
     {
         private static readonly Dictionary<char, (Func<Decoder, object> Decoder, Type Type)> typeDecoders = new Dictionary<char, (Func<Decoder, object>, Type)>
         {
-            ['o'] = (d => d.GetObjectPath(), typeof(ObjectPath)),
-            ['s'] = (d => d.GetString(), typeof(string)),
-            ['g'] = (d => d.GetSignature(), typeof(Signature)),
-            ['y'] = (d => d.GetByte(), typeof(byte)),
-            ['b'] = (d => d.GetBoolean(), typeof(bool)),
-            ['n'] = (d => d.GetInt16(), typeof(short)),
-            ['q'] = (d => d.GetUInt16(), typeof(ushort)),
-            ['i'] = (d => d.GetInt32(), typeof(int)),
-            ['u'] = (d => d.GetUInt32(), typeof(uint)),
-            ['x'] = (d => d.GetInt64(), typeof(long)),
-            ['t'] = (d => d.GetUInt64(), typeof(ulong)),
-            ['d'] = (d => d.GetDouble(), typeof(double)),
-            ['v'] = (d => d.GetObject(), typeof(object)),
+            ['o'] = (d => GetObjectPath(d), typeof(ObjectPath)),
+            ['s'] = (d => GetString(d), typeof(string)),
+            ['g'] = (d => GetSignature(d), typeof(Signature)),
+            ['y'] = (d => GetByte(d), typeof(byte)),
+            ['b'] = (d => GetBoolean(d), typeof(bool)),
+            ['n'] = (d => GetInt16(d), typeof(short)),
+            ['q'] = (d => GetUInt16(d), typeof(ushort)),
+            ['i'] = (d => GetInt32(d), typeof(int)),
+            ['u'] = (d => GetUInt32(d), typeof(uint)),
+            ['x'] = (d => GetInt64(d), typeof(long)),
+            ['t'] = (d => GetUInt64(d), typeof(ulong)),
+            ['d'] = (d => GetDouble(d), typeof(double)),
+            ['v'] = (d => GetObject(d), typeof(object)),
         };
 
+        private readonly MessageHeader? header;
         private readonly IMemoryOwner<byte> memoryOwner;
         private readonly int bufferLength;
         private int index;
 
-        public Decoder(IMemoryOwner<byte> memoryOwner, int bufferLength)
+        public Decoder(MessageHeader? header, IMemoryOwner<byte> memoryOwner, int bufferLength)
         {
+            this.header = header;
             this.memoryOwner = memoryOwner;
             this.bufferLength = bufferLength;
             index = 0;
@@ -43,7 +46,7 @@ namespace Dbus
             => memoryOwner.Memory.Span.Slice(0, bufferLength).Dump();
 
         public bool IsFinished => index >= bufferLength;
-        public void AdvanceToCompoundValue() => advanceToAlignment(8);
+        public static void AdvanceToCompoundValue(Decoder decoder) => decoder.advanceToAlignment(8);
 
         public void Reset() => index = 0;
 
@@ -55,7 +58,7 @@ namespace Dbus
         /// <typeparam name="T">Result type of the decoder</typeparam>
         /// <param name="decoder">The decoder</param>
         /// <returns>The decoded type</returns>
-        public delegate T ElementDecoder<T>();
+        public delegate T ElementDecoder<T>(Decoder decoder);
 
         private unsafe string getStringFromBytes(int length)
         {
@@ -73,28 +76,25 @@ namespace Dbus
         /// <summary>
         /// Decodes a string from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded string</returns>
-        public string GetString()
+        public static readonly ElementDecoder<string> GetString = decoder =>
         {
-            var stringLength = GetInt32(); // Actually uint
-            return getStringFromBytes(stringLength);
-        }
+            var stringLength = GetInt32(decoder); // Actually uint
+            return decoder.getStringFromBytes(stringLength);
+        };
 
         /// <summary>
         /// Decodes an object path from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded object path</returns>
-        public ObjectPath GetObjectPath() => GetString();
+        public static readonly ElementDecoder<ObjectPath> GetObjectPath = decoder => GetString(decoder);
 
         /// <summary>
         /// Decodes a signature from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded signature</returns>
-        public Signature GetSignature()
+        public static readonly ElementDecoder<Signature> GetSignature = decoder =>
         {
-            var signatureLength = GetByte();
-            return getStringFromBytes(signatureLength);
-        }
+            var signatureLength = GetByte(decoder);
+            return decoder.getStringFromBytes(signatureLength);
+        };
 
         private T getPrimitive<T>(int shiftWidth) where T : struct
         {
@@ -109,56 +109,63 @@ namespace Dbus
         /// <summary>
         /// Decodes a Byte from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Byte</returns>
-        public byte GetByte() => getPrimitive<byte>(0);
+        public static readonly ElementDecoder<byte> GetByte = decoder => decoder.getPrimitive<byte>(0);
 
         /// <summary>
         /// Decodes a Boolean from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Boolean</returns>
-        public bool GetBoolean() => getPrimitive<int>(2) != 0;
+        public static readonly ElementDecoder<bool> GetBoolean = decoder => decoder.getPrimitive<int>(2) != 0;
 
         /// <summary>
         /// Decodes an Int16 from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Int16</returns>
-        public short GetInt16() => getPrimitive<short>(1);
+        public static readonly ElementDecoder<short> GetInt16 = decoder => decoder.getPrimitive<short>(1);
 
         /// <summary>
         /// Decodes an UInt16 from the buffer and advances the index
         /// </summary>
         /// <returns>The decoded UInt16</returns>
-        public ushort GetUInt16() => getPrimitive<ushort>(1);
+        public static readonly ElementDecoder<ushort> GetUInt16 = decoder => decoder.getPrimitive<ushort>(1);
 
         /// <summary>
         /// Decodes an Int32 from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Int32</returns>
-        public int GetInt32() => getPrimitive<int>(2);
+        public static readonly ElementDecoder<int> GetInt32 = decoder => decoder.getPrimitive<int>(2);
 
         /// <summary>
         /// Decodes an UInt32 from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded UInt32</returns>
-        public uint GetUInt32() => getPrimitive<uint>(2);
+        public static readonly ElementDecoder<uint> GetUInt32 = decoder => decoder.getPrimitive<uint>(2);
 
         /// <summary>
         /// Decodes an Int64 from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Int64</returns>
-        public long GetInt64() => getPrimitive<long>(3);
+        public static readonly ElementDecoder<long> GetInt64 = decoder => decoder.getPrimitive<long>(3);
 
         /// <summary>
         /// Decodes an UInt64 from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded UInt64</returns>
-        public ulong GetUInt64() => getPrimitive<ulong>(3);
+        public static readonly ElementDecoder<ulong> GetUInt64 = decoder => decoder.getPrimitive<ulong>(3);
 
         /// <summary>
         /// Decodes an Double from the buffer and advances the index
         /// </summary>
-        /// <returns>The decoded Double</returns>
-        public double GetDouble() => getPrimitive<double>(3);
+        public static readonly ElementDecoder<double> GetDouble = decoder => decoder.getPrimitive<double>(3);
+
+        public static SafeHandle GetSafeHandle(Decoder decoder)
+        {
+            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
+            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
+            var index = GetInt32(decoder);
+            return unixFds[index];
+        }
+
+        public static Stream GetStream(Decoder decoder)
+        {
+            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
+            var index = GetInt32(decoder);
+            return header.GetStream(index);
+        }
 
         /// <summary>
         /// Decodes an array from the buffer and advances the index
@@ -166,16 +173,16 @@ namespace Dbus
         /// <typeparam name="T">Type of the array elements</typeparam>
         /// <param name="decoder">The decoder for the elements</param>
         /// <returns>The decoded array</returns>
-        public List<T> GetArray<T>(ElementDecoder<T> decoder, bool storesCompoundValues)
+        public static List<T> GetArray<T>(Decoder decoder, ElementDecoder<T> elementDecoder, bool storesCompoundValues)
         {
             var result = new List<T>();
-            var arrayLength = GetInt32(); // Actually uint
+            var arrayLength = GetInt32(decoder); // Actually uint
             if (storesCompoundValues)
-                AdvanceToCompoundValue();
-            var startIndex = index;
-            while (index - startIndex < arrayLength)
+                AdvanceToCompoundValue(decoder);
+            var startIndex = decoder.index;
+            while (decoder.index - startIndex < arrayLength)
             {
-                var element = decoder();
+                var element = elementDecoder(decoder);
                 result.Add(element);
             }
             return result;
@@ -189,53 +196,54 @@ namespace Dbus
         /// <param name="keyDecoder">The decoder for the keys</param>
         /// <param name="valueDecoder">The decoder for the values</param>
         /// <returns>The decoded dictionary</returns>
-        public IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
+        public static IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
+            Decoder decoder,
             ElementDecoder<TKey> keyDecoder,
             ElementDecoder<TValue> valueDecoder
         ) where TKey : notnull
         {
             var result = new Dictionary<TKey, TValue>();
-            var arrayLength = GetInt32(); // Actually uint
-            AdvanceToCompoundValue();
-            var startIndex = index;
-            while (index - startIndex < arrayLength)
+            var arrayLength = GetInt32(decoder); // Actually uint
+            AdvanceToCompoundValue(decoder);
+            var startIndex = decoder.index;
+            while (decoder.index - startIndex < arrayLength)
             {
-                AdvanceToCompoundValue();
+                AdvanceToCompoundValue(decoder);
 
-                var key = keyDecoder();
-                var value = valueDecoder();
+                var key = keyDecoder(decoder);
+                var value = valueDecoder(decoder);
                 result.Add(key, value);
             }
             return result;
         }
 
-        public object GetObject()
+        public static readonly ElementDecoder<object> GetObject = decoder =>
         {
-            var signature = GetSignature();
+            var signature = GetSignature(decoder);
             var stringSignature = signature.ToString();
             var consumed = 0;
             var decoderInfo = createDecoder(stringSignature, ref consumed);
             if (consumed != stringSignature.Length)
                 throw new InvalidOperationException($"Signature '{stringSignature}' was only parsed until index {consumed}");
-            return decoderInfo.Decode();
-        }
+            return decoderInfo.Decode(decoder);
+        };
 
-        private (ElementDecoder<object>, Type, bool) createArrayDecoder(string signature, ref int consumed)
+        private static (ElementDecoder<object>, Type, bool) createArrayDecoder(string signature, ref int consumed)
         {
             var (elementDecoder, elementType, isCompoundType) = createDecoder(signature, ref consumed);
             var arrayType = typeof(List<>).MakeGenericType(elementType);
 
-            object decodeArray()
+            object decodeArray(Decoder decoder)
             {
                 // See GetArray(…)
                 var result = (IList)Activator.CreateInstance(arrayType)!;
-                var arrayLength = GetInt32(); // Actually uint
+                var arrayLength = GetInt32(decoder); // Actually uint
                 if (isCompoundType)
-                    AdvanceToCompoundValue();
-                var startIndex = index;
-                while (index - startIndex < arrayLength)
+                    AdvanceToCompoundValue(decoder);
+                var startIndex = decoder.index;
+                while (decoder.index - startIndex < arrayLength)
                 {
-                    var element = elementDecoder();
+                    var element = elementDecoder(decoder);
                     result.Add(element);
                 }
                 return result;
@@ -244,25 +252,28 @@ namespace Dbus
             return (decodeArray, arrayType, false);
         }
 
-        private (ElementDecoder<object>, Type, bool) createDictionaryDecoder(string signature, ref int consumed)
+        private static (ElementDecoder<object>, Type, bool) createDictionaryDecoder(
+            string signature,
+            ref int consumed
+        )
         {
             var (keyDecoder, keyType, _) = createDecoder(signature, ref consumed);
             var (valueDecoder, valueType, _) = createDecoder(signature, ref consumed);
             var dictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
 
-            object decodeDictionary()
+            object decodeDictionary(Decoder decoder)
             {
                 // See GetDictionary(…)
                 var result = (IDictionary)Activator.CreateInstance(dictionaryType)!;
-                var arrayLength = GetInt32(); // Actually uint
-                AdvanceToCompoundValue();
-                var startIndex = index;
-                while (index - startIndex < arrayLength)
+                var arrayLength = GetInt32(decoder); // Actually uint
+                AdvanceToCompoundValue(decoder);
+                var startIndex = decoder.index;
+                while (decoder.index - startIndex < arrayLength)
                 {
-                    AdvanceToCompoundValue();
+                    AdvanceToCompoundValue(decoder);
 
-                    var key = keyDecoder();
-                    var value = valueDecoder();
+                    var key = keyDecoder(decoder);
+                    var value = valueDecoder(decoder);
                     result.Add(key, value);
                 }
                 return result;
@@ -271,7 +282,7 @@ namespace Dbus
             return (decodeDictionary, dictionaryType, false);
         }
 
-        private (ElementDecoder<object>, Type, bool) createTupleDecoder(string signature, ref int consumed)
+        private static (ElementDecoder<object>, Type, bool) createTupleDecoder(string signature, ref int consumed)
         {
             var tupleTypes = new List<(ElementDecoder<object> Decode, Type Type, bool isCompoundValue)>();
             var origConsumed = consumed;
@@ -290,12 +301,12 @@ namespace Dbus
 
             var (factoryMethod, tupleType) = buildTuple(types);
 
-            object decodeTuple()
+            object decodeTuple(Decoder decoder)
             {
-                AdvanceToCompoundValue();
+                AdvanceToCompoundValue(decoder);
                 var parameters = new object[tupleTypes.Count];
                 for (var i = 0; i < tupleTypes.Count; ++i)
-                    parameters[i] = tupleTypes[i].Decode();
+                    parameters[i] = tupleTypes[i].Decode(decoder);
                 return factoryMethod.Invoke(null, parameters)!;
             }
 
@@ -325,7 +336,10 @@ namespace Dbus
             return (factoryMethod, tupleType);
         }
 
-        private (ElementDecoder<object> Decode, Type Type, bool isCompoundValue) createDecoder(string signature, ref int consumed)
+        private static (ElementDecoder<object> Decode, Type Type, bool isCompoundValue) createDecoder(
+            string signature,
+            ref int consumed
+        )
         {
             if (signature[consumed] == 'a')
                 if (signature[consumed + 1] == '{')
@@ -345,7 +359,7 @@ namespace Dbus
             else if (typeDecoders.TryGetValue(signature[consumed], out var typeInfo))
             {
                 consumed += 1;  // the type char
-                return (() => typeInfo.Decoder(this), typeInfo.Type, false);
+                return (decoder => typeInfo.Decoder(decoder), typeInfo.Type, false);
             }
             else if (signature[consumed] == '(')
             {

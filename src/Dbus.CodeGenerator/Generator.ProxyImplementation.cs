@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -19,20 +20,20 @@ namespace Dbus.CodeGenerator
             var methodName = method.Name.Substring(0, method.Name.Length - "Async".Length);
             var methodImplementation = new StringBuilder();
 
-            methodImplementation.Append(@"
-        private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
-        {
-");
-            var decoder = new DecoderGenerator("receivedMessage.Decoder", "receivedMessage");
             var methodParameters = new List<string>();
+            var decoded = new List<(string signature, string variable)>();
             foreach (var parameter in method.GetParameters())
             {
                 if (parameter.ParameterType == typeof(CancellationToken))
                     methodParameters.Add("cancellationToken");
                 else
                 {
-                    decoder.Add(parameter.Name!, parameter.ParameterType, Indent);
+                    var decoder = DecoderGenerator.Create(method.Name + "_" + parameter.Name, parameter.ParameterType);
+                    methodImplementation.AppendJoin(@"
+", decoder.Delegates);
                     methodParameters.Add(parameter.Name!);
+                    var variable = "var " + parameter.Name! + " = " + decoder.DelegateName + "(receivedMessage.Decoder);";
+                    decoded.Add((decoder.Signature, variable));
                 }
             }
 
@@ -43,9 +44,19 @@ namespace Dbus.CodeGenerator
                 encoder.Add("methodResult", returnType, Indent);
             }
 
+            methodImplementation.Append(@"
+        private async global::System.Threading.Tasks.Task handle" + method.Name + @"(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.ReceivedMessage receivedMessage, global::System.Threading.CancellationToken cancellationToken)
+        {
+");
             methodImplementation.Append(Indent);
-            methodImplementation.AppendLine(@"receivedMessage.AssertSignature(""" + decoder.Signature + @""");");
-            methodImplementation.Append(decoder.Result);
+            methodImplementation.Append(@"receivedMessage.AssertSignature(""");
+            methodImplementation.AppendJoin("", decoded.Select(x => x.signature));
+            methodImplementation.AppendLine(@""");");
+            foreach (var (_, variable) in decoded)
+            {
+                methodImplementation.Append(Indent);
+                methodImplementation.AppendLine(variable);
+            }
             methodImplementation.Append(Indent);
             if (encoder.Signature != "")
                 methodImplementation.Append("var methodResult = ");

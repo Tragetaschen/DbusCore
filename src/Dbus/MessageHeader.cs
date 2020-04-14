@@ -23,36 +23,36 @@ namespace Dbus
             BodySignature = "";
             while (!header.IsFinished)
             {
-                var typeCode = (DbusHeaderType)header.GetByte();
-                header.GetSignature(); // variant signature
+                var typeCode = (DbusHeaderType)Decoder.GetByte(header);
+                Decoder.GetSignature(header); // variant signature
                 switch (typeCode)
                 {
                     case DbusHeaderType.Path:
-                        Path = header.GetObjectPath();
+                        Path = Decoder.GetObjectPath(header);
                         break;
                     case DbusHeaderType.InterfaceName:
-                        InterfaceName = header.GetString();
+                        InterfaceName = Decoder.GetString(header);
                         break;
                     case DbusHeaderType.Member:
-                        Member = header.GetString();
+                        Member = Decoder.GetString(header);
                         break;
                     case DbusHeaderType.ErrorName:
-                        ErrorName = header.GetString();
+                        ErrorName = Decoder.GetString(header);
                         break;
                     case DbusHeaderType.ReplySerial:
-                        ReplySerial = header.GetUInt32();
+                        ReplySerial = Decoder.GetUInt32(header);
                         break;
                     case DbusHeaderType.Destination:
-                        Destination = header.GetString();
+                        Destination = Decoder.GetString(header);
                         break;
                     case DbusHeaderType.Sender:
-                        Sender = header.GetString();
+                        Sender = Decoder.GetString(header);
                         break;
                     case DbusHeaderType.Signature:
-                        BodySignature = header.GetSignature();
+                        BodySignature = Decoder.GetSignature(header);
                         break;
                     case DbusHeaderType.UnixFds:
-                        var numberOfFds = header.GetUInt32();
+                        var numberOfFds = Decoder.GetUInt32(header);
 
                         var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);
                         var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
@@ -72,7 +72,7 @@ namespace Dbus
                                 UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
                         break;
                 }
-                header.AdvanceToCompoundValue();
+                Decoder.AdvanceToCompoundValue(header);
             }
         }
         public ObjectPath? Path { get; }

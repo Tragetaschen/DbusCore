@@ -96,7 +96,7 @@ namespace Dbus
                         exception = new DbusException("Invalid message");
                     else if (header.BodySignature.ToString().StartsWith("s"))
                     {
-                        var message = decoder.GetString();
+                        var message = Decoder.GetString(decoder);
                         exception = new DbusException(header.ErrorName, message);
                     }
                     else
