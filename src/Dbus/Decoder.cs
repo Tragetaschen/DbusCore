@@ -227,13 +227,19 @@ namespace Dbus
         public static readonly ElementDecoder<object> GetObject = decoder =>
         {
             var signature = GetSignature(decoder);
+            return DecodeVariant(decoder, signature);
+        };
+
+        internal static object DecodeVariant(Decoder decoder, Signature signature)
+        {
             var stringSignature = signature.ToString();
             var consumed = 0;
             var decoderInfo = createDecoder(stringSignature, ref consumed);
             if (consumed != stringSignature.Length)
                 throw new InvalidOperationException($"Signature '{stringSignature}' was only parsed until index {consumed}");
             return decoderInfo.Decode(decoder);
-        };
+        }
+
 
         private static (ElementDecoder<object>, Type, bool) createArrayDecoder(string signature, ref int consumed)
         {

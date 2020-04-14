@@ -20,7 +20,7 @@ namespace Dbus
             while (!header.IsFinished)
             {
                 var typeCode = (DbusHeaderType)Decoder.GetByte(header);
-                Decoder.GetSignature(header); // variant signature
+                var signature = Decoder.GetSignature(header); // variant signature
                 switch (typeCode)
                 {
                     case DbusHeaderType.Path:
@@ -63,6 +63,10 @@ namespace Dbus
                         UnixFds = new SafeHandle[numberOfFds];
                         for (var i = 0; i < numberOfFds; ++i)
                             UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
+                        break;
+                    default:
+                        var value = Decoder.DecodeVariant(header, signature);
+                        Console.Error.WriteLine("Unknown header type {0} with value '{1}'. Please update the implementation", typeCode, value);
                         break;
                 }
                 Decoder.AdvanceToCompoundValue(header);
