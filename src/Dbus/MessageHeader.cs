@@ -1,7 +1,6 @@
 ﻿using DotNetCross.NativeInts;
 using Microsoft.Win32.SafeHandles;
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Dbus
@@ -13,8 +12,7 @@ namespace Dbus
         public MessageHeader(
             SocketOperations socketOperations,
             Decoder header,
-            ReadOnlySpan<byte> controlBytes,
-            bool isMonoRuntime
+            ReadOnlySpan<byte> controlBytes
         )
         {
             SocketOperations = socketOperations;
@@ -64,10 +62,7 @@ namespace Dbus
 
                         UnixFds = new SafeHandle[numberOfFds];
                         for (var i = 0; i < numberOfFds; ++i)
-                            if (isMonoRuntime)
-                                UnixFds[i] = new ReceivedFileDescriptorSafeHandle(fileDescriptors[i]);
-                            else
-                                UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
+                            UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
                         break;
                 }
                 Decoder.AdvanceToCompoundValue(header);

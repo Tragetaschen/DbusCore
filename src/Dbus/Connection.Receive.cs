@@ -121,7 +121,7 @@ namespace Dbus
             var decoder = new Decoder(null, headerBytesOwnedMemory, receivedArrayLength);
             try
             {
-                return new MessageHeader(socketOperations, decoder, control, isMonoRuntime);
+                return new MessageHeader(socketOperations, decoder, control);
             }
             finally
             {

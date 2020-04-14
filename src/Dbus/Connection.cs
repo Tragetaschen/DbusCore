@@ -18,8 +18,6 @@ namespace Dbus
 
         private int serialCounter;
 
-        private readonly bool isMonoRuntime = Type.GetType("Mono.Runtime") != null;
-
         private Connection(SocketOperations socketOperations)
         {
             this.socketOperations = socketOperations;
