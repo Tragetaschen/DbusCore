@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text;
 
 namespace Dbus
@@ -7,13 +8,13 @@ namespace Dbus
     {
         private static void authenticate(SocketOperations socketOperations)
         {
-            var authExternal = "\0AUTH EXTERNAL ";
-
-            var stringUid = $"{socketOperations.Uid}";
+            var stringUid = socketOperations.Uid.ToString(CultureInfo.InvariantCulture);
             var uidBytes = Encoding.ASCII.GetBytes(stringUid);
+
+            var authExternal = new StringBuilder("\0AUTH EXTERNAL ");
             foreach (var b in uidBytes)
-                authExternal += $"{b:X}";
-            socketOperations.WriteLine(authExternal);
+                authExternal.Append(b.ToString("X", CultureInfo.InvariantCulture));
+            socketOperations.WriteLine(authExternal.ToString());
 
             var line = socketOperations.ReadLine();
             if (!line.StartsWith("OK "))

@@ -19,19 +19,19 @@ namespace Dbus
         public IProxy Publish<T>(
             T target,
             ObjectPath? path = null
-        ) where T : notnull
+        ) where T : class
             => publishFactories[typeof(T)](this, target, path);
 
         public static void AddConsumeImplementation<T>(
             Func<Connection, ObjectPath?, string?, CancellationToken, object> factory
-        ) where T : notnull
+        ) where T : class
             => consumeFactories.Add(typeof(T), factory);
 
         public T Consume<T>(
             ObjectPath? path = null,
             string? destination = null,
             CancellationToken cancellationToken = default
-        ) where T : notnull
+        ) where T : class
             => (T)consumeFactories[typeof(T)](this, path, destination, cancellationToken);
     }
 }

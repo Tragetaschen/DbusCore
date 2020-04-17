@@ -9,8 +9,8 @@ namespace Dbus
     {
         public delegate void SignalHandler(Decoder decoder);
 
-        private readonly ConcurrentDictionary<string, SignalHandler?> signalHandlers =
-            new ConcurrentDictionary<string, SignalHandler?>();
+        private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName, string member), SignalHandler?> signalHandlers =
+            new ConcurrentDictionary<(ObjectPath, string, string), SignalHandler?>();
 
         public IAsyncDisposable RegisterSignalHandler(
             ObjectPath path,
@@ -19,7 +19,7 @@ namespace Dbus
             SignalHandler handler
         )
         {
-            var dictionaryEntry = path + "\0" + interfaceName + "\0" + member;
+            var dictionaryEntry = (path, interfaceName, member);
             var newHandler = signalHandlers.AddOrUpdate(
                 dictionaryEntry,
                 handler,
@@ -46,14 +46,14 @@ namespace Dbus
         private class signalHandle : IAsyncDisposable
         {
             private readonly Connection connection;
-            private readonly string entry;
+            private readonly (ObjectPath, string, string) entry;
             private readonly string match;
             private readonly Task addMatchTask;
             private readonly SignalHandler handler;
 
             public signalHandle(
                 Connection connection,
-                string entry,
+                (ObjectPath, string, string) entry,
                 string match,
                 Task addMatchTask,
                 SignalHandler handler
@@ -90,7 +90,7 @@ namespace Dbus
             CancellationToken cancellationToken
         )
         {
-            var dictionaryEntry = header.Path + "\0" + header.InterfaceName + "\0" + header.Member;
+            var dictionaryEntry = (header.Path!, header.InterfaceName!, header.Member!);
             if (signalHandlers.TryGetValue(dictionaryEntry, out var handlers) && handlers != null)
                 Task.Run(() =>
                 {

@@ -61,7 +61,7 @@ namespace Dbus
             // Store values before receiving the next header
             var messageType = fixedLengthHeader.MessageType;
             var serial = fixedLengthHeader.Serial;
-            var shouldSendReply = !fixedLengthHeader.Flags.HasFlag(DbusMessageFlags.NoReplyExpected);
+            var shouldSendReply = (fixedLengthHeader.Flags & DbusMessageFlags.NoReplyExpected) == 0;
             var bodyLength = fixedLengthHeader.BodyLength;
 
             var bodyMemoryOwner = MemoryPool<byte>.Shared.Rent(bodyLength);

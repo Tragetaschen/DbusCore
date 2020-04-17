@@ -9,7 +9,7 @@ namespace Dbus
     {
         ObjectPath Root { get; }
         Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
-        ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : notnull;
-        void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : notnull;
+        ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : class;
+        void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : class;
     }
 }

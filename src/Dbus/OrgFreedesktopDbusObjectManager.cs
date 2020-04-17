@@ -27,7 +27,7 @@ namespace Dbus
         public ObjectPath Root { get; }
 
         public ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath? path = null)
-             where TInterface : notnull
+             where TInterface : class
         {
             var fullPath = buildFullPath(path);
             var proxy = connection.Publish(instance, fullPath);
@@ -65,7 +65,7 @@ namespace Dbus
         }
 
         public void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null)
-            where TInterface : notnull
+            where TInterface : class
         {
             var fullPath = buildFullPath(path);
             IProxy? removedProxy = null;
@@ -74,11 +74,18 @@ namespace Dbus
             {
                 if (managedObjects.TryGetValue(fullPath, out var proxies))
                 {
-                    var proxy = proxies.SingleOrDefault(x => ReferenceEquals(x.Target, instance));
-                    proxies.Remove(proxy);
-                    if (proxies.Count == 0)
-                        managedObjects.Remove(fullPath);
-                    removedProxy = proxy;
+                    foreach (var proxy in proxies)
+                        if (ReferenceEquals(proxy.Target, instance))
+                        {
+                            removedProxy = proxy;
+                            break;
+                        }
+                    if (removedProxy != null)
+                    {
+                        proxies.Remove(removedProxy);
+                        if (proxies.Count == 0)
+                            managedObjects.Remove(fullPath);
+                    }
                 }
             }
             finally
