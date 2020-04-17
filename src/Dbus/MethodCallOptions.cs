@@ -4,7 +4,7 @@
     {
         public MethodCallOptions(
             MessageHeader messageHeader,
-            bool shoudSendReply,
+            bool noReplyExpected,
             uint replySerial
         )
         {
@@ -13,7 +13,7 @@
             InterfaceName = messageHeader.InterfaceName!;
             Member = messageHeader.Member!;
             ReplySerial = replySerial;
-            ShouldSendReply = shoudSendReply;
+            NoReplyExpected = noReplyExpected;
         }
 
         public string Sender { get; }
@@ -21,6 +21,6 @@
         public string InterfaceName { get; }
         public string Member { get; }
         public uint ReplySerial { get; }
-        public bool ShouldSendReply { get; }
+        public bool NoReplyExpected { get; }
     }
 }

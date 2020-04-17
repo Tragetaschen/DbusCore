@@ -74,7 +74,7 @@ namespace Dbus.CodeGenerator
             methodImplementation.Append(string.Join(", ", methodParameters));
             methodImplementation.AppendLine(");");
             methodImplementation.Append(Indent);
-            methodImplementation.AppendLine("if (!methodCallOptions.ShouldSendReply)");
+            methodImplementation.AppendLine("if (methodCallOptions.NoReplyExpected)");
             methodImplementation.Append(Indent);
             methodImplementation.AppendLine("    return;");
             methodImplementation.Append(Indent);

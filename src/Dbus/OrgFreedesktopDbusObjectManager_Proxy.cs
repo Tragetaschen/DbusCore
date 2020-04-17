@@ -85,7 +85,7 @@ namespace Dbus
         {
             decoder.AssertSignature("");
             var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
-            if (!methodCallOptions.ShouldSendReply)
+            if (methodCallOptions.NoReplyExpected)
                 return;
             var encoder = encodeManagedObjects(managedObjects);
             await connection.SendMethodReturnAsync(
