@@ -151,6 +151,7 @@ namespace Dbus
         {
             "GetAll" => handleGetAllAsync(methodCallOptions, decoder, cancellationToken),
             "Get" => handleGetAsync(methodCallOptions, decoder, cancellationToken),
+            "Set" => handleSetAsync(methodCallOptions, decoder, cancellationToken),
             _ => throw new DbusException(
                 DbusException.CreateErrorName("UnknownMethod"),
                 "Method not supported"
@@ -204,6 +205,35 @@ namespace Dbus
                     methodCallOptions,
                     sendBody,
                     "v",
+                    cancellationToken
+                );
+            }
+            else
+                return sendMethodCallErrorAsync(
+                    methodCallOptions,
+                    DbusException.CreateErrorName("MethodCallTargetNotFound"),
+                    "The requested method call isn't mapped to an actual object",
+                    cancellationToken
+                );
+        }
+
+        private Task handleSetAsync(
+            MethodCallOptions methodCallOptions,
+            Decoder decoder,
+            CancellationToken cancellationToken
+        )
+        {
+            decoder.AssertSignature("ssv");
+            var requestedInterfaces = Decoder.GetString(decoder);
+            var requestedProperty = Decoder.GetString(decoder);
+            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
+            if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
+            {
+                proxy.SetProperty(requestedProperty, decoder);
+                return SendMethodReturnAsync(
+                    methodCallOptions,
+                    new Encoder(),
+                    "",
                     cancellationToken
                 );
             }

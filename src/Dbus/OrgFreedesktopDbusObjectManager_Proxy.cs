@@ -108,6 +108,12 @@ namespace Dbus
                 "ObjectManager has no Properties"
             );
 
+        public void SetProperty(string requestedProperty, Decoder decoder)
+            => throw new DbusException(
+                DbusException.CreateErrorName("InvalidCall"),
+                "ObjectManager has no Properties"
+            );
+
         public void Dispose() => registration.Dispose();
     }
 }

@@ -357,7 +357,10 @@ namespace Dbus.CodeGenerator
             }
             proxyClass.Append(@"
 "
-            + generatePropertyEncodeImplementation(type) + @"
+            + generatePropertyEncodeImplementation(type) +@"
+"
+            + generateSetPropertyImplementation(type)
+            + @"
 
         public global::System.Threading.Tasks.Task HandleMethodCallAsync(global::Dbus.MethodCallOptions methodCallOptions, global::Dbus.Decoder decoder, global::System.Threading.CancellationToken cancellationToken)
         {

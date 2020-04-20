@@ -11,5 +11,6 @@ namespace Dbus
         void EncodeProperties(Encoder sendBody);
         Task HandleMethodCallAsync(MethodCallOptions methodCallOptions, Decoder decoder, CancellationToken cancellationToken);
         void EncodeProperty(Encoder sendBody, string propertyName);
+        void SetProperty(string propertyName, Decoder decoder);
     }
 }
