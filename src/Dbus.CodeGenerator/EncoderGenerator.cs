@@ -43,9 +43,9 @@ namespace Dbus.CodeGenerator
 
         private (string signature, string code, bool isCompoundValue) encoder(string value, string name, Type type, string indent)
         {
-            if (SignatureString.For.ContainsKey(type))
+            if (SignatureString.For.TryGetValue(type, out var signature))
                 return (
-                    SignatureString.For[type],
+                    signature,
                     indent + body + ".Add(" + value + ");",
                     false
                 );
