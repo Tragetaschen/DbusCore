@@ -9,8 +9,8 @@ namespace Dbus.CodeGenerator
     public class DecoderGenerator
     {
         private DecoderGenerator(
-            string signature,
-            IEnumerable<string> delegates,
+            StringBuilder signature,
+            StringBuilder delegates,
             string delegateName,
             bool isCompoundValue
         )
@@ -21,14 +21,14 @@ namespace Dbus.CodeGenerator
             IsCompoundValue = isCompoundValue;
         }
 
-        public string Signature { get; }
-        public IEnumerable<string> Delegates { get; }
+        public StringBuilder Signature { get; }
+        public StringBuilder Delegates { get; }
         public string DelegateName { get; }
         public bool IsCompoundValue { get; }
 
         public static DecoderGenerator Empty() => new DecoderGenerator(
-            "",
-            new List<string>(),
+            new StringBuilder(),
+            new StringBuilder(),
             "",
             false
         );
@@ -37,10 +37,10 @@ namespace Dbus.CodeGenerator
         {
             if (!type.IsConstructedGenericType)
             {
-                if (SignatureString.For.TryGetValue(type, out var signature))
+                if (SignatureString.For.TryGetValue(type, out var simpleSignature))
                     return new DecoderGenerator(
-                        signature,
-                        Enumerable.Empty<string>(),
+                        new StringBuilder(simpleSignature),
+                        new StringBuilder(),
                         "global::Dbus.Decoder.Get" + type.Name,
                         false
                     );
@@ -54,15 +54,26 @@ namespace Dbus.CodeGenerator
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var elementDecoder = Create(name + "_e", elementType);
-                    var delegates = new List<string>(elementDecoder.Delegates)
-                    {
-                        @"
-        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder)
-            => global::Dbus.Decoder.GetArray(decoder, " + elementDecoder.DelegateName + ", " + (elementDecoder.IsCompoundValue ? "true" : "false") + @");
-"
-                    };
+                    var delegates = new StringBuilder();
+                    delegates.Append(elementDecoder.Delegates)
+                        .Append(@"
+        private static readonly global::Dbus.Decoder.ElementDecoder<")
+                        .Append(Generator.BuildTypeString(type))
+                        .Append("> decode_")
+                        .Append(name)
+                        .Append(@" = (global::Dbus.Decoder decoder)
+            => global::Dbus.Decoder.GetArray(decoder, ")
+                        .Append(elementDecoder.DelegateName)
+                        .Append(", ")
+                        .Append(elementDecoder.IsCompoundValue ? "true" : "false")
+                        .AppendLine(");")
+                    ;
+                    var signature = new StringBuilder()
+                        .Append("a")
+                        .Append(elementDecoder.Signature)
+                    ;
                     return new DecoderGenerator(
-                        "a" + elementDecoder.Signature,
+                        signature,
                         delegates,
                         "decode_" + name,
                         false
@@ -75,17 +86,30 @@ namespace Dbus.CodeGenerator
                     var keyDecoder = Create(name + "_k", keyType);
                     var valueDecoder = Create(name + "_v", valueType);
 
-                    var functions = new List<string>();
-                    functions.AddRange(keyDecoder.Delegates);
-                    functions.AddRange(valueDecoder.Delegates);
-                    functions.Add(@"
-        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder)
-            => global::Dbus.Decoder.GetDictionary(decoder, " + keyDecoder.DelegateName + ", " + valueDecoder.DelegateName + @");
-");
-
+                    var delegates = new StringBuilder();
+                    delegates.Append(keyDecoder.Delegates)
+                        .Append(valueDecoder.Delegates)
+                        .Append(@"
+        private static readonly global::Dbus.Decoder.ElementDecoder<")
+                        .Append(Generator.BuildTypeString(type))
+                        .Append("> decode_")
+                        .Append(name)
+                        .Append(@" = (global::Dbus.Decoder decoder)
+            => global::Dbus.Decoder.GetDictionary(decoder, ")
+                        .Append(keyDecoder.DelegateName)
+                        .Append(", ")
+                        .Append(valueDecoder.DelegateName)
+                        .AppendLine(");")
+                    ;
+                    var signature = new StringBuilder()
+                        .Append("a{")
+                        .Append(keyDecoder.Signature)
+                        .Append(valueDecoder.Signature)
+                        .Append("}")
+                    ;
                     return new DecoderGenerator(
-                        "a{" + keyDecoder.Signature + valueDecoder.Signature + "}",
-                        functions,
+                        signature,
+                        delegates,
                         "decode_" + name,
                         false
                     );
@@ -97,26 +121,29 @@ namespace Dbus.CodeGenerator
 
         private static DecoderGenerator buildFromConstructor(string name, Type type)
         {
-            var constructorParameters = type.GetTypeInfo()
+            var constructorParameters = type
                 .GetConstructors()
                 .Select(x => x.GetParameters())
                 .OrderByDescending(x => x.Length)
                 .First()
             ;
             var isStruct = type.GetCustomAttribute<NoDbusStructAttribute>() == null;
-            var delegates = new List<string>();
+            var delegates = new StringBuilder();
             var delegateBuilder = new StringBuilder();
             var signatureBuilder = new StringBuilder();
 
             delegateBuilder.Append(@"
-        private static readonly global::Dbus.Decoder.ElementDecoder<" + Generator.BuildTypeString(type) + "> decode_" + name + @" = (global::Dbus.Decoder decoder) =>
+        private static readonly global::Dbus.Decoder.ElementDecoder<")
+                .Append(Generator.BuildTypeString(type))
+                .Append("> decode_")
+                .Append(name)
+                .Append(@" = (global::Dbus.Decoder decoder) =>
         {");
 
             if (isStruct)
             {
                 delegateBuilder.Append(@"
-            global::Dbus.Decoder.AdvanceToCompoundValue(decoder);
-");
+            global::Dbus.Decoder.AdvanceToCompoundValue(decoder);");
                 signatureBuilder.Append("(");
             }
 
@@ -124,22 +151,30 @@ namespace Dbus.CodeGenerator
             {
                 var parameterDecoder = Create(name + "_" + p.Name, p.ParameterType);
                 signatureBuilder.Append(parameterDecoder.Signature);
-                delegates.AddRange(parameterDecoder.Delegates);
+                delegates.Append(parameterDecoder.Delegates);
                 delegateBuilder.Append(@"
-            var " + p.Name + " = " + parameterDecoder.DelegateName + "(decoder);");
+            var ")
+                    .Append(p.Name)
+                    .Append(" = ")
+                    .Append(parameterDecoder.DelegateName)
+                    .Append("(decoder);")
+                ;
             }
 
             if (isStruct)
                 signatureBuilder.Append(")");
 
             delegateBuilder.Append(@"
-            return new " + Generator.BuildTypeString(type) + "(" + string.Join(", ", constructorParameters.Select(x => x.Name)) + @");
-        };
-");
+            return new ")
+                .Append(Generator.BuildTypeString(type))
+                .Append("(")
+                .AppendJoin(", ", constructorParameters.Select(x => x.Name))
+                .AppendLine(@");
+        };");
 
-            delegates.Add(delegateBuilder.ToString());
+            delegates.Append(delegateBuilder);
             return new DecoderGenerator(
-                signatureBuilder.ToString(),
+                signatureBuilder,
                 delegates,
                 "decode_" + name,
                 true

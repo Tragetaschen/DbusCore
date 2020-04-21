@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,16 +12,17 @@ namespace Dbus.CodeGenerator
     {
         private static readonly Regex propertyName = new Regex("^(Get|Set)[A-Z].+");
 
-        private static string generateMethodImplementation(MethodInfo methodInfo, string interfaceName)
+        private static StringBuilder consumeMethod(MethodInfo methodInfo, string interfaceName)
         {
             if (!methodInfo.Name.EndsWith("Async"))
                 throw new InvalidOperationException($"The method '{methodInfo.Name}' does not end with 'Async'");
             var callName = methodInfo.Name.Substring(0, methodInfo.Name.Length - "Async".Length);
 
             var returnType = methodInfo.ReturnType;
-            var returnTypeString = BuildTypeString(returnType);
-            if (returnTypeString != "global::System.Threading.Tasks.Task" &&
-                !returnTypeString.StartsWith("global::System.Threading.Tasks.Task<"))
+            if (!(
+                returnType == typeof(Task) ||
+                returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)
+            ))
                 throw new InvalidOperationException($"The method '{methodInfo.Name}' does not return a Task type");
 
             var isProperty = propertyName.IsMatch(callName);
@@ -74,57 +76,109 @@ namespace Dbus.CodeGenerator
             }
 
             DecoderGenerator decoderGenerator;
-            string returnStatement;
+            StringBuilder returnStatement;
 
             if (returnType == typeof(Task))
             {
                 decoderGenerator = DecoderGenerator.Empty();
-                returnStatement = "return;";
+                returnStatement = new StringBuilder("return;");
             }
             else if (isProperty)
             {
                 // must be "Get"
                 decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, typeof(object));
-                returnStatement = "return (" + BuildTypeString(returnType.GenericTypeArguments[0]) + ")" + decoderGenerator.DelegateName + "(decoder);";
+                returnStatement = new StringBuilder()
+                    .Append("return (")
+                    .Append(BuildTypeString(returnType.GenericTypeArguments[0]))
+                    .Append(")")
+                    .Append(decoderGenerator.DelegateName)
+                    .Append("(decoder);")
+                 ;
             }
             else // Task<T>
             {
                 decoderGenerator = DecoderGenerator.Create("result_" + methodInfo.Name, returnType.GenericTypeArguments[0]);
-                returnStatement = "return " + decoderGenerator.DelegateName + "(decoder);";
+                returnStatement = new StringBuilder()
+                    .Append("return ")
+                    .Append(decoderGenerator.DelegateName)
+                    .Append("(decoder);")
+                ;
             }
 
-            var result = "";
-            result += string.Join("", decoderGenerator.Delegates);
-            if (encoder.Signature != "")
-            {
-                result += @"
-        private static void encode_" + methodInfo.Name + "(global::Dbus.Encoder sendBody, " + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
+            var builder = new StringBuilder();
+            if (encoder.Signature.Length != 0)
+                builder
+                    .Append(@"
+        private static void encode_")
+                    .Append(methodInfo.Name)
+                    .Append("(global::Dbus.Encoder sendBody, ")
+                    .AppendJoin(", ", parameters.Select(parameter => new StringBuilder()
+                        .Append(BuildTypeString(parameter.ParameterType))
+                        .Append(" ")
+                        .Append(parameter.Name))
+                    )
+                    .AppendLine(@")
+        {")
+                    .Append(encoder.Result)
+                    .AppendLine(@"        }")
+                ;
+
+            builder
+                .Append(decoderGenerator.Delegates)
+                .Append(@"
+        public async ")
+                .Append(BuildTypeString(returnType))
+                .Append(" ")
+                .Append(methodInfo.Name)
+                .Append("(")
+                .AppendJoin(", ", parameters.Select(parameter => new StringBuilder()
+                    .Append(BuildTypeString(parameter.ParameterType))
+                    .Append(" ")
+                    .Append(parameter.Name)
+                ))
+                .Append(@")
         {
-" + encoder.Result + @"        }
-";
-            }
-            result += @"
-        public async " + returnTypeString + @" " + methodInfo.Name + @"(" + string.Join(", ", methodInfo.GetParameters().Select(x => BuildTypeString(x.ParameterType) + " " + x.Name)) + @")
-        {
-            var sendBody = new global::Dbus.Encoder();
-" + (encoder.Signature != "" ? "            encode_" + methodInfo.Name + "(sendBody, " + string.Join(", ", methodInfo.GetParameters().Select(x => x.Name)) + ");" : "") + @"
+            var sendBody = new global::Dbus.Encoder();")
+            ;
+            if (encoder.Signature.Length != 0)
+                builder
+                    .Append(@"
+            encode_")
+                    .Append(methodInfo.Name)
+                    .Append("(sendBody, ")
+                    .AppendJoin(", ", parameters.Select(parameter => parameter.Name))
+                    .Append(");")
+                ;
+            builder
+                .Append(@"
             var decoder = await connection.SendMethodCall(
                 this.path,
-                """ + interfaceName + @""",
-                """ + callName + @""",
+                """)
+                .Append(interfaceName)
+                .Append(@""",
+                """)
+                .Append(callName)
+                .Append(@""",
                 this.destination,
                 sendBody,
-                """ + encoder.Signature + @""",
-                " + cancellationTokenName + @"
+                """)
+                .Append(encoder.Signature)
+                .Append(@""",
+                ")
+                .Append(cancellationTokenName)
+                .Append(@"
             ).ConfigureAwait(false);
             using (decoder)
             {
-                decoder.AssertSignature(""" + decoderGenerator.Signature + @""");
-                " + returnStatement + @"
+                decoder.AssertSignature(""")
+                .Append(decoderGenerator.Signature)
+                .Append(@""");
+                ")
+                .Append(returnStatement)
+                .AppendLine(@"
             }
-        }
-";
-            return result;
+        }");
+            return builder;
         }
     }
 }

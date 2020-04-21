@@ -9,46 +9,41 @@ namespace Dbus.CodeGenerator
     public class EncoderGenerator
     {
         private readonly string body;
-        private readonly StringBuilder resultBuilder = new StringBuilder();
-        private readonly StringBuilder signatureBuilder = new StringBuilder();
 
         public EncoderGenerator(string body)
             => this.body = body;
 
-        public string Result => resultBuilder.ToString();
-        public string Signature => signatureBuilder.ToString();
+        public StringBuilder Result { get; } = new StringBuilder();
+        public StringBuilder Signature { get; } = new StringBuilder();
         public bool IsCompoundValue { get; private set; }
 
         public void AddVariant(string name, Type type)
         {
             var (signature, code, _) = encoder(name, name, type, Generator.Indent);
 
-            var innerGenerator = new EncoderGenerator(body);
-            innerGenerator.add($@"(global::Dbus.Signature)""{signature}""", name, typeof(Signature), Generator.Indent);
-            signatureBuilder.Append("v");
-            resultBuilder.Append(innerGenerator.Result);
-            resultBuilder.AppendLine(code);
+            Signature.Append("v");
+            Result.Append(buildKnownTypeEncodeCode(Generator.Indent, $@"(global::Dbus.Signature)""{signature}"""));
+            Result.Append(code);
         }
 
-        public void Add(string name, Type type, string indent = Generator.Indent)
-            => add(name, name, type, indent);
+        public void Add(string name, Type type)
+            => add(name, name, type, Generator.Indent);
 
         private void add(string value, string name, Type type, string indent)
         {
             var (signature, code, isCompoundValue) = encoder(value, name, type, indent);
-            signatureBuilder.Append(signature);
-            resultBuilder.AppendLine(code);
+            Signature.Append(signature);
+            Result.Append(code);
             IsCompoundValue = isCompoundValue;
         }
 
-        private (string signature, string code, bool isCompoundValue) encoder(string value, string name, Type type, string indent)
+        private (StringBuilder signature, StringBuilder code, bool isCompoundValue) encoder(string value, string name, Type type, string indent)
         {
-            if (SignatureString.For.TryGetValue(type, out var signature))
-                return (
-                    signature,
-                    indent + body + ".Add(" + value + ");",
-                    false
-                );
+            if (SignatureString.For.TryGetValue(type, out var simpleSignature))
+            {
+                var code = buildKnownTypeEncodeCode(indent, value);
+                return (new StringBuilder(simpleSignature), code, false);
+            }
 
             if (type.IsConstructedGenericType)
             {
@@ -58,17 +53,12 @@ namespace Dbus.CodeGenerator
                     var elementType = type.GenericTypeArguments[0];
                     var encoder = new EncoderGenerator(body);
                     encoder.add(name + "_e", name + "_e", elementType, indent + "    ");
-
-                    return (
-                        "a" + encoder.Signature,
-                        indent + "var " + name + "_state = " + body + ".StartArray(storesCompoundValues: " + (encoder.IsCompoundValue ? "true" : "false") + @");" + Environment.NewLine +
-                        indent + "foreach (var " + name + "_e in " + value + ")" + Environment.NewLine +
-                        indent + "{" + Environment.NewLine +
-                        encoder.Result +
-                        indent + "}" + Environment.NewLine +
-                        indent + body + ".FinishArray(" + name + "_state);",
-                        false
-                    );
+                    var code = buildArrayEncodeCode(indent, value, name, encoder);
+                    var signature = new StringBuilder()
+                        .Append("a")
+                        .Append(encoder.Signature)
+                    ;
+                    return (signature, code, false);
                 }
                 else if (genericType == typeof(IDictionary<,>))
                 {
@@ -79,18 +69,14 @@ namespace Dbus.CodeGenerator
                     var valueEncoder = new EncoderGenerator(body);
                     valueEncoder.add(name + "_kv.Value", name + "_v", valueType, indent + "    ");
 
-                    return (
-                        "a{" + keyEncoder.Signature + valueEncoder.Signature + "}",
-                        indent + "var " + name + "_state = " + body + ".StartArray(storesCompoundValues: true);" + Environment.NewLine +
-                        indent + "foreach (var " + name + "_kv in " + value + ")" + Environment.NewLine +
-                        indent + "{" + Environment.NewLine +
-                        indent + "    " + body + ".StartCompoundValue();" + Environment.NewLine +
-                        keyEncoder.Result +
-                        valueEncoder.Result +
-                        indent + "}" + Environment.NewLine +
-                        indent + body + ".FinishArray(" + name + "_state);" + Environment.NewLine,
-                        false // ?
-                    );
+                    var code = buildDictionaryEncodeCode(indent, value, name, keyEncoder, valueEncoder);
+                    var signature = new StringBuilder()
+                        .Append("a{")
+                        .Append(keyEncoder.Signature)
+                        .Append(valueEncoder.Signature)
+                        .Append("}")
+                    ;
+                    return (signature, code, false/*?*/);
                 }
                 // All other generic types are built from their constructor
             }
@@ -98,9 +84,88 @@ namespace Dbus.CodeGenerator
             return buildFromConstructor(value, name, type, indent);
         }
 
-        private (string signature, string code, bool isCompoundValue) buildFromConstructor(string value, string name, Type type, string indent)
+        private StringBuilder buildKnownTypeEncodeCode(string indent, string value)
+            => new StringBuilder()
+                .Append(indent)
+                .Append(body)
+                .Append(".Add(")
+                .Append(value)
+                .AppendLine(");")
+            ;
+
+        private StringBuilder buildArrayEncodeCode(string indent, string value, string name, EncoderGenerator encoder)
+            => new StringBuilder()
+                .Append(indent)
+                .Append("var ")
+                .Append(name)
+                .Append("_state = ")
+                .Append(body)
+                .Append(".StartArray(storesCompoundValues: ")
+                .Append(encoder.IsCompoundValue ? "true" : "false")
+                .AppendLine(@");")
+
+                .Append(indent)
+                .Append("foreach (var ")
+                .Append(name)
+                .Append("_e in ")
+                .Append(value)
+                .AppendLine(")")
+
+                .Append(indent)
+                .AppendLine("{")
+
+                .Append(encoder.Result)
+
+                .Append(indent)
+                .AppendLine("}")
+
+                .Append(indent)
+                .Append(body)
+                .Append(".FinishArray(")
+                .Append(name)
+                .AppendLine("_state);")
+            ;
+
+        private StringBuilder buildDictionaryEncodeCode(string indent, string value, string name, EncoderGenerator keyEncoder, EncoderGenerator valueEncoder)
+            => new StringBuilder()
+                .Append(indent)
+                .Append("var ")
+                .Append(name)
+                .Append("_state = ")
+                .Append(body)
+                .AppendLine(".StartArray(storesCompoundValues: true);")
+
+                .Append(indent)
+                .Append("foreach (var ")
+                .Append(name)
+                .Append("_kv in ")
+                .Append(value)
+                .AppendLine(")")
+
+                .Append(indent)
+                .AppendLine("{")
+
+                .Append(indent)
+                .Append("    ")
+                .Append(body)
+                .AppendLine(".StartCompoundValue();")
+
+                .Append(keyEncoder.Result)
+                .Append(valueEncoder.Result)
+
+                .Append(indent)
+                .AppendLine("}")
+
+                .Append(indent)
+                .Append(body)
+                .Append(".FinishArray(")
+                .Append(name)
+                .AppendLine("_state);")
+            ;
+
+        private (StringBuilder signature, StringBuilder code, bool isCompoundValue) buildFromConstructor(string value, string name, Type type, string indent)
         {
-            var constructorParameters = type.GetTypeInfo()
+            var constructorParameters = type
                 .GetConstructors()
                 .Select(x => x.GetParameters())
                 .OrderByDescending(x => x.Length)
@@ -109,11 +174,14 @@ namespace Dbus.CodeGenerator
             var isStruct = type.GetCustomAttribute<NoDbusStructAttribute>() == null;
 
             var builder = new StringBuilder();
-            var signature = "";
+            var signature = new StringBuilder();
             if (isStruct)
             {
-                builder.AppendLine(indent + body + ".StartCompoundValue();");
-                signature += "(";
+                signature.Append("(");
+                builder.Append(indent)
+                    .Append(body)
+                    .AppendLine(".StartCompoundValue();")
+                ;
             }
 
             foreach (var p in constructorParameters)
@@ -122,14 +190,14 @@ namespace Dbus.CodeGenerator
                 var propertyName = char.ToUpper(parameterName[0]) + parameterName.Substring(1);
                 var encoder = new EncoderGenerator(body);
                 encoder.add(value + "." + propertyName, name + "_" + propertyName, p.ParameterType, indent);
-                signature += encoder.Signature;
+                signature.Append(encoder.Signature);
                 builder.Append(encoder.Result);
             }
 
             if (isStruct)
-                signature += ")";
+                signature.Append(")");
 
-            return (signature, builder.ToString(), true);
+            return (signature, builder, true);
         }
     }
 }
