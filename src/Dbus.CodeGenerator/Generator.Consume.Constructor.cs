@@ -35,7 +35,7 @@ namespace Dbus.CodeGenerator
                 ""PropertiesChanged"",
                 (global::Dbus.Connection.SignalHandler)this.handleProperties
             ));
-            PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(() => initProperties(cancellationToken), cancellationToken);");
+            PropertyInitializationFinished = initProperties(cancellationToken);");
 
             foreach (var eventInfo in events.OrderBy(x => x.Name))
                 builder.Append(consumeEventSubscription(eventInfo, dbusConsumeAttribute.InterfaceName));
