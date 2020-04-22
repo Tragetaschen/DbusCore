@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,17 +49,21 @@ namespace Dbus
             string interfaceName,
             string methodName,
             string destination,
-            Encoder body,
+            Encoder? body,
             Signature signature,
             CancellationToken cancellationToken
         )
         {
             var serial = getSerial();
-
-            var bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
             var bodyLength = 0;
-            foreach (var segment in bodySegments)
-                bodyLength += segment.Length;
+            var bodySegments = default(ReadOnlySequence<byte>);
+
+            if (body != null)
+            {
+                bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
+                foreach (var segment in bodySegments)
+                    bodyLength += segment.Length;
+            }
 
             var header = buildMethodCallHeader(
                 bodyLength,
@@ -83,7 +88,8 @@ namespace Dbus
                     cancellationToken
                 ).ConfigureAwait(false);
 
-                body.CompleteReading(bodySegments);
+                if (body != null)
+                    body.CompleteReading(bodySegments);
                 header.CompleteReading(headerSegments);
 
                 return await tcs.Task.ConfigureAwait(false);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,15 +70,20 @@ namespace Dbus
 
         public async Task SendMethodReturnAsync(
             MethodCallOptions methodCallOptions,
-            Encoder body,
+            Encoder? body,
             Signature signature,
             CancellationToken cancellationToken
         )
         {
-            var bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
             var bodyLength = 0;
-            foreach (var bodySegment in bodySegments)
-                bodyLength += bodySegment.Length;
+            var bodySegments = default(ReadOnlySequence<byte>);
+
+            if (body != null)
+            {
+                bodySegments = await body.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
+                foreach (var bodySegment in bodySegments)
+                    bodyLength += bodySegment.Length;
+            }
 
             var header = buildMethodReturnHeaders(bodyLength, methodCallOptions, signature);
             var headerSegments = await header.CompleteWritingAsync(cancellationToken).ConfigureAwait(false);
@@ -88,7 +94,8 @@ namespace Dbus
                 cancellationToken
             ).ConfigureAwait(false);
 
-            body.CompleteReading(bodySegments);
+            if (body != null)
+                body.CompleteReading(bodySegments);
             header.CompleteReading(headerSegments);
         }
 

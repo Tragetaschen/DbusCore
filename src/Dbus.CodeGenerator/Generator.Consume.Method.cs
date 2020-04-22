@@ -137,12 +137,12 @@ namespace Dbus.CodeGenerator
                     .Append(parameter.Name)
                 ))
                 .Append(@")
-        {
-            var sendBody = new global::Dbus.Encoder();")
+        {")
             ;
             if (encoder.Signature.Length != 0)
                 builder
                     .Append(@"
+            var sendBody = new global::Dbus.Encoder();
             encode_")
                     .Append(methodInfo.Name)
                     .Append("(sendBody, ")
@@ -160,7 +160,9 @@ namespace Dbus.CodeGenerator
                 .Append(callName)
                 .Append(@""",
                 this.destination,
-                sendBody,
+                ")
+                .Append(encoder.Signature.Length != 0 ? "sendBody" : "null")
+                .Append(@",
                 """)
                 .Append(encoder.Signature)
                 .Append(@""",

@@ -81,19 +81,21 @@ namespace Dbus.CodeGenerator
                 .AppendJoin(", ", methodParameters)
                 .Append(@");
             if (methodCallOptions.NoReplyExpected)
-                return;
-            var sendBody = new global::Dbus.Encoder();")
+                return;")
             ;
             if (encoder.Signature.Length != 0)
                 builder
                     .Append(@"
+            var sendBody = new global::Dbus.Encoder();
             encode_")
                     .Append(method.Name)
                     .Append(@"(sendBody, methodResult);")
                 ;
             builder
                 .Append(@"
-            await connection.SendMethodReturnAsync(methodCallOptions, sendBody, """)
+            await connection.SendMethodReturnAsync(methodCallOptions, ")
+                .Append(encoder.Signature.Length != 0 ? "sendBody" : "null")
+                .Append(@", """)
                 .Append(encoder.Signature)
                 .AppendLine(@""", cancellationToken).ConfigureAwait(false);
         }")
