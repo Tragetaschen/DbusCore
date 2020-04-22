@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -29,6 +30,7 @@ namespace Dbus.CodeGenerator
             isProperty &= methodInfo.GetCustomAttribute<DbusMethodAttribute>() == null;
 
             var parameters = methodInfo.GetParameters();
+            var encodeParameters = new List<ParameterInfo>();
 
             if (isProperty)
                 if (callName.StartsWith("Get"))
@@ -65,14 +67,20 @@ namespace Dbus.CodeGenerator
                         if (parameter.ParameterType == typeof(CancellationToken))
                             cancellationTokenName = parameter.Name!;
                         else
+                        {
                             encoder.AddVariant(parameter.Name!, parameter.ParameterType);
+                            encodeParameters.Add(parameter);
+                        }
                 }
                 else
                     foreach (var parameter in parameters)
                         if (parameter.ParameterType == typeof(CancellationToken))
                             cancellationTokenName = parameter.Name!;
                         else
+                        {
                             encoder.Add(parameter.Name!, parameter.ParameterType);
+                            encodeParameters.Add(parameter);
+                        }
             }
 
             DecoderGenerator decoderGenerator;
@@ -107,21 +115,29 @@ namespace Dbus.CodeGenerator
 
             var builder = new StringBuilder();
             if (encoder.Signature.Length != 0)
+            {
                 builder
                     .Append(@"
         private static void encode_")
                     .Append(methodInfo.Name)
-                    .Append("(global::Dbus.Encoder sendBody, ")
-                    .AppendJoin(", ", parameters.Select(parameter => new StringBuilder()
-                        .Append(BuildTypeString(parameter.ParameterType))
-                        .Append(" ")
-                        .Append(parameter.Name))
-                    )
+                    .Append("(global::Dbus.Encoder sendBody")
+                ;
+                if (encodeParameters.Count > 0)
+                    builder
+                        .Append(", ")
+                        .AppendJoin(", ", encodeParameters.Select(parameter => new StringBuilder()
+                            .Append(BuildTypeString(parameter.ParameterType))
+                            .Append(" ")
+                            .Append(parameter.Name))
+                        )
+                    ;
+                builder
                     .AppendLine(@")
         {")
                     .Append(encoder.Result)
                     .AppendLine(@"        }")
                 ;
+            }
 
             builder
                 .Append(decoderGenerator.Delegates)
@@ -140,15 +156,21 @@ namespace Dbus.CodeGenerator
         {")
             ;
             if (encoder.Signature.Length != 0)
+            {
                 builder
                     .Append(@"
             var sendBody = new global::Dbus.Encoder();
             encode_")
                     .Append(methodInfo.Name)
-                    .Append("(sendBody, ")
-                    .AppendJoin(", ", parameters.Select(parameter => parameter.Name))
-                    .Append(");")
+                    .Append("(sendBody")
                 ;
+                if (encodeParameters.Count > 0)
+                    builder
+                        .Append(", ")
+                        .AppendJoin(", ", encodeParameters.Select(parameter => parameter.Name))
+                    ;
+                builder.Append(");");
+            }
             builder
                 .Append(@"
             var decoder = await connection.SendMethodCall(
