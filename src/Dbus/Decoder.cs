@@ -203,7 +203,7 @@ namespace Dbus
         /// <param name="keyDecoder">The decoder for the keys</param>
         /// <param name="valueDecoder">The decoder for the values</param>
         /// <returns>The decoded dictionary</returns>
-        public static IDictionary<TKey, TValue> GetDictionary<TKey, TValue>(
+        public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(
             Decoder decoder,
             ElementDecoder<TKey> keyDecoder,
             ElementDecoder<TValue> valueDecoder

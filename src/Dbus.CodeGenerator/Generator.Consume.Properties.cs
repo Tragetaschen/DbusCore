@@ -53,7 +53,7 @@ namespace Dbus.CodeGenerator
             }
         }
 
-        private void applyProperties(global::System.Collections.Generic.IDictionary<string, object> changed)
+        private void applyProperties(global::System.Collections.Generic.Dictionary<string, object> changed)
         {
             foreach (var entry in changed)
             {

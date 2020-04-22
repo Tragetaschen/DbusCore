@@ -167,7 +167,7 @@ namespace Dbus
                     Add((Signature)"b");
                     Add(v);
                     break;
-                case IEnumerable<string> v:
+                case List<string> v:
                     Add((Signature)"as");
                     var state = StartArray(storesCompoundValues: false);
                     foreach (var element in v)

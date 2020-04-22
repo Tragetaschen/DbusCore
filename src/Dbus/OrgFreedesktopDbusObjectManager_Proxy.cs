@@ -46,7 +46,7 @@ namespace Dbus
             }
         }
 
-        private Encoder encodeManagedObjects(IDictionary<ObjectPath, List<IProxy>> managedObjects)
+        private Encoder encodeManagedObjects(Dictionary<ObjectPath, List<IProxy>> managedObjects)
         {
             var encoder = new Encoder();
             var dictionaryState = encoder.StartArray(storesCompoundValues: true);

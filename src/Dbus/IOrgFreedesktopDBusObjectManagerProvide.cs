@@ -8,7 +8,7 @@ namespace Dbus
     public interface IOrgFreedesktopDbusObjectManagerProvide : IDisposable
     {
         ObjectPath Root { get; }
-        Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
+        Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
         ObjectPath AddObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : class;
         void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null) where TInterface : class;
     }

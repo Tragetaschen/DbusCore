@@ -9,8 +9,8 @@ namespace Dbus
     public interface IOrgFreedesktopDbusObjectManager : IAsyncDisposable, IDisposable
     {
         [DbusMethod]
-        Task<IDictionary<ObjectPath, IDictionary<string, IDictionary<string, object>>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
-        event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded;
-        event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved;
+        Task<Dictionary<ObjectPath, Dictionary<string, Dictionary<string, object>>>> GetManagedObjectsAsync(CancellationToken cancellationToken);
+        event Action<ObjectPath, Dictionary<string, Dictionary<string, object>>> InterfacesAdded;
+        event Action<ObjectPath, List<string>> InterfacesRemoved;
     }
 }

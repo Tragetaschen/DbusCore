@@ -21,8 +21,8 @@ namespace Dbus
             thisProxy = connection.Publish<IOrgFreedesktopDbusObjectManagerProvide>(this, Root);
         }
 
-        public event Action<ObjectPath, IDictionary<string, IDictionary<string, object>>> InterfacesAdded { add { } remove { } }
-        public event Action<ObjectPath, IEnumerable<string>> InterfacesRemoved { add { } remove { } }
+        public event Action<ObjectPath, Dictionary<string, Dictionary<string, object>>> InterfacesAdded { add { } remove { } }
+        public event Action<ObjectPath, List<string>> InterfacesRemoved { add { } remove { } }
 
         public ObjectPath Root { get; }
 
@@ -95,7 +95,7 @@ namespace Dbus
             removedProxy?.Dispose();
         }
 
-        public async Task<IDictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
+        public async Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
         {
             await syncRoot.WaitAsync();
             try

@@ -48,7 +48,7 @@ namespace Dbus.CodeGenerator
             if (type.IsConstructedGenericType)
             {
                 var genericType = type.GetGenericTypeDefinition();
-                if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
+                if (genericType == typeof(List<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var encoder = new EncoderGenerator(body);
@@ -60,7 +60,7 @@ namespace Dbus.CodeGenerator
                     ;
                     return (signature, code, false);
                 }
-                else if (genericType == typeof(IDictionary<,>))
+                else if (genericType == typeof(Dictionary<,>))
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];

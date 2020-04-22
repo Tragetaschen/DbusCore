@@ -50,7 +50,7 @@ namespace Dbus.CodeGenerator
             else
             {
                 var genericType = type.GetGenericTypeDefinition();
-                if (genericType == typeof(IEnumerable<>) || genericType == typeof(IList<>))
+                if (genericType == typeof(List<>))
                 {
                     var elementType = type.GenericTypeArguments[0];
                     var elementDecoder = Create(name + "_e", elementType);
@@ -79,7 +79,7 @@ namespace Dbus.CodeGenerator
                         false
                     );
                 }
-                else if (genericType == typeof(IDictionary<,>))
+                else if (genericType == typeof(Dictionary<,>))
                 {
                     var keyType = type.GenericTypeArguments[0];
                     var valueType = type.GenericTypeArguments[1];
@@ -115,7 +115,7 @@ namespace Dbus.CodeGenerator
                     );
                 }
                 else
-                    throw new InvalidOperationException("Only IEnumerable, IList and IDictionary are supported as generic type");
+                    throw new InvalidOperationException("Only List and Dictionary are supported as generic type");
             }
         }
 
