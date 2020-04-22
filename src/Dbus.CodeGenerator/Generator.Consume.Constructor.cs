@@ -33,7 +33,7 @@ namespace Dbus.CodeGenerator
                 this.path,
                 ""org.freedesktop.DBus.Properties"",
                 ""PropertiesChanged"",
-                this.handleProperties
+                (global::Dbus.Connection.SignalHandler)this.handleProperties
             ));
             PropertyInitializationFinished = global::System.Threading.Tasks.Task.Run(() => initProperties(cancellationToken), cancellationToken);");
 

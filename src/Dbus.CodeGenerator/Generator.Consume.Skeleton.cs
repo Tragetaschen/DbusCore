@@ -19,7 +19,7 @@ namespace Dbus.CodeGenerator
                 .AppendLine(@"@"" + this.path;
         }
 
-        public void Dispose() => global::System.Threading.Tasks.Task.Run(DisposeAsync);
+        public void Dispose() => global::System.Threading.Tasks.Task.Run((global::System.Func<global::System.Threading.Tasks.ValueTask>)DisposeAsync);
 
         public async global::System.Threading.Tasks.ValueTask DisposeAsync()
         {

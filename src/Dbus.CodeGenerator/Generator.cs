@@ -37,7 +37,7 @@ namespace Dbus.CodeGenerator
 
             registrations.Add(new StringBuilder()
                 .Append(Indent)
-                .AppendLine("global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>(global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);"))
+                .AppendLine("global::Dbus.Connection.AddPublishProxy<global::Dbus.IOrgFreedesktopDbusObjectManagerProvide>((global::System.Func<global::Dbus.Connection, global::Dbus.IOrgFreedesktopDbusObjectManagerProvide, global::Dbus.ObjectPath, global::Dbus.IProxy>)global::Dbus.OrgFreedesktopDbusObjectManager_Proxy.Factory);"))
             ;
 
             foreach (var type in candidateTypes.Distinct().OrderBy(x => x.FullName))
@@ -50,7 +50,7 @@ namespace Dbus.CodeGenerator
                         .Append(Indent)
                         .Append("global::Dbus.Connection.AddConsumeImplementation<")
                         .Append(BuildTypeString(type))
-                        .Append(">(")
+                        .Append(">((global::System.Func<global::Dbus.Connection, global::Dbus.ObjectPath, string, global::System.Threading.CancellationToken, object>)")
                         .Append(type.Name)
                         .AppendLine("_Implementation.Factory);")
                     );
@@ -63,9 +63,9 @@ namespace Dbus.CodeGenerator
                     result.Append(provide(type, dbusProvideAttribute));
                     registrations.Add(new StringBuilder()
                         .Append(Indent)
-                        .Append("global::Dbus.Connection.AddPublishProxy<")
+                        .Append("global::Dbus.Connection.AddPublishProxy((global::System.Func<global::Dbus.Connection, ")
                         .Append(BuildTypeString(type))
-                        .Append(">(")
+                        .Append(", global::Dbus.ObjectPath, global::Dbus.IProxy>)")
                         .Append(type.Name)
                         .AppendLine("_Proxy.Factory);")
                     );

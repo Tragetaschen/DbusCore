@@ -21,7 +21,7 @@ namespace Dbus.CodeGenerator
                 """)
                 .Append(eventInfo.Name)
                 .Append(@""",
-                this.handle")
+                (global::Dbus.Connection.SignalHandler)this.handle")
                 .Append(eventInfo.Name)
                 .Append(@"
             ));")
