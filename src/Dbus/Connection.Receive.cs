@@ -65,7 +65,7 @@ namespace Dbus
             var bodyLength = fixedLengthHeader.BodyLength;
 
             var bodyMemoryOwner = MemoryPool<byte>.Shared.Rent(bodyLength);
-            var bodyBytes = bodyMemoryOwner.Memory.Span.Slice(0, bodyLength);
+            var bodyBytes = bodyMemoryOwner.Memory.Span[..bodyLength];
 
             var header = receiveHeaderAndBody(
                 ref hasValidFixedHeader,
@@ -109,7 +109,7 @@ namespace Dbus
         {
             Alignment.Advance(ref receivedArrayLength, 8);
             var headerBytesOwnedMemory = MemoryPool<byte>.Shared.Rent(receivedArrayLength);
-            var headerBytes = headerBytesOwnedMemory.Memory.Span.Slice(0, receivedArrayLength);
+            var headerBytes = headerBytesOwnedMemory.Memory.Span[..receivedArrayLength];
 
             hasValidFixedHeader = socketOperations.ReceiveMessage(
                 headerBytes,

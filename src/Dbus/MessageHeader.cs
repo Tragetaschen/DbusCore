@@ -50,13 +50,10 @@ namespace Dbus
                     case DbusHeaderType.UnixFds:
                         var numberOfFds = Decoder.GetUInt32(header);
 
-                        var cmsgHeaderBytes = controlBytes.Slice(0, sizeofCmsghdr);
+                        var cmsgHeaderBytes = controlBytes[..sizeofCmsghdr];
                         var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
 
-                        var fileDescriptorsBytes = controlBytes.Slice(
-                            sizeofCmsghdr,
-                            (int)cmsgHeader[0].len - sizeofCmsghdr
-                        );
+                        var fileDescriptorsBytes = controlBytes[sizeofCmsghdr..(int)cmsgHeader[0].len];
                         var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
                         System.Diagnostics.Debug.Assert(numberOfFds == fileDescriptors.Length);
 

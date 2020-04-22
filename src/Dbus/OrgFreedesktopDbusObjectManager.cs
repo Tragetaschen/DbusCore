@@ -58,10 +58,10 @@ namespace Dbus
             if (!pathString.StartsWith("./"))
                 throw new ArgumentException("A partial path has to start with ./");
             if (rootString == "/")
-                return pathString.Substring(1);
+                return pathString[1..];
             if (pathString == "./")
                 return rootString;
-            return rootString + pathString.Substring(1);
+            return rootString + pathString[1..];
         }
 
         public void RemoveObject<TInterface>(TInterface instance, ObjectPath? path = null)

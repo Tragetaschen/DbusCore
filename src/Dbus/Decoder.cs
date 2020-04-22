@@ -49,7 +49,7 @@ namespace Dbus
         }
 
         public void Dump()
-            => memoryOwner.Memory.Span.Slice(0, bufferLength).Dump();
+            => memoryOwner.Memory.Span[..bufferLength].Dump();
 
         public bool IsFinished => index >= bufferLength;
         public static void AdvanceToCompoundValue(Decoder decoder) => decoder.advanceToAlignment(8);
@@ -71,7 +71,7 @@ namespace Dbus
             var result = string.Empty;
             if (length != 0)
             {
-                var bytes = memoryOwner.Memory.Span.Slice(index, length);
+                var bytes = memoryOwner.Memory.Span[index..];
                 fixed (byte* bytesP = bytes)
                     result = Encoding.UTF8.GetString(bytesP, length);
             }
@@ -340,9 +340,9 @@ namespace Dbus
             var tupleTypeName = typeof(Tuple).AssemblyQualifiedName!;
             var indexOfFirstComma = tupleTypeName.IndexOf(',');
             var genericTupleTypeName =
-                tupleTypeName.Substring(0, indexOfFirstComma)
+                tupleTypeName[..indexOfFirstComma]
                 + "`" + types.Length
-                + tupleTypeName.Substring(indexOfFirstComma)
+                + tupleTypeName[indexOfFirstComma..]
             ;
             var tupleType = Type.GetType(genericTupleTypeName)!.MakeGenericType(types);
 
