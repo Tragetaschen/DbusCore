@@ -7,8 +7,8 @@ namespace Dbus
 {
     public partial class Connection
     {
-        private readonly ConcurrentDictionary<string, IProxy> objectProxies =
-            new ConcurrentDictionary<string, IProxy>();
+        private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName), IProxy> objectProxies =
+            new ConcurrentDictionary<(ObjectPath, string), IProxy>();
 
         public IDisposable RegisterObjectProxy(
             ObjectPath path,
@@ -16,25 +16,30 @@ namespace Dbus
             IProxy proxy
         )
         {
-            var dictionaryEntry = path + "\0" + interfaceName;
-            if (!objectProxies.TryAdd(dictionaryEntry, proxy))
+            if (!objectProxies.TryAdd((path, interfaceName), proxy))
                 throw new InvalidOperationException("Attempted to register an object proxy twice");
-            return new proxyHandle(this, dictionaryEntry);
+            return new proxyHandle(this, path, interfaceName);
         }
 
         private class proxyHandle : IDisposable
         {
             private readonly Connection connection;
-            private readonly string entry;
+            private readonly ObjectPath path;
+            private readonly string interfaceName;
 
-            public proxyHandle(Connection connection, string entry)
+            public proxyHandle(
+                Connection connection,
+                ObjectPath path,
+                string interfaceName
+            )
             {
                 this.connection = connection;
-                this.entry = entry;
+                this.path = path;
+                this.interfaceName = interfaceName;
             }
 
             public void Dispose()
-                => connection.objectProxies.TryRemove(entry, out var _);
+                => connection.objectProxies.TryRemove((path, interfaceName), out var _);
         }
 
         private Encoder buildMethodReturnHeaders(
@@ -127,7 +132,7 @@ namespace Dbus
                 return;
             }
 
-            var dictionaryEntry = methodCallOptions.Path + "\0" + methodCallOptions.InterfaceName;
+            var dictionaryEntry = (methodCallOptions.Path, methodCallOptions.InterfaceName);
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 Task.Run(() => withExceptionHandling(proxy.HandleMethodCallAsync, cancellationToken));
@@ -166,7 +171,7 @@ namespace Dbus
         {
             decoder.AssertSignature("s");
             var requestedInterfaces = Decoder.GetString(decoder);
-            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
+            var dictionaryEntry = (methodCallOptions.Path, requestedInterfaces);
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 var sendBody = new Encoder();
@@ -196,7 +201,7 @@ namespace Dbus
             decoder.AssertSignature("ss");
             var requestedInterfaces = Decoder.GetString(decoder);
             var requestedProperty = Decoder.GetString(decoder);
-            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
+            var dictionaryEntry = (methodCallOptions.Path, requestedInterfaces);
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 var sendBody = new Encoder();
@@ -226,7 +231,7 @@ namespace Dbus
             decoder.AssertSignature("ssv");
             var requestedInterfaces = Decoder.GetString(decoder);
             var requestedProperty = Decoder.GetString(decoder);
-            var dictionaryEntry = methodCallOptions.Path + "\0" + requestedInterfaces;
+            var dictionaryEntry = (methodCallOptions.Path, requestedInterfaces);
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
                 proxy.SetProperty(requestedProperty, decoder);
