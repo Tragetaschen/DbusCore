@@ -92,7 +92,10 @@ namespace Dbus
             => addPrimitive(value, sizeof(double));
 
         public void Add(byte value)
-            => addPrimitive(value, sizeof(byte));
+        {
+            var span = reserve(1);
+            span[0] = value;
+        }
 
         public void Add(bool value)
             => addPrimitive(value ? 1 : 0, sizeof(int));

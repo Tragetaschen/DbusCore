@@ -115,7 +115,8 @@ namespace Dbus
         /// <summary>
         /// Decodes a Byte from the buffer and advances the index
         /// </summary>
-        public static readonly ElementDecoder<byte> GetByte = decoder => decoder.getPrimitive<byte>(0);
+        public static readonly ElementDecoder<byte> GetByte =
+            decoder => decoder.memoryOwner.Memory.Span[decoder.index++];
 
         /// <summary>
         /// Decodes a Boolean from the buffer and advances the index
