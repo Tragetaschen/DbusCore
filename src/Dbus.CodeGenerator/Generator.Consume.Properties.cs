@@ -55,9 +55,9 @@ namespace Dbus.CodeGenerator
 
         private void applyProperties(global::System.Collections.Generic.Dictionary<string, object> changed)
         {
-            foreach (var entry in changed)
+            foreach (var (name, value) in changed)
             {
-                switch (entry.Key)
+                switch (name)
                 {");
             foreach (var property in properties)
             {
@@ -72,7 +72,7 @@ namespace Dbus.CodeGenerator
                     .Append(property.Name)
                     .Append(" = (")
                     .Append(BuildTypeString(property.PropertyType))
-                    .Append(@")entry.Value;
+                    .Append(@")value;
                         break;")
                 ;
             }
