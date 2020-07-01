@@ -78,8 +78,9 @@ namespace Dbus.CodeGenerator
             }
             builder.AppendLine(@"
                 }
-                PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(entry.Key));
             }
+            foreach (var key in changed.Keys)
+                PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(key));
         }");
             foreach (var property in properties)
                 builder
