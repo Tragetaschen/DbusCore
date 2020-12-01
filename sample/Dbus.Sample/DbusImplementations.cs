@@ -4,9 +4,6 @@
     {
         static partial void DoInit();
 
-        public static void Init()
-        {
-            DoInit();
-        }
+        public static void Init() => DoInit();
     }
 }

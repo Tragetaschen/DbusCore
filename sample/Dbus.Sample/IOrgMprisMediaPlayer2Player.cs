@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Dbus.Sample
 {
     [DbusConsume("org.mpris.MediaPlayer2.Player")]
-    public interface IOrgMprisMediaPlayer2Player : IDisposable, INotifyPropertyChanged, IDbusPropertyInitialization
+    public interface IOrgMprisMediaPlayer2Player : IDisposable, IAsyncDisposable, INotifyPropertyChanged, IDbusPropertyInitialization
     {
         Task NextAsync();
         Task PreviousAsync();

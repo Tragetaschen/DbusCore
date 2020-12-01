@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dbus.CodeGenerator\Dbus.CodeGenerator.csproj" />
+    <ProjectReference Include="..\..\src\Dbus\Dbus.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -50,17 +50,13 @@ namespace Dbus.Sample
             {
                 Address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS"),
             };
-            using (var connection = await Connection.CreateAsync(options))
-            using (var orgFreedesktopDbus = connection.Consume<IOrgFreedesktopDbus>()) //, "/org/freedesktop/DBus", "org.freedesktop.DBus"))
+            await using (var connection = await Connection.CreateAsync(options))
+            await using (var orgFreedesktopDbus = connection.Consume<IOrgFreedesktopDbus>()) //, "/org/freedesktop/DBus", "org.freedesktop.DBus"))
             using (connection.Publish(new SampleObject()))
             {
-                orgFreedesktopDbus.NameAcquired += async x =>
-                {
-                    await Task.Run(() => Console.WriteLine($"Name acquired {x}"));
-                };
                 Console.WriteLine("Connected");
 
-                var names = await orgFreedesktopDbus.ListNamesAsync();
+                var names = await orgFreedesktopDbus.ListNamesAsync(default);
                 Console.Write("Names:");
                 foreach (var name in names)
                 {
@@ -68,9 +64,6 @@ namespace Dbus.Sample
                     Console.Write(name);
                 }
                 Console.WriteLine();
-
-                var requestResult = await orgFreedesktopDbus.RequestNameAsync("org.dbuscore.sample", 0);
-                Console.WriteLine($"Request result: {requestResult}");
 
                 using (var player = connection.Consume<IOrgMprisMediaPlayer2Player>("/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.vlc"))
                 {

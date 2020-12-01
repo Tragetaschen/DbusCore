@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 namespace Dbus.Sample
 {
     [DbusConsume("org.freedesktop.UPower", Path = "/org/freedesktop/UPower", Destination = "org.freedesktop.UPower")]
-    public interface IOrgFreedesktopUpower: IDisposable
+    public interface IOrgFreedesktopUpower: IDisposable, IAsyncDisposable
     {
-        Task<IDictionary<string, object>> GetAllAsync(string interfaceName);
+        Task<Dictionary<string, object>> GetAllAsync(string interfaceName);
     }
 }
