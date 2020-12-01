@@ -1,9 +1,10 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dbus
 {
-    internal sealed class OrgFreedesktopDbus
+    internal sealed class OrgFreedesktopDbus : IOrgFreedesktopDbus
     {
         private static readonly ObjectPath path = "/org/freedesktop/DBus";
         private const string interfaceName = "org.freedesktop.DBus";
@@ -70,5 +71,27 @@ namespace Dbus
                 return;
             }
         }
+
+        public async Task<List<string>> ListNamesAsync(CancellationToken cancellationToken)
+        {
+            var receivedMessage = await connection.SendMethodCall(
+                path,
+                interfaceName,
+                "ListNames",
+                destination,
+                new Encoder(),
+                "",
+                cancellationToken
+            ).ConfigureAwait(false);
+
+            using (receivedMessage)
+            {
+                receivedMessage.AssertSignature("as");
+                return Decoder.GetArray(receivedMessage, Decoder.GetString, false);
+            }
+        }
+
+        public ValueTask DisposeAsync() => default;
+        public void Dispose() { }
     }
 }
