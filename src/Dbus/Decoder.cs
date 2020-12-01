@@ -12,6 +12,107 @@ namespace Dbus
 {
     public class Decoder : IDisposable
     {
+        /// <summary>
+        /// Decodes a Byte from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<byte> GetByte =
+            decoder => decoder.memoryOwner.Memory.Span[decoder.index++];
+
+        /// <summary>
+        /// Decodes a Boolean from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<bool> GetBoolean = decoder => decoder.getPrimitive<int>(2) != 0;
+
+        /// <summary>
+        /// Decodes an Int16 from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<short> GetInt16 = decoder => decoder.getPrimitive<short>(1);
+
+        /// <summary>
+        /// Decodes an UInt16 from the buffer and advances the index
+        /// </summary>
+        /// <returns>The decoded UInt16</returns>
+        public static readonly ElementDecoder<ushort> GetUInt16 = decoder => decoder.getPrimitive<ushort>(1);
+
+        /// <summary>
+        /// Decodes an Int32 from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<int> GetInt32 = decoder => decoder.getPrimitive<int>(2);
+
+        /// <summary>
+        /// Decodes an UInt32 from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<uint> GetUInt32 = decoder => decoder.getPrimitive<uint>(2);
+
+        /// <summary>
+        /// Decodes an Int64 from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<long> GetInt64 = decoder => decoder.getPrimitive<long>(3);
+
+        /// <summary>
+        /// Decodes an UInt64 from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<ulong> GetUInt64 = decoder => decoder.getPrimitive<ulong>(3);
+
+        /// <summary>
+        /// Decodes an Double from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<double> GetDouble = decoder => decoder.getPrimitive<double>(3);
+
+        /// <summary>
+        /// Decodes a signature from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<Signature> GetSignature = decoder =>
+        {
+            var signatureLength = GetByte(decoder);
+            return decoder.getStringFromBytes(signatureLength);
+        };
+
+        /// <summary>
+        /// Decodes a file descriptor as SafeHandle and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<SafeHandle> GetSafeHandle = decoder =>
+        {
+            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
+            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
+            var index = GetInt32(decoder);
+            return unixFds[index];
+        };
+
+        /// <summary>
+        /// Decodes a file descriptor as Stream and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<Stream> GetStream = decoder =>
+        {
+            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
+            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
+            var index = GetInt32(decoder);
+            return new UnixFdStream(unixFds[index], header.SocketOperations);
+        };
+
+        /// <summary>
+        /// Decodes a string from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<string> GetString = decoder =>
+        {
+            var stringLength = GetInt32(decoder); // Actually uint
+            return decoder.getStringFromBytes(stringLength);
+        };
+
+        /// <summary>
+        /// Decodes an object path from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<ObjectPath> GetObjectPath = decoder => GetString(decoder);
+
+        /// <summary>
+        /// Decodes a variant from the buffer and advances the index
+        /// </summary>
+        public static readonly ElementDecoder<object> GetObject = decoder =>
+        {
+            var signature = GetSignature(decoder);
+            return DecodeVariant(decoder, signature);
+        };
+
         private static readonly Dictionary<char, (Func<Decoder, object> Decoder, Type Type)> typeDecoders = new Dictionary<char, (Func<Decoder, object>, Type)>
         {
             ['o'] = (d => GetObjectPath(d), typeof(ObjectPath)),
@@ -79,29 +180,6 @@ namespace Dbus
             return result;
         }
 
-        /// <summary>
-        /// Decodes a string from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<string> GetString = decoder =>
-        {
-            var stringLength = GetInt32(decoder); // Actually uint
-            return decoder.getStringFromBytes(stringLength);
-        };
-
-        /// <summary>
-        /// Decodes an object path from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<ObjectPath> GetObjectPath = decoder => GetString(decoder);
-
-        /// <summary>
-        /// Decodes a signature from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<Signature> GetSignature = decoder =>
-        {
-            var signatureLength = GetByte(decoder);
-            return decoder.getStringFromBytes(signatureLength);
-        };
-
         private T getPrimitive<T>(int shiftWidth) where T : struct
         {
             var alignment = 1 << shiftWidth;
@@ -112,68 +190,6 @@ namespace Dbus
             return result;
         }
 
-        /// <summary>
-        /// Decodes a Byte from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<byte> GetByte =
-            decoder => decoder.memoryOwner.Memory.Span[decoder.index++];
-
-        /// <summary>
-        /// Decodes a Boolean from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<bool> GetBoolean = decoder => decoder.getPrimitive<int>(2) != 0;
-
-        /// <summary>
-        /// Decodes an Int16 from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<short> GetInt16 = decoder => decoder.getPrimitive<short>(1);
-
-        /// <summary>
-        /// Decodes an UInt16 from the buffer and advances the index
-        /// </summary>
-        /// <returns>The decoded UInt16</returns>
-        public static readonly ElementDecoder<ushort> GetUInt16 = decoder => decoder.getPrimitive<ushort>(1);
-
-        /// <summary>
-        /// Decodes an Int32 from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<int> GetInt32 = decoder => decoder.getPrimitive<int>(2);
-
-        /// <summary>
-        /// Decodes an UInt32 from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<uint> GetUInt32 = decoder => decoder.getPrimitive<uint>(2);
-
-        /// <summary>
-        /// Decodes an Int64 from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<long> GetInt64 = decoder => decoder.getPrimitive<long>(3);
-
-        /// <summary>
-        /// Decodes an UInt64 from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<ulong> GetUInt64 = decoder => decoder.getPrimitive<ulong>(3);
-
-        /// <summary>
-        /// Decodes an Double from the buffer and advances the index
-        /// </summary>
-        public static readonly ElementDecoder<double> GetDouble = decoder => decoder.getPrimitive<double>(3);
-
-        public static readonly ElementDecoder<SafeHandle> GetSafeHandle = decoder =>
-        {
-            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
-            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
-            var index = GetInt32(decoder);
-            return unixFds[index];
-        };
-
-        public static readonly ElementDecoder<Stream> GetStream = decoder =>
-        {
-            var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
-            var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
-            var index = GetInt32(decoder);
-            return new UnixFdStream(unixFds[index], header.SocketOperations);
-        };
 
         /// <summary>
         /// Decodes an array from the buffer and advances the index
@@ -224,12 +240,6 @@ namespace Dbus
             }
             return result;
         }
-
-        public static readonly ElementDecoder<object> GetObject = decoder =>
-        {
-            var signature = GetSignature(decoder);
-            return DecodeVariant(decoder, signature);
-        };
 
         internal static object DecodeVariant(Decoder decoder, Signature signature)
         {
