@@ -17,16 +17,16 @@ namespace Dbus
 
             int startIndex;
 
-            address = address.Substring(unix.Length);
+            address = address[unix.Length..];
             if (address.StartsWith(pathKey))
             {
                 startIndex = 2;
-                address = address.Substring(pathKey.Length);
+                address = address[pathKey.Length..];
             }
             else if (address.StartsWith(abstractKey))
             {
                 startIndex = 3;
-                address = address.Substring(abstractKey.Length);
+                address = address[abstractKey.Length..];
             }
             else
                 throw new InvalidOperationException("Unsupported address format");

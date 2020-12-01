@@ -60,7 +60,7 @@ namespace Dbus.CodeGenerator
                 if (isProperty)
                 {
                     encoder.Add($@"""{interfaceName}""", typeof(string));
-                    encoder.Add($@"""{callName.Substring(3 /* "Get" or "Set" */)}""", typeof(string));
+                    encoder.Add($@"""{callName[3 /* "Get" or "Set" */..]}""", typeof(string));
                     interfaceName = "org.freedesktop.DBus.Properties";
                     callName = callName.Substring(0, 3); // "Get" or "Set"
                     foreach (var parameter in parameters)

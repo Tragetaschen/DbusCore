@@ -97,7 +97,7 @@ namespace Dbus
 
         public async Task<Dictionary<ObjectPath, List<IProxy>>> GetManagedObjectsAsync(CancellationToken cancellationToken)
         {
-            await syncRoot.WaitAsync();
+            await syncRoot.WaitAsync(cancellationToken);
             try
             {
                 // Deep copy of the internal data structure.

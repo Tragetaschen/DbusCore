@@ -135,14 +135,14 @@ namespace Dbus
 
             if (methodCallOptions.InterfaceName == "org.freedesktop.DBus.Properties")
             {
-                Task.Run(() => withExceptionHandling(handlePropertyRequestAsync, cancellationToken));
+                Task.Run(() => withExceptionHandling(handlePropertyRequestAsync, cancellationToken), cancellationToken);
                 return;
             }
 
             var dictionaryEntry = (methodCallOptions.Path, methodCallOptions.InterfaceName);
             if (objectProxies.TryGetValue(dictionaryEntry, out var proxy))
             {
-                Task.Run(() => withExceptionHandling(proxy.HandleMethodCallAsync, cancellationToken));
+                Task.Run(() => withExceptionHandling(proxy.HandleMethodCallAsync, cancellationToken), cancellationToken);
                 return;
             }
 
@@ -152,7 +152,7 @@ namespace Dbus
                 DbusException.CreateErrorName("MethodCallTargetNotFound"),
                 "The requested method call isn't mapped to an actual object",
                 cancellationToken
-            ));
+            ), cancellationToken);
         }
 
         private Task handlePropertyRequestAsync(

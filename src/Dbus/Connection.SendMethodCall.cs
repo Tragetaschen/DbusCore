@@ -11,7 +11,7 @@ namespace Dbus
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<Decoder>> expectedMessages =
             new ConcurrentDictionary<uint, TaskCompletionSource<Decoder>>();
 
-        private Encoder buildMethodCallHeader(
+        private static Encoder buildMethodCallHeader(
             int bodyLength,
             uint serial,
             ObjectPath path,

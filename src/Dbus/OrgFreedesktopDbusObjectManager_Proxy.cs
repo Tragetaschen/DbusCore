@@ -32,19 +32,14 @@ namespace Dbus
             MethodCallOptions methodCallOptions,
             Decoder decoder,
             CancellationToken cancellationToken
-        )
+        ) => methodCallOptions.Member switch
         {
-            switch (methodCallOptions.Member)
-            {
-                case "GetManagedObjects":
-                    return handleGetManagedObjectsAsync(methodCallOptions, decoder, cancellationToken);
-                default:
-                    throw new DbusException(
-                        DbusException.CreateErrorName("UnknownMethod"),
-                        "Method not supported"
-                    );
-            }
-        }
+            "GetManagedObjects" => handleGetManagedObjectsAsync(methodCallOptions, decoder, cancellationToken),
+            _ => throw new DbusException(
+                DbusException.CreateErrorName("UnknownMethod"),
+                "Method not supported"
+            ),
+        };
 
         private Encoder encodeManagedObjects(Dictionary<ObjectPath, List<IProxy>> managedObjects)
         {

@@ -63,7 +63,7 @@ namespace Dbus
                 Environment.FailFast("Unobserved exception in Dbus handling", e);
         }
 
-        private void standardHeaders(
+        private static void standardHeaders(
             Encoder header,
             DbusMessageType type,
             DbusMessageFlags flags,
@@ -150,7 +150,7 @@ namespace Dbus
             return segmentsOwnedMemory;
         }
 
-        public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
+        public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
         public async ValueTask DisposeAsync()
         {
