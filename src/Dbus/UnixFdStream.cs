@@ -35,7 +35,7 @@ namespace Dbus
             => Task.Run(() => Read(buffer, offset, count), cancellationToken);
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
             => Task.Run(() => Write(buffer, offset, count), cancellationToken);
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object? state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
         {
             var tcs = new TaskCompletionSource<int>(state);
             ReadAsync(buffer, offset, count).ContinueWith(t =>
@@ -63,7 +63,7 @@ namespace Dbus
                 throw;
             }
         }
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object? state)
+        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
         {
             var tcs = new TaskCompletionSource<int>(state);
             WriteAsync(buffer, offset, count).ContinueWith(t =>
