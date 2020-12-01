@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Dbus
 {
-    public partial class Connection : IDisposable, IAsyncDisposable
+    public sealed partial class Connection : IDisposable, IAsyncDisposable
     {
         public const string SystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket";
 

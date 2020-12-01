@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Dbus
 {
-    public class SocketOperations : IDisposable
+    public sealed class SocketOperations : IDisposable
     {
         private const string newline = "\r\n";
 

@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Dbus
 {
-    public class Decoder : IDisposable
+    public sealed class Decoder : IDisposable
     {
         /// <summary>
         /// Decodes a Byte from the buffer and advances the index
