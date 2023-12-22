@@ -148,14 +148,13 @@ public sealed class Decoder(MessageHeader? header, IMemoryOwner<byte> memoryOwne
     /// <returns>The decoded type</returns>
     public delegate T ElementDecoder<T>(Decoder decoder);
 
-    private unsafe string getStringFromBytes(int length)
+    private string getStringFromBytes(int length)
     {
         var result = string.Empty;
         if (length != 0)
         {
-            var bytes = memoryOwner.Memory.Span[index..];
-            fixed (byte* bytesP = bytes)
-                result = Encoding.UTF8.GetString(bytesP, length);
+            var bytes = memoryOwner.Memory.Span[index..(index + length)];
+            result = Encoding.UTF8.GetString(bytes);
         }
         index += length + 1 /* null byte */;
         return result;
