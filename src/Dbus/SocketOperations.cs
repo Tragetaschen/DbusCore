@@ -116,12 +116,12 @@ public sealed class SocketOperations : IDisposable
     }
 
     [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
+    private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref Msghdr buf, int flags);
     public unsafe void Send(Span<ReadOnlyMemory<byte>> segments, int numberOfSegments)
     {
         var handlesMemoryOwner = MemoryPool<MemoryHandle>.Shared.Rent(numberOfSegments);
         var handles = handlesMemoryOwner.Memory.Span;
-        var iovecs = stackalloc iovec[numberOfSegments];
+        var iovecs = stackalloc Iovec[numberOfSegments];
 
         for (var i = 0; i < numberOfSegments; ++i)
         {
@@ -130,7 +130,7 @@ public sealed class SocketOperations : IDisposable
             iovecs[i].iov_len = segments[i].Length;
         }
 
-        var msg = new msghdr
+        var msg = new Msghdr
         {
             iov = iovecs,
             iovlen = numberOfSegments,
@@ -158,7 +158,7 @@ public sealed class SocketOperations : IDisposable
     }
 
     [DllImport("libc")]
-    private static extern int recvmsg(SafeHandle sockfd, [In] ref msghdr buf, int flags);
+    private static extern int recvmsg(SafeHandle sockfd, [In] ref Msghdr buf, int flags);
     public unsafe void ReceiveMessage(
         Span<byte> fixedLengthHeader,
         Span<byte> control
@@ -168,12 +168,12 @@ public sealed class SocketOperations : IDisposable
         fixed (byte* controlP = control)
         {
             const int iovecsLength = 1;
-            var iovecs = stackalloc iovec[iovecsLength];
+            var iovecs = stackalloc Iovec[iovecsLength];
 
             iovecs[0].iov_base = fixedLengthHeaderP;
             iovecs[0].iov_len = fixedLengthHeader.Length;
 
-            var msg = new msghdr
+            var msg = new Msghdr
             {
                 iov = iovecs,
                 iovlen = 1,
@@ -201,7 +201,7 @@ public sealed class SocketOperations : IDisposable
         fixed (byte* controlP = control)
         {
             const int iovecsLength = 3;
-            var iovecs = stackalloc iovec[iovecsLength];
+            var iovecs = stackalloc Iovec[iovecsLength];
 
             var lengthTillBodyEnd = header.Length + body.Length;
             var allReceivedLength = 0;
@@ -212,7 +212,7 @@ public sealed class SocketOperations : IDisposable
             iovecs[1].iov_len = body.Length;
             iovecs[2].iov_base = fixedLengthHeaderP;
             iovecs[2].iov_len = fixedLengthHeader.Length;
-            var nextMsg = new msghdr
+            var nextMsg = new Msghdr
             {
                 iov = iovecs,
                 iovlen = iovecsLength,
@@ -244,7 +244,7 @@ public sealed class SocketOperations : IDisposable
         }
     }
 
-    private int receiveAndCheck(ref msghdr nextMsg)
+    private int receiveAndCheck(ref Msghdr nextMsg)
     {
         var length = recvmsg(handle, ref nextMsg, 0);
         if (length == 0)
@@ -254,17 +254,17 @@ public sealed class SocketOperations : IDisposable
         return length;
     }
 
-    private unsafe struct iovec
+    private unsafe struct Iovec
     {
         public byte* iov_base;
         public nint iov_len;
     }
 
-    private unsafe struct msghdr
+    private unsafe struct Msghdr
     {
         public IntPtr name;
         public nint namelen;
-        public iovec* iov;
+        public Iovec* iov;
         public nint iovlen;
         public byte* control;
         public nint controllen;

@@ -6,7 +6,7 @@ namespace Dbus;
 
 public class MessageHeader
 {
-    private static readonly int sizeofCmsghdr = Marshal.SizeOf<cmsghdr>();
+    private static readonly int sizeofCmsghdr = Marshal.SizeOf<Cmsghdr>();
 
     public MessageHeader(
         SocketOperations socketOperations,
@@ -50,7 +50,7 @@ public class MessageHeader
                     var numberOfFds = Decoder.GetUInt32(header);
 
                     var cmsgHeaderBytes = controlBytes[..sizeofCmsghdr];
-                    var cmsgHeader = MemoryMarshal.Cast<byte, cmsghdr>(cmsgHeaderBytes);
+                    var cmsgHeader = MemoryMarshal.Cast<byte, Cmsghdr>(cmsgHeaderBytes);
 
                     var fileDescriptorsBytes = controlBytes[sizeofCmsghdr..(int)cmsgHeader[0].len];
                     var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
@@ -82,7 +82,7 @@ public class MessageHeader
     public override string ToString()
         => $"P: {Path}, I: {InterfaceName}, M: {Member}, E: {ErrorName}, R: {ReplySerial}, D: {Destination}, S: {Sender}, B: {BodySignature}";
 
-    private struct cmsghdr
+    private struct Cmsghdr
     {
 #pragma warning disable 0649
         public nint len; // size_t, not! socklen_t
