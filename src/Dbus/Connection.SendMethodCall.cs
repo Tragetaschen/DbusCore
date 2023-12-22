@@ -87,8 +87,7 @@ public partial class Connection
                 cancellationToken
             ).ConfigureAwait(false);
 
-            if (body != null)
-                body.CompleteReading(bodySegments);
+            body?.CompleteReading(bodySegments);
             header.CompleteReading(headerSegments);
 
             return await tcs.Task.ConfigureAwait(false);
