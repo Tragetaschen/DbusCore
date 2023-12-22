@@ -29,7 +29,7 @@ public static partial class Generator
             .Append(@"
         public event ")
             .Append(BuildTypeString(eventInfo.EventHandlerType))
-            .Append(" ")
+            .Append(' ')
             .Append(eventInfo.Name)
             .AppendLine(";")
          ;

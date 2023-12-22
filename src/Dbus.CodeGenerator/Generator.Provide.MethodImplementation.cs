@@ -77,7 +77,7 @@ public static partial class Generator
         builder
             .Append("await target.")
             .Append(method.Name)
-            .Append("(")
+            .Append('(')
             .AppendJoin(", ", methodParameters)
             .Append(@");
             if (methodCallOptions.NoReplyExpected)

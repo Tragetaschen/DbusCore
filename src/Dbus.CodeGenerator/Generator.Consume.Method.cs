@@ -98,7 +98,7 @@ public static partial class Generator
             returnStatement = new StringBuilder()
                 .Append("return (")
                 .Append(BuildTypeString(returnType.GenericTypeArguments[0]))
-                .Append(")")
+                .Append(')')
                 .Append(decoderGenerator.DelegateName)
                 .Append("(decoder);")
              ;
@@ -127,7 +127,7 @@ public static partial class Generator
                     .Append(", ")
                     .AppendJoin(", ", encodeParameters.Select(parameter => new StringBuilder()
                         .Append(BuildTypeString(parameter.ParameterType))
-                        .Append(" ")
+                        .Append(' ')
                         .Append(parameter.Name))
                     )
                 ;
@@ -144,12 +144,12 @@ public static partial class Generator
             .Append(@"
         public async ")
             .Append(BuildTypeString(returnType))
-            .Append(" ")
+            .Append(' ')
             .Append(methodInfo.Name)
-            .Append("(")
+            .Append('(')
             .AppendJoin(", ", parameters.Select(parameter => new StringBuilder()
                 .Append(BuildTypeString(parameter.ParameterType))
-                .Append(" ")
+                .Append(' ')
                 .Append(parameter.Name)
             ))
             .Append(@")

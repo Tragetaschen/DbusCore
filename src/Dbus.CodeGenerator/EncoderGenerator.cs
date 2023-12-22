@@ -21,7 +21,7 @@ public class EncoderGenerator
     {
         var (signature, code, _) = encoder(name, name, type, Generator.Indent);
 
-        Signature.Append("v");
+        Signature.Append('v');
         Result.Append(buildKnownTypeEncodeCode(Generator.Indent, $@"(global::Dbus.Signature)""{signature}"""));
         Result.Append(code);
     }
@@ -55,7 +55,7 @@ public class EncoderGenerator
                 encoder.add(name + "_e", name + "_e", elementType, indent + "    ");
                 var code = buildArrayEncodeCode(indent, value, name, encoder);
                 var signature = new StringBuilder()
-                    .Append("a")
+                    .Append('a')
                     .Append(encoder.Signature)
                 ;
                 return (signature, code, false);
@@ -74,7 +74,7 @@ public class EncoderGenerator
                     .Append("a{")
                     .Append(keyEncoder.Signature)
                     .Append(valueEncoder.Signature)
-                    .Append("}")
+                    .Append('}')
                 ;
                 return (signature, code, false/*?*/);
             }
@@ -177,7 +177,7 @@ public class EncoderGenerator
         var signature = new StringBuilder();
         if (isStruct)
         {
-            signature.Append("(");
+            signature.Append('(');
             builder.Append(indent)
                 .Append(body)
                 .AppendLine(".StartCompoundValue();")
@@ -195,7 +195,7 @@ public class EncoderGenerator
         }
 
         if (isStruct)
-            signature.Append(")");
+            signature.Append(')');
 
         return (signature, builder, true);
     }

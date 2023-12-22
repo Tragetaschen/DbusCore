@@ -69,7 +69,7 @@ public class DecoderGenerator
                     .AppendLine(");")
                 ;
                 var signature = new StringBuilder()
-                    .Append("a")
+                    .Append('a')
                     .Append(elementDecoder.Signature)
                 ;
                 return new DecoderGenerator(
@@ -105,7 +105,7 @@ public class DecoderGenerator
                     .Append("a{")
                     .Append(keyDecoder.Signature)
                     .Append(valueDecoder.Signature)
-                    .Append("}")
+                    .Append('}')
                 ;
                 return new DecoderGenerator(
                     signature,
@@ -144,7 +144,7 @@ public class DecoderGenerator
         {
             delegateBuilder.Append(@"
             global::Dbus.Decoder.AdvanceToCompoundValue(decoder);");
-            signatureBuilder.Append("(");
+            signatureBuilder.Append('(');
         }
 
         foreach (var p in constructorParameters)
@@ -162,12 +162,12 @@ public class DecoderGenerator
         }
 
         if (isStruct)
-            signatureBuilder.Append(")");
+            signatureBuilder.Append(')');
 
         delegateBuilder.Append(@"
             return new ")
             .Append(Generator.BuildTypeString(type))
-            .Append("(")
+            .Append('(')
             .AppendJoin(", ", constructorParameters.Select(x => x.Name))
             .AppendLine(@");
         };");

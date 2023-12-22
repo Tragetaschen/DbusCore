@@ -19,9 +19,9 @@ public static partial class Generator
         return new StringBuilder()
             .Append("global::")
             .Append(withoutSuffix)
-            .Append("<")
+            .Append('<')
             .AppendJoin(", ", type.GenericTypeArguments.Select(BuildTypeString))
-            .Append(">")
+            .Append('>')
         ;
     }
 }

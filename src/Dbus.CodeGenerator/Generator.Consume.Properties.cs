@@ -87,7 +87,7 @@ public static partial class Generator
                 .Append(@"
         public ")
                 .Append(BuildTypeString(property.PropertyType))
-                .Append(" ")
+                .Append(' ')
                 .Append(property.Name)
                 .Append(" { get; private set; }")
             ;
