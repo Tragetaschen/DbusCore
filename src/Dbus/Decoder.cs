@@ -112,7 +112,7 @@ public sealed class Decoder : IDisposable
         return DecodeVariant(decoder, signature);
     };
 
-    private static readonly Dictionary<char, (Func<Decoder, object> Decoder, Type Type)> typeDecoders = new Dictionary<char, (Func<Decoder, object>, Type)>
+    private static readonly Dictionary<char, (Func<Decoder, object> Decoder, Type Type)> typeDecoders = new()
     {
         ['o'] = (static d => GetObjectPath(d), typeof(ObjectPath)),
         ['s'] = (static d => GetString(d), typeof(string)),

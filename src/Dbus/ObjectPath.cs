@@ -9,8 +9,7 @@ public class ObjectPath
     private ObjectPath(string objectPath)
         => this.objectPath = objectPath ?? throw new ArgumentNullException(nameof(objectPath));
 
-    public static implicit operator ObjectPath(string objectPath) =>
-        new ObjectPath(objectPath);
+    public static implicit operator ObjectPath(string objectPath) => new(objectPath);
 
     public override bool Equals(object? obj)
     {

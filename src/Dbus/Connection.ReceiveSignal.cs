@@ -9,8 +9,7 @@ public partial class Connection
 {
     public delegate void SignalHandler(Decoder decoder);
 
-    private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName, string member), SignalHandler?> signalHandlers =
-        new ConcurrentDictionary<(ObjectPath, string, string), SignalHandler?>();
+    private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName, string member), SignalHandler?> signalHandlers = new();
 
     public IAsyncDisposable RegisterSignalHandler(
         ObjectPath path,

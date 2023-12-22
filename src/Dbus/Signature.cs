@@ -9,8 +9,7 @@ public class Signature
     private Signature(string signature)
         => this.signature = signature ?? throw new ArgumentNullException(nameof(signature));
 
-    public static implicit operator Signature(string signature) =>
-        new Signature(signature);
+    public static implicit operator Signature(string signature) => new(signature);
 
     public override bool Equals(object? obj)
     {

@@ -8,8 +8,7 @@ namespace Dbus;
 
 public partial class Connection
 {
-    private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName), IProxy> objectProxies =
-        new ConcurrentDictionary<(ObjectPath, string), IProxy>();
+    private readonly ConcurrentDictionary<(ObjectPath path, string interfaceName), IProxy> objectProxies = new();
 
     public IDisposable RegisterObjectProxy(
         ObjectPath path,

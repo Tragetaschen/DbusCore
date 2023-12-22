@@ -11,7 +11,7 @@ namespace Dbus.CodeGenerator;
 
 public static partial class Generator
 {
-    private static readonly Regex propertyName = new Regex("^(Get|Set)[A-Z].+");
+    private static readonly Regex propertyName = new("^(Get|Set)[A-Z].+");
 
     private static StringBuilder consumeMethod(MethodInfo methodInfo, string interfaceName)
     {

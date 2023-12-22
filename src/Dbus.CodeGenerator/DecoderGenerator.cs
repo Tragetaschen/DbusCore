@@ -26,7 +26,7 @@ public class DecoderGenerator
     public string DelegateName { get; }
     public bool IsCompoundValue { get; }
 
-    public static DecoderGenerator Empty() => new DecoderGenerator(
+    public static DecoderGenerator Empty() => new(
         new StringBuilder(),
         new StringBuilder(),
         "",

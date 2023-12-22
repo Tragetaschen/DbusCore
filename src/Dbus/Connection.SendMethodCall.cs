@@ -8,8 +8,7 @@ namespace Dbus;
 
 public partial class Connection
 {
-    private readonly ConcurrentDictionary<uint, TaskCompletionSource<Decoder>> expectedMessages =
-        new ConcurrentDictionary<uint, TaskCompletionSource<Decoder>>();
+    private readonly ConcurrentDictionary<uint, TaskCompletionSource<Decoder>> expectedMessages = new();
 
     private static Encoder buildMethodCallHeader(
         int bodyLength,

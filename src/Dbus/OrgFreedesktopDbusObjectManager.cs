@@ -11,7 +11,7 @@ public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerP
     private readonly Connection connection;
     private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
     private readonly IProxy thisProxy;
-    private readonly SemaphoreSlim syncRoot = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim syncRoot = new(1);
 
     public OrgFreedesktopDbusObjectManager(Connection connection, ObjectPath root)
     {

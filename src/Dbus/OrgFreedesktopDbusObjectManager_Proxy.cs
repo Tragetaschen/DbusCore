@@ -23,7 +23,7 @@ public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
     }
 
     public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
-        => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
+        => new(connection, target, path);
 
     public string InterfaceName => "org.freedesktop.DBus.ObjectManager";
     public object Target => target;

@@ -7,7 +7,7 @@ namespace Dbus.CodeGenerator;
 
 public static class SignatureString
 {
-    public static readonly Dictionary<Type, string> For = new Dictionary<Type, string>()
+    public static readonly Dictionary<Type, string> For = new()
     {
         [typeof(ObjectPath)] = "o",
         [typeof(string)] = "s",

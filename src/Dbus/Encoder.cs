@@ -11,7 +11,7 @@ namespace Dbus;
 
 public class Encoder
 {
-    private readonly Pipe pipe = new Pipe(new PipeOptions(
+    private readonly Pipe pipe = new(new PipeOptions(
         // There's no reader until the entire message is built in memory.
         // That means we cannot tolerate a pause for the writer to wait for the non-existant reader
         pauseWriterThreshold: long.MaxValue
