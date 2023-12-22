@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Dbus;
 
-public sealed class SocketOperations : IDisposable
+public sealed partial class SocketOperations : IDisposable
 {
     private const string newline = "\r\n";
 
@@ -25,32 +25,22 @@ public sealed class SocketOperations : IDisposable
             throw new Win32Exception();
     }
 
-    [DllImport("libc")]
-    private static extern SafeFileHandle socket(int domain, int type, int protocol);
+    [LibraryImport("libc")]
+    private static partial SafeFileHandle socket(int domain, int type, int protocol);
 
-    [DllImport("libc")]
-    private static extern int shutdown(SafeHandle sockfd, int how);
+    [LibraryImport("libc")]
+    private static partial int shutdown(SafeHandle sockfd, int how);
     public void Shutdown() => shutdown(handle, 2);
 
     public void Dispose() => handle.Dispose();
 
-    [DllImport("libc")]
-    private static extern int getuid();
+    [LibraryImport("libc")]
+    private static partial int getuid();
     public int Uid => getuid();
 
-    [DllImport("libc")]
-    private static extern int fcntl(SafeHandle sockfd, int cmd, int flags);
-    [DllImport("libc")]
-    private static extern int fcntl(SafeHandle sockfd, int cmd);
-    public void SetNonblocking(SafeHandle sockfd)
-    {
-        var flags = fcntl(sockfd, 3/*f_getfl*/);
-        flags &= ~0x800/*o_nonblock*/;
-        fcntl(sockfd, 4/*f_setfl*/, flags);
-    }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int connect(SafeHandle sockfd, [In] byte[] addr, nint addrlen);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int connect(SafeHandle sockfd, [In] byte[] addr, nint addrlen);
 
     public void WriteLine(string contents)
     {
@@ -59,15 +49,13 @@ public sealed class SocketOperations : IDisposable
         Send(handle, sendBytes, 0, sendBytes.Length);
     }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint recv(SafeHandle sockfd, byte* buf, nint len, int flags);
     public string ReadLine()
     {
         var line = "";
         var receiveByte = new byte[1];
         while (!line.EndsWith(newline))
         {
-            var result = Read(handle, receiveByte, 0, 1);
+            var result = Read(handle, receiveByte);
             if (result != 1)
                 throw new InvalidOperationException("recv failed: " + result);
             line += Encoding.ASCII.GetString(receiveByte);
@@ -77,46 +65,21 @@ public sealed class SocketOperations : IDisposable
         return toReturn;
     }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint read(SafeHandle sockfd, byte* buf, nint len);
-    public unsafe int Read(SafeHandle sockfd, ReadOnlyMemory<byte> buffer, int offset, int count)
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial nint read(SafeHandle sockfd, ReadOnlySpan<byte> buf, nint len);
+    public int Read(SafeHandle sockfd, ReadOnlySpan<byte> buffer)
     {
-        fixed (byte* bufferP = buffer.Span)
+        var readBytes = read(sockfd, buffer, buffer.Length);
+        if (readBytes >= 0)
+            return (int)readBytes;
+        else
         {
-            var readBytes = read(sockfd, bufferP + offset, count);
-            if (readBytes >= 0)
-                return (int)readBytes;
-            else
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
+            throw new Win32Exception(Marshal.GetLastWin32Error());
         }
     }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint write(SafeHandle sockfd, byte* buf, nint len);
-    public unsafe void Write(SafeHandle sockfd, ReadOnlyMemory<byte> buffer, int offset, int count)
-    {
-        nint theOffset = offset;
-        nint theCount = count;
-        fixed (byte* bufferP = buffer.Span)
-        {
-            while (theCount > 0)
-            {
-                var written = write(sockfd, bufferP + theOffset, theCount);
-                if (written >= 0)
-                {
-                    theOffset += written;
-                    theCount -= written;
-                }
-                else
-                    throw new Win32Exception();
-            }
-        }
-    }
-
-    [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint sendmsg(SafeHandle sockfd, [In] ref Msghdr buf, int flags);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial nint sendmsg(SafeHandle sockfd, ref Msghdr buf, int flags);
     public unsafe void Send(Span<ReadOnlyMemory<byte>> segments, int numberOfSegments)
     {
         var handlesMemoryOwner = MemoryPool<MemoryHandle>.Shared.Rent(numberOfSegments);
@@ -146,8 +109,8 @@ public sealed class SocketOperations : IDisposable
             throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern unsafe nint send(SafeHandle sockfd, [In] ref byte buf, nint len, int flags);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial nint send(SafeHandle sockfd, ref byte buf, nint len, int flags);
 
     public int Send(SafeHandle sockfd, byte[] buffer, int offset, int count)
     {
@@ -157,8 +120,8 @@ public sealed class SocketOperations : IDisposable
         return (int)sendResult;
     }
 
-    [DllImport("libc")]
-    private static extern int recvmsg(SafeHandle sockfd, [In] ref Msghdr buf, int flags);
+    [LibraryImport("libc")]
+    private static partial int recvmsg(SafeHandle sockfd, ref Msghdr buf, int flags);
     public unsafe void ReceiveMessage(
         Span<byte> fixedLengthHeader,
         Span<byte> control
