@@ -1,5 +1,4 @@
-﻿using DotNetCross.NativeInts;
-using Microsoft.Win32.SafeHandles;
+﻿using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.ComponentModel;
