@@ -1,7 +1,6 @@
-﻿namespace Dbus
+﻿namespace Dbus;
+
+internal enum DbusProtocolVersion : byte
 {
-    internal enum DbusProtocolVersion : byte
-    {
-        Default = 1,
-    }
+    Default = 1,
 }

@@ -1,9 +1,8 @@
 ﻿using System.Threading.Tasks;
 
-namespace Dbus
+namespace Dbus;
+
+public interface IDbusPropertyInitialization
 {
-    public interface IDbusPropertyInitialization
-    {
-        Task PropertyInitializationFinished { get; }
-    }
+    Task PropertyInitializationFinished { get; }
 }

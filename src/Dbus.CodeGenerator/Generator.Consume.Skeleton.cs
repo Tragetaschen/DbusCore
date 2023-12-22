@@ -1,12 +1,12 @@
 ﻿using System.Text;
 
-namespace Dbus.CodeGenerator
+namespace Dbus.CodeGenerator;
+
+public static partial class Generator
 {
-    public static partial class Generator
-    {
-        private static StringBuilder consumeSkeleton(string interfaceName)
-            => new StringBuilder()
-                .Append(@"
+    private static StringBuilder consumeSkeleton(string interfaceName)
+        => new StringBuilder()
+            .Append(@"
         private readonly global::Dbus.Connection connection;
         private readonly global::Dbus.ObjectPath path;
         private readonly string destination;
@@ -15,8 +15,8 @@ namespace Dbus.CodeGenerator
         public override string ToString()
         {
             return """)
-                .Append(interfaceName)
-                .AppendLine(@"@"" + this.path;
+            .Append(interfaceName)
+            .AppendLine(@"@"" + this.path;
         }
 
         public void Dispose() => global::System.Threading.Tasks.Task.Run((global::System.Func<global::System.Threading.Tasks.ValueTask>)DisposeAsync);
@@ -26,5 +26,4 @@ namespace Dbus.CodeGenerator
             foreach (var eventSubscription in eventSubscriptions)
                 await eventSubscription.DisposeAsync();
         }");
-    }
 }

@@ -1,8 +1,7 @@
-﻿namespace Dbus
+﻿namespace Dbus;
+
+internal enum DbusEndianess : byte
 {
-    internal enum DbusEndianess : byte
-    {
-        LittleEndian = (byte)'l',
-        BigEndian = (byte)'B',
-    }
+    LittleEndian = (byte)'l',
+    BigEndian = (byte)'B',
 }

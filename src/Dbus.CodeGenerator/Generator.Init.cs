@@ -3,37 +3,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Dbus.CodeGenerator
+namespace Dbus.CodeGenerator;
+
+public static partial class Generator
 {
-    public static partial class Generator
+    private static StringBuilder init(
+        bool shouldGenerateServiceCollectionExtension,
+        List<StringBuilder> registrations,
+        List<StringBuilder> services,
+        Func<List<StringBuilder>, StringBuilder>? registerServices
+    )
     {
-        private static StringBuilder init(
-            bool shouldGenerateServiceCollectionExtension,
-            List<StringBuilder> registrations,
-            List<StringBuilder> services,
-            Func<List<StringBuilder>, StringBuilder>? registerServices
-        )
-        {
-            var builder = new StringBuilder();
-            builder
-                .Append(@"
+        var builder = new StringBuilder();
+        builder
+            .Append(@"
     public static partial class DbusImplementations
     {
         private static void initRegistrations()
         {
 ")
-                .AppendJoin(@"", registrations)
-                .AppendLine(@"        }")
-            ;
+            .AppendJoin(@"", registrations)
+            .AppendLine(@"        }")
+        ;
 
-            if (registerServices != null)
-                builder.Append(registerServices(services));
-            else if (!shouldGenerateServiceCollectionExtension)
-                builder.Append(@"
+        if (registerServices != null)
+            builder.Append(registerServices(services));
+        else if (!shouldGenerateServiceCollectionExtension)
+            builder.Append(@"
         static partial void DoInit() => initRegistrations();");
-            else
-                builder
-                    .Append(@"
+        else
+            builder
+                .Append(@"
         static partial void DoAddDbus(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
             initRegistrations();
@@ -42,21 +42,20 @@ namespace Dbus.CodeGenerator
                 var options = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::Microsoft.Extensions.Options.IOptions<global::Dbus.DbusConnectionOptions>>(serviceProvider);
                 return global::Dbus.Connection.CreateAsync(options.Value);
             });")
-                    .AppendJoin("", services.Select(service => new StringBuilder()
-                        .Append(@"
+                .AppendJoin("", services.Select(service => new StringBuilder()
+                    .Append(@"
             global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, async serviceProvider =>
             {
                 var connection = await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::System.Threading.Tasks.Task<global::Dbus.Connection>>(serviceProvider).ConfigureAwait(false);
                 return connection.Consume<")
-                        .Append(service)
-                        .Append(@">();
+                    .Append(service)
+                    .Append(@">();
             });")))
-                    .Append(@"
+                .Append(@"
         }");
-            builder.AppendLine(@"
+        builder.AppendLine(@"
     }");
 
-            return builder;
-        }
+        return builder;
     }
 }

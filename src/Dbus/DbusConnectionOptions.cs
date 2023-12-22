@@ -1,7 +1,6 @@
-﻿namespace Dbus
+﻿namespace Dbus;
+
+public class DbusConnectionOptions
 {
-    public class DbusConnectionOptions
-    {
-        public string? Address { get; set; }
-    }
+    public string? Address { get; set; }
 }

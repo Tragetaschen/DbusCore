@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Dbus
+namespace Dbus;
+
+[AttributeUsage(AttributeTargets.Class)]
+public class NoDbusStructAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Class)]
-    public class NoDbusStructAttribute : Attribute
-    {
-    }
 }

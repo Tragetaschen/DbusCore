@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Dbus
+namespace Dbus;
+
+[AttributeUsage(AttributeTargets.Property)]
+public class DbusPropertiesChanged : Attribute
 {
-    [AttributeUsage(AttributeTargets.Property)]
-    public class DbusPropertiesChanged : Attribute
-    {
-    }
 }

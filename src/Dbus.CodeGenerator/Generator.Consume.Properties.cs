@@ -2,14 +2,14 @@
 using System.Reflection;
 using System.Text;
 
-namespace Dbus.CodeGenerator
+namespace Dbus.CodeGenerator;
+
+public static partial class Generator
 {
-    public static partial class Generator
+    private static StringBuilder consumeProperties(PropertyInfo[] properties, string interfaceName)
     {
-        private static StringBuilder consumeProperties(PropertyInfo[] properties, string interfaceName)
-        {
-            var builder = new StringBuilder()
-                .Append(@"
+        var builder = new StringBuilder()
+            .Append(@"
         public event global::System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
         public global::System.Threading.Tasks.Task PropertyInitializationFinished { get; }
 
@@ -18,8 +18,8 @@ namespace Dbus.CodeGenerator
             decoder.AssertSignature(""sa{sv}as"");
             var interfaceName = global::Dbus.Decoder.GetString(decoder);
             if (interfaceName != """)
-                .Append(interfaceName)
-                .Append(@""")
+            .Append(interfaceName)
+            .Append(@""")
                 return;
             var changed = global::Dbus.Decoder.GetDictionary(decoder, global::Dbus.Decoder.GetString, global::Dbus.Decoder.GetObject);
             applyProperties(changed);
@@ -29,8 +29,8 @@ namespace Dbus.CodeGenerator
         {
             var sendBody = new global::Dbus.Encoder();
             sendBody.Add(""")
-                .Append(interfaceName)
-                .Append(@""");
+            .Append(interfaceName)
+            .Append(@""");
 
             var decoder = await connection.SendMethodCall(
                 this.path,
@@ -59,41 +59,40 @@ namespace Dbus.CodeGenerator
             {
                 switch (name)
                 {");
-            foreach (var property in properties)
-            {
-                if (property.SetMethod != null)
-                    throw new InvalidOperationException("Cache properties can only have getters");
-                builder
-                    .Append(@"
+        foreach (var property in properties)
+        {
+            if (property.SetMethod != null)
+                throw new InvalidOperationException("Cache properties can only have getters");
+            builder
+                .Append(@"
                     case """)
-                    .Append(property.Name)
-                    .Append(@""":
+                .Append(property.Name)
+                .Append(@""":
                         ")
-                    .Append(property.Name)
-                    .Append(" = (")
-                    .Append(BuildTypeString(property.PropertyType))
-                    .Append(@")value;
+                .Append(property.Name)
+                .Append(" = (")
+                .Append(BuildTypeString(property.PropertyType))
+                .Append(@")value;
                         break;")
-                ;
-            }
-            builder.AppendLine(@"
+            ;
+        }
+        builder.AppendLine(@"
                 }
             }
             foreach (var key in changed.Keys)
                 PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(key));
         }");
-            foreach (var property in properties)
-                builder
-                    .Append(@"
+        foreach (var property in properties)
+            builder
+                .Append(@"
         public ")
-                    .Append(BuildTypeString(property.PropertyType))
-                    .Append(" ")
-                    .Append(property.Name)
-                    .Append(" { get; private set; }")
-                ;
+                .Append(BuildTypeString(property.PropertyType))
+                .Append(" ")
+                .Append(property.Name)
+                .Append(" { get; private set; }")
+            ;
 
-            builder.AppendLine();
-            return builder;
-        }
+        builder.AppendLine();
+        return builder;
     }
 }

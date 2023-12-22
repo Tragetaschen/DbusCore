@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Dbus
+namespace Dbus;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class DbusMethodAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Method)]
-    public class DbusMethodAttribute : Attribute
-    {
-    }
 }

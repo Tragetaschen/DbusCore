@@ -1,11 +1,10 @@
-﻿namespace Dbus
+﻿namespace Dbus;
+
+internal enum DbusMessageType : byte
 {
-    internal enum DbusMessageType : byte
-    {
-        Invalid,
-        MethodCall,
-        MethodReturn,
-        Error,
-        Signal,
-    }
+    Invalid,
+    MethodCall,
+    MethodReturn,
+    Error,
+    Signal,
 }

@@ -3,112 +3,111 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Dbus
+namespace Dbus;
+
+public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
 {
-    public sealed class OrgFreedesktopDbusObjectManager_Proxy : IProxy
+    private readonly Connection connection;
+    private readonly IOrgFreedesktopDbusObjectManagerProvide target;
+    private readonly IDisposable registration;
+
+    private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
     {
-        private readonly Connection connection;
-        private readonly IOrgFreedesktopDbusObjectManagerProvide target;
-        private readonly IDisposable registration;
+        this.connection = connection;
+        this.target = target;
+        registration = connection.RegisterObjectProxy(
+            path ?? throw new ArgumentNullException(nameof(path)),
+            InterfaceName,
+            this
+        );
+    }
 
-        private OrgFreedesktopDbusObjectManager_Proxy(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
+    public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
+        => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
+
+    public string InterfaceName => "org.freedesktop.DBus.ObjectManager";
+    public object Target => target;
+
+    public Task HandleMethodCallAsync(
+        MethodCallOptions methodCallOptions,
+        Decoder decoder,
+        CancellationToken cancellationToken
+    ) => methodCallOptions.Member switch
+    {
+        "GetManagedObjects" => handleGetManagedObjectsAsync(methodCallOptions, decoder, cancellationToken),
+        _ => throw new DbusException(
+            DbusException.CreateErrorName("UnknownMethod"),
+            "Method not supported"
+        ),
+    };
+
+    private Encoder encodeManagedObjects(Dictionary<ObjectPath, List<IProxy>> managedObjects)
+    {
+        var encoder = new Encoder();
+        var dictionaryState = encoder.StartArray(storesCompoundValues: true);
+
+        foreach (var managedObject in managedObjects)
         {
-            this.connection = connection;
-            this.target = target;
-            registration = connection.RegisterObjectProxy(
-                path ?? throw new ArgumentNullException(nameof(path)),
-                InterfaceName,
-                this
-            );
-        }
-
-        public static OrgFreedesktopDbusObjectManager_Proxy Factory(Connection connection, IOrgFreedesktopDbusObjectManagerProvide target, ObjectPath path)
-            => new OrgFreedesktopDbusObjectManager_Proxy(connection, target, path);
-
-        public string InterfaceName => "org.freedesktop.DBus.ObjectManager";
-        public object Target => target;
-
-        public Task HandleMethodCallAsync(
-            MethodCallOptions methodCallOptions,
-            Decoder decoder,
-            CancellationToken cancellationToken
-        ) => methodCallOptions.Member switch
-        {
-            "GetManagedObjects" => handleGetManagedObjectsAsync(methodCallOptions, decoder, cancellationToken),
-            _ => throw new DbusException(
-                DbusException.CreateErrorName("UnknownMethod"),
-                "Method not supported"
-            ),
-        };
-
-        private Encoder encodeManagedObjects(Dictionary<ObjectPath, List<IProxy>> managedObjects)
-        {
-            var encoder = new Encoder();
-            var dictionaryState = encoder.StartArray(storesCompoundValues: true);
-
-            foreach (var managedObject in managedObjects)
+            encoder.StartCompoundValue();
+            encoder.Add(managedObject.Key);
+            var objectState = encoder.StartArray(storesCompoundValues: true);
+            foreach (var proxy in managedObject.Value)
             {
                 encoder.StartCompoundValue();
-                encoder.Add(managedObject.Key);
-                var objectState = encoder.StartArray(storesCompoundValues: true);
-                foreach (var proxy in managedObject.Value)
-                {
-                    encoder.StartCompoundValue();
-                    encoder.Add(proxy.InterfaceName);
-                    proxy.EncodeProperties(encoder);
-                }
-
-                encoder.StartCompoundValue();
-                encoder.Add("org.freedesktop.DBus.Properties");
-                var emptyState = encoder.StartArray(storesCompoundValues: true);
-                // empty properties for the properties interface
-                encoder.FinishArray(emptyState);
-
-                encoder.FinishArray(objectState);
+                encoder.Add(proxy.InterfaceName);
+                proxy.EncodeProperties(encoder);
             }
 
-            encoder.FinishArray(dictionaryState);
+            encoder.StartCompoundValue();
+            encoder.Add("org.freedesktop.DBus.Properties");
+            var emptyState = encoder.StartArray(storesCompoundValues: true);
+            // empty properties for the properties interface
+            encoder.FinishArray(emptyState);
 
-            return encoder;
+            encoder.FinishArray(objectState);
         }
 
-        private async Task handleGetManagedObjectsAsync(
-            MethodCallOptions methodCallOptions,
-            Decoder decoder,
-            CancellationToken cancellationToken
-        )
-        {
-            decoder.AssertSignature("");
-            var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
-            if (methodCallOptions.NoReplyExpected)
-                return;
-            var encoder = encodeManagedObjects(managedObjects);
-            await connection.SendMethodReturnAsync(
-                methodCallOptions,
-                encoder,
-                "a{oa{sa{sv}}}",
-                cancellationToken
-            ).ConfigureAwait(false);
-        }
+        encoder.FinishArray(dictionaryState);
 
-        public void EncodeProperties(Encoder encoder)
-            => throw new DbusException(
-                DbusException.CreateErrorName("InvalidCall"),
-                "ObjectManager has no Properties"
-            );
-
-        public void EncodeProperty(Encoder encoder, string requestedProperty)
-            => throw new DbusException(
-                DbusException.CreateErrorName("InvalidCall"),
-                "ObjectManager has no Properties"
-            );
-
-        public void SetProperty(string requestedProperty, Decoder decoder)
-            => throw new DbusException(
-                DbusException.CreateErrorName("InvalidCall"),
-                "ObjectManager has no Properties"
-            );
-
-        public void Dispose() => registration.Dispose();
+        return encoder;
     }
+
+    private async Task handleGetManagedObjectsAsync(
+        MethodCallOptions methodCallOptions,
+        Decoder decoder,
+        CancellationToken cancellationToken
+    )
+    {
+        decoder.AssertSignature("");
+        var managedObjects = await target.GetManagedObjectsAsync(cancellationToken).ConfigureAwait(false);
+        if (methodCallOptions.NoReplyExpected)
+            return;
+        var encoder = encodeManagedObjects(managedObjects);
+        await connection.SendMethodReturnAsync(
+            methodCallOptions,
+            encoder,
+            "a{oa{sa{sv}}}",
+            cancellationToken
+        ).ConfigureAwait(false);
+    }
+
+    public void EncodeProperties(Encoder encoder)
+        => throw new DbusException(
+            DbusException.CreateErrorName("InvalidCall"),
+            "ObjectManager has no Properties"
+        );
+
+    public void EncodeProperty(Encoder encoder, string requestedProperty)
+        => throw new DbusException(
+            DbusException.CreateErrorName("InvalidCall"),
+            "ObjectManager has no Properties"
+        );
+
+    public void SetProperty(string requestedProperty, Decoder decoder)
+        => throw new DbusException(
+            DbusException.CreateErrorName("InvalidCall"),
+            "ObjectManager has no Properties"
+        );
+
+    public void Dispose() => registration.Dispose();
 }
