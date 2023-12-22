@@ -25,7 +25,7 @@ namespace Dbus
             semaphoreSend = new SemaphoreSlim(1);
             receiveCts = new CancellationTokenSource();
             orgFreedesktopDbus = new OrgFreedesktopDbus(this);
-            consumeFactories.Add(typeof(OrgFreedesktopDbus), (_, _, _, _) => orgFreedesktopDbus);
+            consumeFactories.Add(typeof(IOrgFreedesktopDbus), (_, _, _, _) => orgFreedesktopDbus);
 
             receiveTask = Task.Factory.StartNew(
                 receive,
