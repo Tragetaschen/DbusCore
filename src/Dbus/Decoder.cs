@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
@@ -71,7 +72,7 @@ public sealed class Decoder : IDisposable
     /// <summary>
     /// Decodes a file descriptor as SafeHandle and advances the index
     /// </summary>
-    public static readonly ElementDecoder<SafeHandle> GetSafeHandle = decoder =>
+    public static readonly ElementDecoder<SafeFileHandle> GetSafeHandle = decoder =>
     {
         var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
         var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
@@ -84,10 +85,8 @@ public sealed class Decoder : IDisposable
     /// </summary>
     public static readonly ElementDecoder<Stream> GetStream = decoder =>
     {
-        var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
-        var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
-        var index = GetInt32(decoder);
-        return new UnixFdStream(unixFds[index], header.SocketOperations);
+        var safeHandle = GetSafeHandle(decoder);
+        return new FileStream(safeHandle, FileAccess.ReadWrite);
     };
 
     /// <summary>

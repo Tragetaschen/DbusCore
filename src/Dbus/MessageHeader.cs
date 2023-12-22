@@ -56,7 +56,7 @@ public class MessageHeader
                     var fileDescriptors = MemoryMarshal.Cast<byte, int>(fileDescriptorsBytes);
                     System.Diagnostics.Debug.Assert(numberOfFds == fileDescriptors.Length);
 
-                    UnixFds = new SafeHandle[numberOfFds];
+                    UnixFds = new SafeFileHandle[numberOfFds];
                     for (var i = 0; i < numberOfFds; ++i)
                         UnixFds[i] = new SafeFileHandle(new IntPtr(fileDescriptors[i]), true);
                     break;
@@ -76,7 +76,7 @@ public class MessageHeader
     public string? Destination { get; }
     public string? Sender { get; }
     public Signature? BodySignature { get; }
-    public SafeHandle[]? UnixFds { get; }
+    public SafeFileHandle[]? UnixFds { get; }
     internal SocketOperations SocketOperations { get; }
 
     public override string ToString()
