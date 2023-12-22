@@ -9,7 +9,7 @@ namespace Dbus;
 public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerProvide
 {
     private readonly Connection connection;
-    private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects;
+    private readonly Dictionary<ObjectPath, List<IProxy>> managedObjects = [];
     private readonly IProxy thisProxy;
     private readonly SemaphoreSlim syncRoot = new(1);
 
@@ -17,7 +17,6 @@ public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerP
     {
         this.connection = connection;
         Root = root;
-        managedObjects = new Dictionary<ObjectPath, List<IProxy>>();
         thisProxy = connection.Publish<IOrgFreedesktopDbusObjectManagerProvide>(this, Root);
     }
 
@@ -37,7 +36,7 @@ public class OrgFreedesktopDbusObjectManager : IOrgFreedesktopDbusObjectManagerP
             if (managedObjects.ContainsKey(fullPath))
                 managedObjects[fullPath].Add(proxy);
             else
-                managedObjects.Add(fullPath, new List<IProxy>() { proxy });
+                managedObjects.Add(fullPath, [proxy]);
         }
         finally
         {
