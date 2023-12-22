@@ -11,13 +11,14 @@ using System.Text;
 
 namespace Dbus;
 
-public sealed class Decoder : IDisposable
+public sealed class Decoder(MessageHeader? header, IMemoryOwner<byte> memoryOwner, int bufferLength) : IDisposable
 {
+    private int index = 0;
+
     /// <summary>
     /// Decodes a Byte from the buffer and advances the index
     /// </summary>
-    public static readonly ElementDecoder<byte> GetByte =
-        decoder => decoder.memoryOwner.Memory.Span[decoder.index++];
+    public static readonly ElementDecoder<byte> GetByte = static Decoder => Decoder.getPrimitive<byte>(0);
 
     /// <summary>
     /// Decodes a Boolean from the buffer and advances the index
@@ -72,13 +73,7 @@ public sealed class Decoder : IDisposable
     /// <summary>
     /// Decodes a file descriptor as SafeHandle and advances the index
     /// </summary>
-    public static readonly ElementDecoder<SafeFileHandle> GetSafeHandle = static decoder =>
-    {
-        var header = decoder.header ?? throw new InvalidOperationException("Decoder does not support file descriptors");
-        var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
-        var index = GetInt32(decoder);
-        return unixFds[index];
-    };
+    public static readonly ElementDecoder<SafeFileHandle> GetSafeHandle = static decoder => decoder.getSafeFileHandle();
 
     /// <summary>
     /// Decodes a file descriptor as Stream and advances the index
@@ -129,19 +124,6 @@ public sealed class Decoder : IDisposable
         ['v'] = (static d => GetObject(d), typeof(object)),
     };
 
-    private readonly MessageHeader? header;
-    private readonly IMemoryOwner<byte> memoryOwner;
-    private readonly int bufferLength;
-    private int index;
-
-    public Decoder(MessageHeader? header, IMemoryOwner<byte> memoryOwner, int bufferLength)
-    {
-        this.header = header;
-        this.memoryOwner = memoryOwner;
-        this.bufferLength = bufferLength;
-        index = 0;
-    }
-
     public void AssertSignature(Signature expectedSignature)
     {
         var bodySignature = header?.BodySignature ?? throw new InvalidOperationException("No header or body signature");
@@ -189,6 +171,14 @@ public sealed class Decoder : IDisposable
         return result;
     }
 
+    private SafeFileHandle getSafeFileHandle()
+    {
+        if (header is null)
+            throw new InvalidOperationException("Decoder does not support file descriptors");
+        var unixFds = header.UnixFds ?? throw new InvalidOperationException("No file descriptors received");
+        var index = GetInt32(this);
+        return unixFds[index];
+    }
 
     /// <summary>
     /// Decodes an array from the buffer and advances the index

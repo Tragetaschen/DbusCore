@@ -5,19 +5,14 @@ namespace Dbus;
 /// <summary>
 /// Marks interfaces for code generation to generate the appropriate implementation
 /// </summary>
+/// <param name="interfaceName">Name of the interface</param>
 [AttributeUsage(AttributeTargets.Interface)]
-public class DbusConsumeAttribute : Attribute
+public class DbusConsumeAttribute(string interfaceName) : Attribute
 {
-    /// <summary>
-    /// Constructor
-    /// </summary>
-    /// <param name="interfaceName">Name of the interface</param>
-    public DbusConsumeAttribute(string interfaceName) => InterfaceName = interfaceName;
-
     /// <summary>
     /// Name of the interface
     /// </summary>
-    public string InterfaceName { get; }
+    public string InterfaceName { get; } = interfaceName;
     /// <summary>
     /// Standard path if not overridden
     /// </summary>

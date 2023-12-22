@@ -21,23 +21,12 @@ public partial class Connection
         return new proxyHandle(this, path, interfaceName);
     }
 
-    private class proxyHandle : IDisposable
+    private class proxyHandle(
+        Connection connection,
+        ObjectPath path,
+        string interfaceName
+    ) : IDisposable
     {
-        private readonly Connection connection;
-        private readonly ObjectPath path;
-        private readonly string interfaceName;
-
-        public proxyHandle(
-            Connection connection,
-            ObjectPath path,
-            string interfaceName
-        )
-        {
-            this.connection = connection;
-            this.path = path;
-            this.interfaceName = interfaceName;
-        }
-
         public void Dispose()
             => connection.objectProxies.TryRemove((path, interfaceName), out var _);
     }

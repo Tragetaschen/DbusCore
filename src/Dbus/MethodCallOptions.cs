@@ -1,25 +1,15 @@
 ﻿namespace Dbus;
 
-public class MethodCallOptions
+public class MethodCallOptions(
+    MessageHeader messageHeader,
+    bool noReplyExpected,
+    uint replySerial
+)
 {
-    public MethodCallOptions(
-        MessageHeader messageHeader,
-        bool noReplyExpected,
-        uint replySerial
-    )
-    {
-        Sender = messageHeader.Sender!;
-        Path = messageHeader.Path!;
-        InterfaceName = messageHeader.InterfaceName!;
-        Member = messageHeader.Member!;
-        ReplySerial = replySerial;
-        NoReplyExpected = noReplyExpected;
-    }
-
-    public string Sender { get; }
-    public ObjectPath Path { get; }
-    public string InterfaceName { get; }
-    public string Member { get; }
-    public uint ReplySerial { get; }
-    public bool NoReplyExpected { get; }
+    public string Sender { get; } = messageHeader.Sender!;
+    public ObjectPath Path { get; } = messageHeader.Path!;
+    public string InterfaceName { get; } = messageHeader.InterfaceName!;
+    public string Member { get; } = messageHeader.Member!;
+    public uint ReplySerial { get; } = replySerial;
+    public bool NoReplyExpected { get; } = noReplyExpected;
 }

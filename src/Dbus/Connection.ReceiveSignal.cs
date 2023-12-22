@@ -42,29 +42,14 @@ public partial class Connection
         );
     }
 
-    private class signalHandle : IAsyncDisposable
+    private class signalHandle(
+        Connection connection,
+        (ObjectPath, string, string) entry,
+        string match,
+        Task addMatchTask,
+        SignalHandler handler
+    ) : IAsyncDisposable
     {
-        private readonly Connection connection;
-        private readonly (ObjectPath, string, string) entry;
-        private readonly string match;
-        private readonly Task addMatchTask;
-        private readonly SignalHandler handler;
-
-        public signalHandle(
-            Connection connection,
-            (ObjectPath, string, string) entry,
-            string match,
-            Task addMatchTask,
-            SignalHandler handler
-        )
-        {
-            this.connection = connection;
-            this.entry = entry;
-            this.match = match;
-            this.addMatchTask = addMatchTask;
-            this.handler = handler;
-        }
-
         public async ValueTask DisposeAsync()
         {
             SignalHandler? current;

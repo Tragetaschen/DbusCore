@@ -4,16 +4,11 @@ using System.Threading.Tasks;
 
 namespace Dbus;
 
-internal sealed class OrgFreedesktopDbus : IOrgFreedesktopDbus
+internal sealed class OrgFreedesktopDbus(Connection connection) : IOrgFreedesktopDbus
 {
     private static readonly ObjectPath path = "/org/freedesktop/DBus";
     private const string interfaceName = "org.freedesktop.DBus";
     private const string destination = "org.freedesktop.DBus";
-
-    private readonly Connection connection;
-
-    public OrgFreedesktopDbus(Connection connection)
-        => this.connection = connection;
 
     public async Task HelloAsync(CancellationToken cancellationToken)
     {
